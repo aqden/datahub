@@ -14,7 +14,7 @@ describe('Search', () => {
         server.shutdown();
     });
 
-    describe('given the home page is loaded', () => {
+    describe('given the home page is loaded again', () => {
         describe('when the user enters a keyword in the search field and results found and the first item is selected from the search result dropdown', () => {
             it('then the search result page should be displayed with the Task tab be selected and the selected item be displayed', () => {
                 login('kafka');
