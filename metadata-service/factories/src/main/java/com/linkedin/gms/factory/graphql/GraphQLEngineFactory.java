@@ -1,6 +1,7 @@
 package com.linkedin.gms.factory.graphql;
 
 import com.datahub.authentication.token.StatefulTokenService;
+import com.datahub.authentication.user.NativeUserService;
 import com.linkedin.datahub.graphql.GmsGraphQLEngine;
 import com.linkedin.datahub.graphql.GraphQLEngine;
 import com.linkedin.datahub.graphql.analytics.service.AnalyticsService;
@@ -9,6 +10,7 @@ import com.linkedin.gms.factory.auth.DataHubTokenServiceFactory;
 import com.linkedin.gms.factory.common.GitVersionFactory;
 import com.linkedin.gms.factory.common.IndexConventionFactory;
 import com.linkedin.gms.factory.common.RestHighLevelClientFactory;
+import com.linkedin.gms.factory.common.SiblingGraphServiceFactory;
 import com.linkedin.gms.factory.config.ConfigurationProvider;
 import com.linkedin.gms.factory.entityregistry.EntityRegistryFactory;
 import com.linkedin.gms.factory.entity.RestliEntityClientFactory;
@@ -16,6 +18,7 @@ import com.linkedin.gms.factory.recommendation.RecommendationServiceFactory;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.metadata.graph.GraphClient;
 import com.linkedin.metadata.graph.GraphService;
+import com.linkedin.metadata.graph.SiblingGraphService;
 import com.linkedin.metadata.models.registry.EntityRegistry;
 import com.linkedin.metadata.recommendation.RecommendationsService;
 import com.linkedin.metadata.secret.SecretService;
@@ -37,7 +40,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({RestHighLevelClientFactory.class, IndexConventionFactory.class, RestliEntityClientFactory.class,
     RecommendationServiceFactory.class, EntityRegistryFactory.class, DataHubTokenServiceFactory.class,
-    GitVersionFactory.class})
+    GitVersionFactory.class, SiblingGraphServiceFactory.class})
 public class GraphQLEngineFactory {
   @Autowired
   @Qualifier("elasticSearchRestHighLevelClient")
@@ -66,6 +69,10 @@ public class GraphQLEngineFactory {
   @Autowired
   @Qualifier("graphService")
   private GraphService _graphService;
+
+  @Autowired
+  @Qualifier("siblingGraphService")
+  private SiblingGraphService _siblingGraphService;
 
   @Autowired
   @Qualifier("timeseriesAspectService")
@@ -97,6 +104,10 @@ public class GraphQLEngineFactory {
   @Qualifier("timelineService")
   private TimelineService _timelineService;
 
+  @Autowired
+  @Qualifier("nativeUserService")
+  private NativeUserService _nativeUserService;
+
   @Value("${platformAnalytics.enabled}") // TODO: Migrate to DATAHUB_ANALYTICS_ENABLED
   private Boolean isAnalyticsEnabled;
 
@@ -115,6 +126,7 @@ public class GraphQLEngineFactory {
           _timeseriesAspectService,
           _entityRegistry,
           _secretService,
+          _nativeUserService,
           _configProvider.getIngestion(),
           _configProvider.getAuthentication(),
           _configProvider.getAuthorization(),
@@ -124,7 +136,8 @@ public class GraphQLEngineFactory {
           _configProvider.getVisualConfig(),
           _configProvider.getTelemetry(),
           _configProvider.getMetadataTests(),
-          _configProvider.getDatahub()
+          _configProvider.getDatahub(),
+          _siblingGraphService
           ).builder().build();
     }
     return new GmsGraphQLEngine(
@@ -138,6 +151,7 @@ public class GraphQLEngineFactory {
         _timeseriesAspectService,
         _entityRegistry,
         _secretService,
+        _nativeUserService,
         _configProvider.getIngestion(),
         _configProvider.getAuthentication(),
         _configProvider.getAuthorization(),
@@ -147,7 +161,8 @@ public class GraphQLEngineFactory {
         _configProvider.getVisualConfig(),
         _configProvider.getTelemetry(),
         _configProvider.getMetadataTests(),
-        _configProvider.getDatahub()
+        _configProvider.getDatahub(),
+        _siblingGraphService
     ).builder().build();
   }
 }
