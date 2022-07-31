@@ -55,4 +55,4 @@ def docker_compose_runner(docker_compose_project_name, docker_cleanup):
         ) as docker_services:
             yield docker_services
 
-    return 
+    return
