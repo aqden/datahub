@@ -221,7 +221,7 @@ plugins: Dict[str, Set[str]] = {
         # - 0.6.12 adds support for Spark Thrift Server
         "acryl-pyhive[hive]>=0.6.13"
     },
-    "kudu": {"krbcontext>=0.10", "jaydebeapi", "phik==0.12.2","pandas_profiling<=3.1.0", "gssapi"},
+    "kudu": {"krbcontext>=0.10", "jaydebeapi", "phik>=0.12.0","pandas_profiling<=3.1.0", "gssapi"},
     "iceberg": iceberg_common,
     "kafka": {*kafka_common, *kafka_protobuf},
     "kafka-connect": sql_common | {"requests", "JPype1"},
