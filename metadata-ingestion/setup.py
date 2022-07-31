@@ -310,7 +310,6 @@ base_dev_requirements = {
     *framework_common,
     *mypy_stubs,
     *s3_base,
-    *kudu,
     "black>=21.12b0",
     "coverage>=5.1",
     "flake8>=3.8.3",
