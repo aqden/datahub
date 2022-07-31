@@ -169,13 +169,6 @@ usage_common = {
     "sqlparse",
 }
 
-kudu_base = {
-    "krbcontext>=0.10", 
-    "jaydebeapi", 
-    "pandas_profiling==3.2.0", 
-    "gssapi"
-}
-
 # Note: for all of these, framework_common will be added.
 plugins: Dict[str, Set[str]] = {
     # Sink plugins.
@@ -228,7 +221,7 @@ plugins: Dict[str, Set[str]] = {
         # - 0.6.12 adds support for Spark Thrift Server
         "acryl-pyhive[hive]>=0.6.13"
     },
-    "kudu": kudu_base,
+    "kudu": {"krbcontext>=0.10", "jaydebeapi", "pandas_profiling==3.2.0", "gssapi"},
     "iceberg": iceberg_common,
     "kafka": {*kafka_common, *kafka_protobuf},
     "kafka-connect": sql_common | {"requests", "JPype1"},
