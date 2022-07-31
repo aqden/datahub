@@ -33,7 +33,7 @@ ARG RELEASE_VERSION
 RUN echo $RELEASE_VERSION
 RUN cd /datahub-ingestion && \
     sed -i.bak "s/__version__ = \"0.0.0.dev0\"/__version__ = \"$RELEASE_VERSION\"/" src/datahub/__init__.py && \
-    cat src/datahub/__init__.py &&
+    cat src/datahub/__init__.py
 RUN cd /datahub-ingestion && pip install ".[all]"
 
 FROM base as dev-install
