@@ -1,6 +1,7 @@
 import platform
 
 import pytest
+import time
 from freezegun import freeze_time
 
 from tests.test_helpers import mce_helpers
@@ -31,7 +32,7 @@ def test_hana_ingest(docker_compose_runner, pytestconfig, tmp_path, mock_time):
             timeout=700,
             pause=50,
         )
-
+    	time.sleep(5)
         # Run the metadata ingestion pipeline.
         config_file = (test_resources_dir / "hana_to_file.yml").resolve()
         run_datahub_cmd(
