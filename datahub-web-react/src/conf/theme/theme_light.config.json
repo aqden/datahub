@@ -24,7 +24,7 @@
         "logoUrl": "/assets/logo.png"
     },
     "content": {
-        "title": "DEP Data Catalogue",
+        "title": "Data Catalogue",
         "homepage": {
             "homepageMessage": "Find data you can count on"
         },
@@ -34,7 +34,7 @@
         "menu": {
             "items": [
                 {
-                    "label": "Docs",
+                    "label": "Documentation",
                     "path": "https://go/dep/catalog/faq",
                     "shouldOpenInNewTab": true
                 }                
