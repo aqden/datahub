@@ -1,7 +1,6 @@
 import platform
 
 import pytest
-import time
 from freezegun import freeze_time
 
 from tests.test_helpers import mce_helpers
