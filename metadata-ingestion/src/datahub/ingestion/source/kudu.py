@@ -5,8 +5,6 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Type, Union
-from datahub.emitter.mce_builder import make_data_platform_urn, make_dataplatform_instance_urn
-from datahub.ingestion.source.sql.sql_common import SqlWorkUnit 
 
 import jaydebeapi
 import pandas as pd
@@ -14,14 +12,20 @@ from krbcontext.context import krbContext
 from pandas_profiling import ProfileReport
 
 from datahub.configuration.common import AllowDenyPattern, ConfigModel
+from datahub.emitter.mce_builder import (
+    make_data_platform_urn,
+    make_dataplatform_instance_urn,
+    make_dataset_urn_with_platform_instance,
+)
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.emitter.mcp_builder import (
+    DatabaseKey,
     add_dataset_to_container,
     gen_containers,
-    DatabaseKey
 )
 from datahub.ingestion.api.source import Source, SourceReport
 from datahub.ingestion.api.workunit import MetadataWorkUnit
+from datahub.ingestion.source.sql.sql_common import SqlWorkUnit
 from datahub.metadata.com.linkedin.pegasus2avro.common import AuditStamp
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
@@ -42,6 +46,7 @@ from datahub.metadata.schema_classes import (
     DatasetFieldProfileClass,
     DatasetProfileClass,
     DatasetPropertiesClass,
+    StatusClass,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -168,7 +173,7 @@ class KuduConfig(ConfigModel):
     table_pattern: AllowDenyPattern = AllowDenyPattern.allow_all()
     profile_pattern: AllowDenyPattern = AllowDenyPattern.allow_all()
     profiling: PPProfilingConfig = PPProfilingConfig()
-    platform_instance: str = None
+    platform_instance: Optional[str] = None
 
     def get_url(self):
         if self.kerberos:
@@ -355,13 +360,19 @@ class KuduSource(Source):
                 interactions=None,
             )
             data_samples = self.getDFSamples(df)
-            if len(data_samples)==0:
+            if len(data_samples) == 0:
                 self.report.report_dropped(f"profile of {dataset_name}")
                 continue
             dataset_profile = self.populate_table_profile(profile, data_samples)
+            dataset_urn = make_dataset_urn_with_platform_instance(
+                self.platform,
+                dataset_name,
+                self.config.platform_instance,
+                self.config.env,
+            )
             mcp = MetadataChangeProposalWrapper(
                 entityType="dataset",
-                entityUrn=f"urn:li:dataset:(urn:li:dataPlatform:{self.platform},{dataset_name},{self.config.env})",
+                entityUrn=dataset_urn,
                 changeType=ChangeTypeClass.UPSERT,
                 aspectName="datasetProfile",
                 aspect=dataset_profile,
@@ -419,7 +430,7 @@ class KuduSource(Source):
         db_cursor.execute(f"show tables in {schema}")
         all_tables_raw = db_cursor.fetchall()
         all_tables = [item[0] for item in all_tables_raw]
-        #insert container here
+        # insert container here
         for table in all_tables:
             dataset_name = f"{schema}.{table}"
             if not sql_config.table_pattern.allowed(dataset_name):
@@ -454,14 +465,18 @@ class KuduSource(Source):
             table_info = table_info_raw[len(table_schema) + 3 :]
 
             properties = {}
-            table_type = [item[1].strip() for item in table_info if item[0].strip()=="Table Type:"]
+            table_type = [
+                item[1].strip()
+                for item in table_info
+                if item[0].strip() == "Table Type:"
+            ]
             if "VIRTUAL_VIEW" in table_type:
-                #this is a virtual view, drop
+                # this is a virtual view, drop
                 self.report.report_dropped(dataset_name)
                 continue
             for item in table_info:
                 if item[0].strip() == "Location:":
-                    properties["table_location"] = item[1].strip()                    
+                    properties["table_location"] = item[1].strip()
                 if item[0].strip() == "Table Type:":
                     properties["table_type"] = item[1].strip()
                 if item[1]:
@@ -470,10 +485,15 @@ class KuduSource(Source):
             for item in ["table_location", "table_type", "kudu_master"]:
                 if item not in properties:
                     properties[item] = ""
-            dataset_urn = f"urn:li:dataset:(urn:li:dataPlatform:{self.platform},{dataset_name},{self.config.env})"
+            dataset_urn = make_dataset_urn_with_platform_instance(
+                self.platform,
+                dataset_name,
+                self.config.platform_instance,
+                self.config.env,
+            )
             dataset_snapshot = DatasetSnapshot(
                 urn=dataset_urn,
-                aspects=[],
+                aspects=[StatusClass(removed=False)],
             )
             # kudu has no table comments.
             dataset_properties = DatasetPropertiesClass(
