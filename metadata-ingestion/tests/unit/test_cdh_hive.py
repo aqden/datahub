@@ -16,8 +16,6 @@ from datahub.metadata.com.linkedin.pegasus2avro.schema import (
 from datahub.metadata.schema_classes import (
     AuditStampClass,
     DatasetPropertiesClass,
-    OwnerClass,
-    OwnershipClass,
     SchemaFieldDataTypeClass,
     SchemaMetadataClass,
 )
@@ -137,14 +135,6 @@ class CDHHiveSourceTest(unittest.TestCase):
                 proposedSnapshot=DatasetSnapshot(
                     urn="urn:li:dataset:(urn:li:dataPlatform:hive,default.my_first_table,PROD)",
                     aspects=[
-                        OwnershipClass(
-                            owners=[
-                                OwnerClass(
-                                    owner="urn:li:corpuser:root",
-                                    type="DATAOWNER",
-                                )
-                            ],
-                        ),
                         DatasetPropertiesClass(
                             customProperties={
                                 "table_location": "hdfs://namenode:8020/user/hive/warehouse/my_first_table",
