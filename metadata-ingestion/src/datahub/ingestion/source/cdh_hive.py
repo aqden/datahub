@@ -28,8 +28,7 @@ from datahub.ingestion.api.source import Source
 from datahub.ingestion.api.workunit import MetadataWorkUnit
 from datahub.ingestion.source.kudu import (
     KuduDBSourceReport,
-    PPProfilingConfig,
-    get_column_type,
+    PPProfilingConfig
 )
 from datahub.ingestion.source.sql.sql_common import SqlWorkUnit
 from datahub.metadata.com.linkedin.pegasus2avro.common import AuditStamp
@@ -37,10 +36,12 @@ from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import Dataset
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
 from datahub.metadata.com.linkedin.pegasus2avro.schema import (
     ArrayTypeClass,
+    NullTypeClass,
     BooleanTypeClass,
     BytesTypeClass,
     NumberTypeClass,
     SchemaField,
+    SchemaFieldDataType,
     SchemalessClass,
     SchemaMetadata,
     StringTypeClass,
