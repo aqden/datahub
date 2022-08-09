@@ -3,7 +3,7 @@ import logging
 import os
 
 import pytest
-from boto3 import Session
+from botocore.session import Session
 from moto import mock_s3
 from pydantic import ValidationError
 
