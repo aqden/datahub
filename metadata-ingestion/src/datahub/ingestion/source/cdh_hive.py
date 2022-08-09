@@ -26,19 +26,16 @@ from datahub.emitter.mcp_builder import (
 )
 from datahub.ingestion.api.source import Source
 from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.ingestion.source.kudu import (
-    KuduDBSourceReport,
-    PPProfilingConfig
-)
+from datahub.ingestion.source.kudu import KuduDBSourceReport, PPProfilingConfig
 from datahub.ingestion.source.sql.sql_common import SqlWorkUnit
 from datahub.metadata.com.linkedin.pegasus2avro.common import AuditStamp
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
 from datahub.metadata.com.linkedin.pegasus2avro.schema import (
     ArrayTypeClass,
-    NullTypeClass,
     BooleanTypeClass,
     BytesTypeClass,
+    NullTypeClass,
     NumberTypeClass,
     SchemaField,
     SchemaFieldDataType,
@@ -89,23 +86,23 @@ mapping: Dict[str, Type] = {
 }
 
 
-# def get_column_type(
-#     sql_report: CDH_HiveDBSourceReport, dataset_name: str, column_type: str
-# ) -> SchemaFieldDataType:
+def get_column_type(
+    sql_report: CDH_HiveDBSourceReport, dataset_name: str, column_type: str
+) -> SchemaFieldDataType:
 
-#     TypeClass: Type = NullTypeClass
-#     if column_type.lower().startswith("varchar"):
-#         TypeClass = StringTypeClass
-#     else:
-#         TypeClass = mapping.get(column_type, NullTypeClass)
+    TypeClass: Type = NullTypeClass
+    if column_type.lower().startswith("varchar"):
+        TypeClass = StringTypeClass
+    else:
+        TypeClass = mapping.get(column_type, NullTypeClass)
 
-#     if TypeClass == NullTypeClass:
-#         sql_report.report_warning(
-#             dataset_name, f"unable to map type {column_type} to metadata schema"
-#         )
-#         TypeClass = NullTypeClass
+    if TypeClass == NullTypeClass:
+        sql_report.report_warning(
+            dataset_name, f"unable to map type {column_type} to metadata schema"
+        )
+        TypeClass = NullTypeClass
 
-#     return SchemaFieldDataType(type=TypeClass())
+    return SchemaFieldDataType(type=TypeClass())
 
 
 def get_schema_metadata(
