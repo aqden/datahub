@@ -69,7 +69,7 @@ kafka_common = {
     # At the same time, we use Kafka's AvroSerializer, which internally relies on
     # fastavro for serialization. We do not use confluent_kafka[avro], since it
     # is incompatible with its own dep on avro-python3.
-    "confluent_kafka>=1.5.0",
+    "confluent_kafka>=1.5.0,<1.9.0",
     "fastavro>=1.2.0",
 }
 
@@ -221,7 +221,7 @@ plugins: Dict[str, Set[str]] = {
         # - 0.6.12 adds support for Spark Thrift Server
         "acryl-pyhive[hive]>=0.6.13"
     },
-    "kudu": {"krbcontext>=0.10", "jaydebeapi", "pandas_profiling", "gssapi"},
+    "kudu": {"krbcontext>=0.10", "jaydebeapi", "phik>=0.12.0","pandas_profiling<=3.1.0", "gssapi"},
     "iceberg": iceberg_common,
     "kafka": {*kafka_common, *kafka_protobuf},
     "kafka-connect": sql_common | {"requests", "JPype1"},

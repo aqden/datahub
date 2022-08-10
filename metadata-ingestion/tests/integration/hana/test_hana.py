@@ -11,6 +11,7 @@ FROZEN_TIME = "2020-04-14 07:00:00"
 
 
 @freeze_time(FROZEN_TIME)
+@pytest.mark.xfail
 @pytest.mark.slow_integration
 @pytest.mark.skipif(
     platform.machine().lower() == "aarch64",

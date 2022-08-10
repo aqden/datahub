@@ -221,7 +221,7 @@ def test_list_tests(frontend_session,wait_for_healthchecks):
         }
       }
   }
-
+  time.sleep(5)
   response = frontend_session.post(
       f"{FRONTEND_ENDPOINT}/api/v2/graphql", json=list_tests_json
   )

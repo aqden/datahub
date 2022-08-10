@@ -40,7 +40,7 @@
       <!-- total size of all archive files, if total size > 2GB, it will delete old archived file -->
       <totalSizeCap>2GB</totalSizeCap>
       <!-- 1 days to keep -->
-      <maxHistory>1</maxHistory>
+      <maxHistory>30</maxHistory>
     </rollingPolicy>
     <filter class="ch.qos.logback.classic.filter.LevelFilter">
       <level>DEBUG</level>

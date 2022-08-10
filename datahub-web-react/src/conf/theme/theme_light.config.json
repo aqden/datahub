@@ -24,7 +24,7 @@
         "logoUrl": "/assets/logo.png"
     },
     "content": {
-        "title": "DataHub",
+        "title": "Data Catalogue",
         "homepage": {
             "homepageMessage": "Find data you can count on"
         },
@@ -34,25 +34,10 @@
         "menu": {
             "items": [
                 {
-                    "label": "Project",
-                    "path": "https://datahubproject.io",
+                    "label": "Documentation",
+                    "path": "https://go/dep/catalog/faq",
                     "shouldOpenInNewTab": true
-                },
-                {
-                    "label": "Docs",
-                    "path": "https://datahubproject.io/docs",
-                    "shouldOpenInNewTab": true
-                },
-                {
-                    "label": "Releases",
-                    "path": "https://datahubproject.io/docs/releases/",
-                    "shouldOpenInNewTab": true
-                },
-                {
-                    "label": "GitHub",
-                    "path": "https://github.com/datahub-project/datahub",
-                    "shouldOpenInNewTab": true
-                }
+                }                
             ]
         }
     }
