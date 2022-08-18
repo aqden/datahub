@@ -1,0 +1,5 @@
+This container aims to do daily backup of ES cluster
+
+env variables:
+ELASTIC_HOST - default to http://elasticsearch:9200
+RETENTION_PERIOD, default to 14 days
