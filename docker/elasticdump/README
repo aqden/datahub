@@ -1,5 +1,10 @@
 This container aims to do daily backup of ES cluster
+"The script" that cron calls is a python script, cos my bash scripting sucks.
+
 
 env variables:
 ELASTIC_HOST - default to http://elasticsearch:9200
 RETENTION_PERIOD, default to 14 days
+
+Image location: 
+Pushed to dockdevx/custom_elasticdump:latest
