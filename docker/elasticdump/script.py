@@ -20,6 +20,7 @@ es_host = os.environ.get("ELASTIC_HOST",None)
 retention_days = os.environ.get("RETENTION_PERIOD",14)
 if not es_host:
     es_host='http://elasticsearch:9200'
+logger.info(f"es_host is {es_host}")
 
 
 curr_date = datetime.datetime.now()
