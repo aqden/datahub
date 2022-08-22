@@ -17,9 +17,9 @@ logging.info("Multielasticdump process started")
 logger = logging.getLogger()
 
 es_host = os.environ.get("ELASTIC_HOST",None)
-retention_days = os.environ.get("RETENTION_PERIOD",14)
-if not es_host:
-    es_host='http://elasticsearch:9200'
+retention_days = int(os.environ.get("RETENTION_PERIOD",14)) #since env is read as str
+if not es_host:    
+    es_host='http://elasticsearch:9200'    
 logger.info(f"es_host is {es_host}")
 
 
