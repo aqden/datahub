@@ -22,7 +22,8 @@ from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent, 
 #                                              SystemMetadataClass)
 from fastapi import FastAPI
 from fastapi import FastAPI, File, UploadFile, Form
-
+import shutil
+from pathlib import Path
 # when running ingest-api from CLI, need to set some params.
 # cos dataset_profile_index name varies depending on ES. If there is an existing index (and datahub is instantiated on top, then it will append a UUID to it)
 
@@ -82,6 +83,12 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
     if not check_entity_exist(user_id=user_id):
         return {"message": "404 user not found"}
     token = impersonate_token(user_id=user_id)
+    destination = Path(f"./{str(int(time.time()))}_user_id.json")
+    try:
+        with destination.open("wb") as buffer:
+            shutil.copyfileobj(myfile.file, buffer)
+    finally:
+        myfile.file.close()
     #save to file
     #open file
     #check valid mcp
@@ -98,7 +105,7 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
     }
     """
     path=''    
-    with open(path, "r") as f:
+    with open(destination, "r") as f:
         obj_list = json.load(f)
     for i, obj in enumerate(obj_list):
         item: Union[MetadataChangeEvent, MetadataChangeProposal]
@@ -157,24 +164,7 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
         if not checked_urn[item].get("retains_ownership", True):
             pre_ingest_check = False
             all_errors.append(f"{item}: Submitter will not own asset if ingestion proceeded")
-            continue
-
-    try:
-        with destination.open("wb") as buffer:
-            shutil.copyfileobj(upload_file.file, buffer)
-    finally:
-        upload_file.file.close()
-    for i, obj in enumerate(_iterate_file(path)):
-        item: Union[MetadataChangeEvent, MetadataChangeProposal]
-        if "proposedSnapshot" in obj:
-            item = MetadataChangeEvent.from_obj(obj)
-        elif "aspect" in obj:
-            item = MetadataChangeProposal.from_obj(obj)
-        else:
-            item = UsageAggregationClass.from_obj(obj)
-        if not item.validate():
-            raise ValueError(f"failed to parse: {obj} (index {i})")
-        yield item
+            continue    
     
     return {"filename": myfile.filename, "value":user_id}
 
