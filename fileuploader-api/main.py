@@ -18,6 +18,7 @@ import jwt
 # from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import \
 #     DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent, MetadataChangeProposal
+from datahub.ingestion.run.pipeline import Pipeline
 # from datahub.metadata.schema_classes import (ChangeTypeClass, GlossaryTermAssociationClass, GlossaryTermsClass,
 #                                              SystemMetadataClass)
 from fastapi import FastAPI
@@ -50,8 +51,6 @@ rootLogger.info("started uploader_api!")
 
 app = FastAPI(
     title="Datahub secret API",
-    openapi_url=None,
-    redoc_url=None
 )
 origins = [
 ]
@@ -78,8 +77,7 @@ async def hello_world() -> None:
         }
 
 @app.post("/upload")
-async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
-    
+async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):    
     if not check_entity_exist(user_id=user_id):
         return {"message": "404 user not found"}
     token = impersonate_token(user_id=user_id)
@@ -114,16 +112,16 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
             if not item.validate():
                 #skip current obj
                 checked_urn = add_error(checked_urn, "unable_to_infer", f"Item {i} is invalid Snapshot")
-                continue
-            snapshot_key = item.keys().tolist()[0] # there should only be 1 key
-            item_urn = item[snapshot_key]["urn"]
+                continue            
+            snapshot_key = list(obj["proposedSnapshot"].keys())[0] # there should only be 1 key
+            item_urn = item.proposedSnapshot.urn
             if snapshot_key!="com.linkedin.pegasus2avro.metadata.snapshot.DatasetSnapshot":
                 checked_urn = add_error(checked_urn, item_urn, "Snapshot is not DatasetSnapshot")
                 #skip current obj
                 continue
             if item_urn not in checked_urn:
                 checked_urn = add_new_urn(checked_urn, item_urn, user_id, "dataset")            
-            for aspect in item["com.linkedin.pegasus2avro.metadata.snapshot.DatasetSnapshot"]:
+            for aspect in item.proposedSnapshot.aspects:
                 if "com.linkedin.pegasus2avro.common.Ownership" in aspect:
                     ownership_data = aspect["com.linkedin.pegasus2avro.common.Ownership"]
                     owners_in_data = [item.get("owner","") for item in ownership_data.get("ownership",{})]
@@ -166,7 +164,27 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
             all_errors.append(f"{item}: Submitter will not own asset if ingestion proceeded")
             continue    
     
-    return {"filename": myfile.filename, "value":user_id}
+    return {"filename": myfile.filename, "value":user_id, "destination": destination}
+
+def start_pipeline(path, token):
+    pipeline = Pipeline.create(
+        {
+            "source":{
+                "type": "file",
+                "config": {
+                    "filename": path, 
+                }
+            },
+            "sink":{
+                "type": "datahub-rest",
+                "config":{
+                    "server": rest_endpoint,
+                    "token": token
+                }
+            },
+        }
+    )
+    pipeline.run()
 
 def update_retain_ownership(existing_dict, item_urn, state):
     if item_urn in existing_dict:
@@ -179,6 +197,7 @@ def add_new_urn(existing_dict, new_urn: str, user_id: str, entityType:str = "dat
     If new entity, return immediately
     If existing entity in datahub, confirm that user_id is owner
     """
+    print(f"adding {new_urn} to {existing_dict}")
     existing_entity=False
     if check_entity_exist(new_urn):
         existing_entity = True    
@@ -226,6 +245,7 @@ def impersonate_token(user_id: str) -> str:
         'sub': f'{user_id}', 
         'iss': 'datahub-metadata-service'
     }
+    print(impersonated_payload)
     new_token = jwt.encode(impersonated_payload, jwt_secret, algorithm="HS256")
     return new_token
 
@@ -234,7 +254,8 @@ def check_entity_exist(user_id) -> bool:
     ensure that this user exist in Datahub
     """
     query_token = impersonate_token("datahub")
-    headers=[]
+    print(query_token)
+    headers={}
     headers["Authorization"] = f"Bearer {query_token}"
     headers["Content-Type"] = "application/json"
     query = """
