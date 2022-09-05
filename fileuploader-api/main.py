@@ -1,7 +1,3 @@
-# flake8: noqa
-# command to run in CLI mode is 
-# gunicorn -c config.py main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8001
-# also need export PROMETHEUS_MULTIPROC_DIR=/home/admini/development/datahub/fastapi/tmp
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
@@ -9,39 +5,29 @@ from os import environ
 import time
 from typing import Union
 import requests
+import datetime
 import uvicorn
 import json
 import jwt
 import pprint
 from datahub.metadata.schema_classes import *
 from string import Template
+from fastapi.responses import JSONResponse
 
-# from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
-# from datahub.emitter.mcp import MetadataChangeProposalWrapper
-# from datahub.emitter.rest_emitter import DatahubRestEmitter
-# from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import \
-#     DatasetSnapshot
+from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent, MetadataChangeProposal
 from datahub.ingestion.run.pipeline import Pipeline
-# from datahub.metadata.schema_classes import (ChangeTypeClass, GlossaryTermAssociationClass, GlossaryTermsClass,
-#                                              SystemMetadataClass)
 from fastapi import FastAPI
 from fastapi import FastAPI, File, UploadFile, Form
 import shutil
 from pathlib import Path
-# when running ingest-api from CLI, need to set some params.
-# cos dataset_profile_index name varies depending on ES. If there is an existing index (and datahub is instantiated on top, then it will append a UUID to it)
 
-rest_endpoint = "http://localhost:8080"
-api_emitting_port = 8002
-# logging - 1 console logger showing info-level+, and 2 logger logging INFO+ AND DEBUG+ levels
-# --------------------------------------------------------------
 rootLogger = logging.getLogger("ingest")
 logformatter = logging.Formatter("%(asctime)s;%(levelname)s;%(funcName)s;%(message)s")
 rootLogger.setLevel(logging.DEBUG)
 streamLogger = logging.StreamHandler()
 streamLogger.setFormatter(logformatter)
-streamLogger.setLevel(logging.INFO)  #docker logs will show simplified
+streamLogger.setLevel(logging.INFO)  
 rootLogger.addHandler(streamLogger)
 log = TimedRotatingFileHandler(
     "./logs/fileuploader.log", when="midnight", interval=1, backupCount=730
@@ -54,59 +40,63 @@ rootLogger.info("started uploader_api!")
 # --------------------------------------------------------------
 
 app = FastAPI(
-    title="Datahub secret API",
+    title="Datahub 3th Party Uploader API",
 )
-origins = [
-]
-if environ.get("ACCEPT_ORIGINS") is not None:
-    new_origin = environ["ACCEPT_ORIGINS"]
-    origins.append(new_origin)
-    rootLogger.info(f"{new_origin} is added to CORS allow_origins")
 
-# add prometheus monitoring to ingest-api via starlette-exporter
+api_emitting_port = 8002
+
+rest_endpoint = "http://localhost:8080"
+if os.environ.get("DATAHUB_BACKEND"):
+    rest_endpoint = os.environ.get("DATAHUB_BACKEND")
 jwt_secret = "WnEdIeTG/VVCLQqGwC/BAkqyY0k+H8NEAtWGejrBI94="
-
+if os.environ.get("JWT_SECRET"):
+    jwt_secret = os.environ.get("JWT_SECRET")
 
 @app.get("/hello")
 async def hello_world() -> None:
     """
     Just a hello world endpoint to ensure that the api is running.
     """
-    # how to check that this dataset exist? - curl to GMS?
-    # rootLogger.info("hello world is called")
-    # rootLogger.info("/custom/hello is called!")
     return {
             "message": "Hello world",
             "timestamp": int(time.time() * 1000)
         }
 
 @app.post("/upload")
-async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):    
-    outcome = False
+async def process_metadata(user_id: str= Form(), myfile: UploadFile = File()):    
+    
+    start_time = time.time()
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M_%s")
     user_urn = f"urn:li:corpuser:{user_id}"
     if not check_entity_exist(user_urn):
-        return {"message": "404 user not found"}
+        return JSONResponse(status_code=404, content=f"Uploader {user_id} does not exist in system")
     token = impersonate_token(user_id=user_id)
-    destination = f"./{str(int(time.time()))}_{user_id}.json"
+    destination = f"./submission_{timestamp}_{user_id}.json"
     destination_path = Path(destination)
     try:
         with destination_path.open("wb") as buffer:
             shutil.copyfileobj(myfile.file, buffer)
     finally:
         myfile.file.close()
-    #save to file
-    #open file
-    #check valid mcp
     urn_checklist={}
     """
-    checked_urn = {
+    This is the urn_checklist structure. I will refer to this dictionary 
+    after all the processing is done, then decide to ingest the file or not.
+    The key is the URN of the entity.
+    If the urn is unparseable, it is added to the urn="unable_to_infer" key
+    type:     
+
+    urn_checklist = {
         "urn:li:dataset:abcde":{
-            "type": "dataset"
-            "ownership": True
-            "existing_entity": True # already in RDBMS
-            "errors"=[],
-            "retains_ownership" = True #ensure that no aspect undo ownership of user_id
-        }
+            "type": "dataset"         # dataset or container (helps in generating MCPs)
+            "ownership": True         # if uploader is owner of existing asset. Only relevant if existing entity is TRUE
+            "existing_entity": True   # already in RDBMS
+            "errors"=[],              # any error msg associated with the entity while processing.
+            "retain_ownership" = True #ensure that no aspect undo ownership of user_id
+            "owners_to_add" = []      # a list of urn that i need to add as owner.
+        }, 
+        "urn:li:dataset:12345":{
+        }....
     }
     """   
     with open(destination, "r") as f:
@@ -114,8 +104,7 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
     print(f"there are {len(obj_list)} in the jsonfile")
     for i, obj in enumerate(obj_list):
         check_urn: Union[MetadataChangeEvent, MetadataChangeProposal]
-        if "proposedSnapshot" in obj:
-            print("mce route")
+        if "proposedSnapshot" in obj:            
             check_urn = MetadataChangeEvent.from_obj(obj)
             if not check_urn.validate():
                 #skip current obj
@@ -129,17 +118,17 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
                 continue
             if item_urn not in urn_checklist:
                 urn_checklist = add_new_urn(urn_checklist, item_urn, user_id, "dataset")            
-            for aspect in check_urn.proposedSnapshot.aspects:                
-                if isinstance(aspect, OwnershipClass):
-                    ownership_data = aspect
-                    owners_in_data = [item.owner for item in ownership_data.owners]
-                    if f"urn:li:corpuser:{user_id}" not in owners_in_data:
-                        print("not the owner!!")
-                        urn_checklist = update_retain_ownership(urn_checklist, item_urn, False)                        
+            for ownership_data_aspect in check_urn.proposedSnapshot.aspects:                
+                if isinstance(ownership_data_aspect, OwnershipClass):
+                    ownership_data_aspect = ownership_data_aspect
+                    ownership_data = ownership_data_aspect.owners # list of ownersClass
+                    owners_in_data = {item.owner: item.type for item in ownership_data}
+                    # owners_in_data = [item.owner for item in ownership_data_aspect.owners]
+                    if f"urn:li:corpuser:{user_id}" not in owners_in_data:                        
+                        urn_checklist = update_retain_ownership(urn_checklist, item_urn, False, owners_in_data)                        
                     else:
-                        urn_checklist = update_retain_ownership(urn_checklist, item_urn, True)
+                        urn_checklist = update_retain_ownership(urn_checklist, item_urn, True, owners_in_data)
         elif "aspect" in obj:
-            print("mcp route")
             check_urn = MetadataChangeProposal.from_obj(obj)
             if not check_urn.validate():
                 urn_checklist = add_error(urn_checklist, "unable_to_infer", f"Item {i} is invalid Snapshot")
@@ -148,24 +137,37 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
             # item_urn = item.get("entityUrn")
             entityType=check_urn.entityType
             aspectName = check_urn.aspectName
-            # print(entityType)
-            # entityType=item.get("entityType","")
             if entityType!="dataset" and entityType!="container":
                 urn_checklist = add_error(urn_checklist, item_urn, "aspect is not a dataset or container aspect")
                 continue
             if item_urn not in urn_checklist:
                 urn_checklist = add_new_urn(urn_checklist, item_urn, user_id, entityType)                                                
             if aspectName=="ownership":
-                aspect = check_urn.value
-                owners_in_data = [item.get("owner","") for item in aspect.get("ownership",{})]
+                ownership_data_aspect = check_urn.value
+                ownership_data = ownership_data_aspect.owners
+                owners_in_data = {item.owner: item.type for item in ownership_data}
+                # owners_in_data = [item.get("owner","") for item in ownership_data_aspect.get("ownership",{})]
                 if f"urn:li:corpuser:{user_id}" not in owners_in_data:
                     print("not in owners list")
-                    urn_checklist = update_retain_ownership(urn_checklist, item_urn, False)
+                    urn_checklist = update_retain_ownership(urn_checklist, item_urn, False, owners_in_data)
                 else:
-                    urn_checklist = update_retain_ownership(urn_checklist, item_urn, True)
+                    urn_checklist = update_retain_ownership(urn_checklist, item_urn, True, owners_in_data)
         else:
             urn_checklist = add_error(urn_checklist, "unable_to_infer", f"Item {i} in file is invalid object")
     pre_ingest_check = True # assume all is ok until otherwise
+    for check_urn in urn_checklist:
+        # for new assets only; to add uploader as owner
+            # if "retain_ownership" has no value then need to create ownership aspect 
+        if not urn_checklist[check_urn].get("retains_ownership", False):
+            urn_checklist[check_urn]["add_ownership"] = True
+        if urn_checklist[check_urn].get("existing_entity",True): 
+            # if existing entity and existing ownership state is false, reject
+            if not urn_checklist[check_urn].get("ownership", True):
+                pre_ingest_check = False
+                urn_checklist = add_error(urn_checklist, check_urn, "does not own dataset")                
+                continue            
+            
+        
 
     pprint.pprint(urn_checklist)
     all_errors=[]
@@ -175,63 +177,89 @@ async def update_browsepath(user_id: str= Form(), myfile: UploadFile = File()):
             pre_ingest_check = False        
             error_line = ".".join(item for item in errors)
             all_errors.append(f"{check_urn}: {error_line}")
-            continue        
-        if not urn_checklist[check_urn].get("retains_ownership", True):
-            pre_ingest_check = False
-            all_errors.append(f"{check_urn}: Submitter will not own asset if ingestion proceeded")
             continue
-        # if existing entity and ownership is false, reject
-        # if new entity, then there is no "ownership" 
-        # if "retain_ownership" has no value then need to create ownership aspect 
-        if urn_checklist[check_urn].get("existing_entity",True): 
-            if not urn_checklist[check_urn].get("ownership", True):
-                pre_ingest_check = False
-                all_errors.append(f"{check_urn}: Submitter does not own asset")
-                continue            
-        else:
-            if urn_checklist[check_urn].get("retains_ownership", None) == None:
-                urn_checklist[check_urn]["add_ownership"] = user_id
 
-
+    ingestion_checklist_destination = destination.replace(".json", "-ingest-checklist.json")
     if pre_ingest_check: # means we're good to ingest now
         ingested_file_destination = destination.replace(".json", "-ingest-prep.json")
         shutil.copy(destination, f"{ingested_file_destination}")
+        additional_mcps=[]
         for urn in urn_checklist:
             if "add_ownership" in urn_checklist[urn]:
-                print("inserted mcp for {urn} for {user_id}")
-                insert_owner_mcp(urn_checklist[urn], urn, ingested_file_destination)
+                existing_users = urn_checklist[urn].get("owners_to_add",{})
+                additional_mcps = insert_owner_mcp(user_id, urn, additional_mcps, existing_users, urn_checklist[urn]["type"])
+                print(f"inserted mcp for {urn} for {user_id}")
+        if len(additional_mcps)>0:
+            with open(destination, "r") as f:
+                obj_list = json.load(f)
+            obj_list.extend(additional_mcps)
+            with open(ingested_file_destination,"w") as f:
+                json.dump([item for item in obj_list], f, indent=4)
+        mid_time = time.time()-start_time
+        print(f"time to validate MCE/MCP is {mid_time}")
         pipeline = create_pipeline(ingested_file_destination, token)
         pipeline.run()
+        total_time = time.time()-start_time
+        failures = pipeline.sink.get_report().failures
+        warnings = pipeline.sink.get_report().warnings
+        connection_time = pipeline.sink.get_report().downstream_total_latency_in_seconds
+        urn_checklist["gms-warnings"] = warnings
+        urn_checklist["gms-failures"] = failures
+        with open(ingestion_checklist_destination,"w") as f:
+            json.dump(urn_checklist, f, indent=1)
+        if len(failures)>0:
+            return JSONResponse(status_code=207, 
+                content=f"Total Time: {total_time}sec. Sink Time: {connection_time}sec. Partial errors encountered during ingestion: {failures}")
+        return JSONResponse(status_code=200, content=f"Total Time: {total_time}sec")
+    urn_checklist["errors"] = all_errors
+    with open(ingestion_checklist_destination,"w") as f:
+        json.dump(urn_checklist, f, indent=1)
+    total_time = time.time()-start_time
+    return JSONResponse(status_code=400, content=f"Total Time: {total_time}sec. Errors in payload: {all_errors}")
 
-    outcome=True
-    return {"pre_ingest_check": pre_ingest_check, "errors": ",".join(all_errors), "outcome":outcome}
-
-def insert_owner_mcp(user_id, urn, file_loc, entityType):
+def insert_owner_mcp(user_id, urn, appendlist, other_users_to_add, entityType = "dataset"):
     """
-    to insert ownership mcp into a given file location. 
+    To insert ownership mcp for an asset. 
     I don't have to be concerned about overwriting an existing owner aspect, 
     cos, by right, if there is such an aspect without user_id, then it will fail the ingest_logic liao
-    """
-    with open(file_loc, "r") as f:
-        obj_list = json.load(f)
+
+    variables:
+    user_id :            the ID for the uploader (not yet in URN form)
+    urn:                 the asset's URN whom we're adding this ownership aspect to
+    appendlist:          the existing list of mcps that we're consolidating before writing to file
+    other_users_to_add:  dict containing {user_urn: ownertype} info
+    entityType:          type of asset. (dataset or container)
+
+    returns:
+    modified_appendlist:  a modified list containing the owner_aspect for this urn  
+    """    
+    additional_users=[]    
+    if other_users_to_add:
+        for additional_user in other_users_to_add:
+            user = OwnerClass(
+                owner=f"{additional_user}",
+                type=other_users_to_add[additional_user],
+            )
+            additional_users.append(user)
+    uploader_ownership = OwnerClass(owner=f"urn:li:corpuser:{user_id}",
+        type=OwnershipTypeClass.TECHNICAL_OWNER,
+    )
+    additional_users.append(uploader_ownership)
     ownership = OwnershipClass(
-        owners=[
-            OwnerClass(
-                owner=f"urn:li:corpuser:{user_id}",
-                type=OwnershipTypeClass.PRODUCER,
-            )            
-        ],        
+        owners= additional_users,
     )
     mcp = MetadataChangeProposalWrapper(
             aspect = ownership,
-            entityType="dataset",
+            entityType=entityType,
             changeType=ChangeTypeClass.UPSERT,
-            entityUrn=datasetName,
-            aspectName="datasetProperties",
+            entityUrn=urn,
+            aspectName="ownership",
             systemMetadata=SystemMetadataClass(
-                runId=f"{datasetName}_prop_{str(int(time.time()))}"
+                runId=f"custom_ownership_{str(int(time.time()))}"
             ),
     )
+    appendlist.append(mcp.to_obj())
+    return appendlist
 
 def create_pipeline(path, token):
     pipeline = Pipeline.create(
@@ -253,9 +281,27 @@ def create_pipeline(path, token):
     )
     return pipeline
 
-def update_retain_ownership(existing_dict, item_urn, state):
+def update_retain_ownership(existing_dict, item_urn, state, new_owners={}):
+    """
+    This function is called whenever ownership aspect is found in the file.
+    If the aspect does not contain the submitter, state= False.
+    At the end, assuming everything else is ok, but retain_ownership = False,
+    I will create ownership aspect for the urn. any other owners(new_owners) that were spotted
+    for this urn will be parked in owners_to_add
+
+    This means that the "bit" can be toggled back and forth if there are multiple 
+    ownership aspects for the same urn, but im of the opinion that I will only
+    care about the last ownership aspect and whether it has the uploader id or not.
+    """
     if item_urn in existing_dict:
         existing_dict[item_urn]["retain_ownership"] = state
+        if len(new_owners)>0:
+            if "owners_to_add" in existing_dict[item_urn]:
+                existing_users = existing_dict[item_urn]["owners_to_add"]
+                existing_users.update(new_owners)
+                existing_dict[item_urn]["owners_to_add"] = existing_users
+            else:
+                existing_dict[item_urn]["owners_to_add"] = new_owners
     return existing_dict
 
 def add_new_urn(existing_dict, new_urn: str, user_id: str, entityType:str = "dataset") -> dict:    
@@ -318,10 +364,10 @@ def impersonate_token(user_id: str) -> str:
 
 def check_entity_exist(entity_urn) -> bool:
     """
-    ensure that this user exist in Datahub
+    ensure that this entity exist in Datahub. applicable for any entity type. 
+    Returns true even if the entity is "soft-removed".
     """
     query_token = impersonate_token("datahub")
-    # print(query_token)
     headers={}
     headers["Authorization"] = f"Bearer {query_token}"
     headers["Content-Type"] = "application/json"
@@ -358,7 +404,7 @@ def query_dataset_owner(dataset_urn: str, user: str, entity_type:str="dataset"):
     group_owners = [item["owner"]["urn"] for item in owners_list if item["owner"]["__typename"]=="CorpGroup"]
     if len(group_owners) > 0:
         groups = query_users_groups(query_token, query_endpoint, user_urn)
-        rootLogger.debug(f"The list of groups for this user is {groups}")
+        # rootLogger.debug(f"The list of groups for this user is {groups}")
         groups_urn = [item["entity"]["urn"] for item in groups]
         for item in groups_urn:
             if item in group_owners:
@@ -397,9 +443,9 @@ def query_dataset_ownership(token: str, dataset_urn:str, query_endpoint:str, ent
     resp = requests.post(
         query_endpoint, headers=headers, json={"query": query, "variables": variables}
     )
-    rootLogger.debug(f"resp.status_code is {resp.status_code}")
+    # rootLogger.debug(f"resp.status_code is {resp.status_code}")
     data_received = json.loads(resp.text)
-    rootLogger.error(f"received from graphql ownership info: {data_received}")
+    # rootLogger.error(f"received from graphql ownership info: {data_received}")
     owners_list = data_received["data"][entity_type]["ownership"]["owners"]
     return owners_list
 
@@ -429,14 +475,12 @@ def query_users_groups(token: str, query_endpoint: str, user_urn: str):
     resp = requests.post(
         query_endpoint, headers=headers, json={"query": query, "variables": variables}
     )
-    log.debug(f"group membership resp.status_code is {resp.status_code}")
     if resp.status_code != 200:
         return []
     data_received = json.loads(resp.text)
     if data_received["data"]["corpUser"]["relationships"]["count"]>0:
         groups_list = data_received["data"]["corpUser"]["relationships"]["relationships"]
         return groups_list
-    log.debug(f"group membership list is empty")
     return []
 
 
