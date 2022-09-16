@@ -2,7 +2,7 @@ package com.linkedin.datahub.graphql.resolvers.timeline;
 
 import com.linkedin.common.urn.Urn;
 import com.linkedin.datahub.graphql.generated.*;
-import com.linkedin.datahub.graphql.types.timeline.mappers.SchemaBlameMapper;
+import com.linkedin.datahub.graphql.types.timeline.mappers.DatasetChangeEventsMapper;
 import com.linkedin.metadata.timeline.TimelineService;
 import com.linkedin.metadata.timeline.data.ChangeCategory;
 import com.linkedin.metadata.timeline.data.ChangeTransaction;
@@ -39,32 +39,22 @@ public class GetDatasetChangeEventsResolver implements DataFetcher<CompletableFu
     return CompletableFuture.supplyAsync(() -> {
       try {
         final Set<ChangeCategory> changeCategorySet = new HashSet<>();
-        // to include all change categories
+        // include all change categories
         changeCategorySet.addAll(Arrays.asList(ChangeCategory.values()));
         Urn datasetUrn = Urn.createFromString(datasetUrnString);
         List<ChangeTransaction> changeTransactionList =
             _timelineService.getTimeline(datasetUrn, changeCategorySet, startTime, endTime, null, null, false);
+        // return the latest changes first
+        changeTransactionList.sort(Comparator.comparing(ChangeTransaction::getTimestamp).reversed());
+        return DatasetChangeEventsMapper.map(changeTransactionList);
 
-        // mock 1 result
-        // todo: need to use a mapper to set result
-        GetDatasetChangeEventsResult result = new GetDatasetChangeEventsResult();
-        result.setActor("test");
-        result.setTimestampMillis(0L);
-        ChangeEvent changeEvent = new ChangeEvent();
-        changeEvent.setCategory(ChangeCategoryType.TECHNICAL_SCHEMA);
-        changeEvent.setDescription("change description");
-        changeEvent.setOperation(ChangeOperationType.ADD);
-        List<ChangeEvent> list = new ArrayList<>();
-        list.add(changeEvent);
-        result.setChangeEventsList(list);
-        return result;
       } catch (URISyntaxException u) {
         log.error(
-            String.format("Failed to list schema blame data, likely due to the Urn %s being invalid", datasetUrnString),
+            String.format("Failed to list change events data, likely due to the Urn %s being invalid", datasetUrnString),
             u);
         return null;
       } catch (Exception e) {
-        log.error("Failed to list schema blame data", e);
+        log.error("Failed to list change events data", e);
         return null;
       }
     });

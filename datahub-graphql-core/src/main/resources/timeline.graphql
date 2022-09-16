@@ -189,31 +189,31 @@ Changes of the dataset
 """
 type GetDatasetChangeEventsResult {
     """
+    List of dataset changes.
+    """
+    changedEventsList: [ChangeEvent!]
+}
+
+"""
+Struct for 1 change event
+"""
+type ChangeEvent {
+    """
     The time at which the change took place
     """
     timestampMillis: Long!
     """
     The user that modified the dataset
     """
-    actor: String
-    """
-    List of dataset change.
-    """
-    changeEventsList: [ChangeEvent!]
-}
-
-"""
-Struct for change event
-"""
-type ChangeEvent {
+    actor: String!
     """
     Category of the change
     """
-    category: ChangeCategoryType!
+    category: String!
     """
     Operation of the change
     """
-    operation: ChangeOperationType!
+    operation: String!
     """
     Description of the change
     """
