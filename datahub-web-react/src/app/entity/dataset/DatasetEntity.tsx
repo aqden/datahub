@@ -34,6 +34,7 @@ import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
 import { SidebarSiblingsSection } from '../shared/containers/profile/sidebar/SidebarSiblingsSection';
 import { DatasetStatsSummarySubHeader } from './profile/stats/stats/DatasetStatsSummarySubHeader';
 import { TimelineTab } from '../shared/tabs/Dataset/Schema/TimelineTab';
+import { TimelineChronoTab } from '../shared/tabs/Dataset/Schema/TimelineChronoTab';
 
 const SUBTYPES = {
     VIEW: 'view',
@@ -99,14 +100,10 @@ export class DatasetEntity implements Entity<Dataset> {
                 {
                     name: 'Timeline',
                     component: TimelineTab,
-                    display: {
-                        visible: (_, _dataset: GetDatasetQuery) => {
-                            return CheckOwnership(_dataset);
-                        },
-                        enabled: (_, _dataset: GetDatasetQuery) => {
-                            return true;
-                        },
-                    },
+                },
+                {
+                    name: 'Timeline Chrono',
+                    component: TimelineChronoTab,
                 },
                 {
                     name: 'Schema',
