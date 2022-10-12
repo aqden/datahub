@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { CSVReader } from 'react-papaparse';
-import { Col, Form, Input, Space, Select, Button, message, Divider, Popconfirm, Row, Tooltip } from 'antd';
+import { Col, Form, Input, Space, Select, Button, message, Divider, Popconfirm, Row, Tooltip, Alert } from 'antd';
 import { MinusCircleOutlined, PlusOutlined, AlertOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
-import Paragraph from 'antd/lib/typography/Paragraph';
 import { CommonFields } from './CommonFields';
 import { useGetAuthenticatedUser } from '../../useGetAuthenticatedUser';
 import { GetMyToken } from '../../entity/dataset/whoAmI';
@@ -140,12 +139,19 @@ export const CsvForm = () => {
     const { TextArea } = Input;
     return (
         <>
-            <Paragraph>
-                Not sure how to onboard your dataset? Refer to our guide{' '}
-                <a href={env.GUIDE} target="_blank" rel="noopener noreferrer">
-                    here
-                </a>
-            </Paragraph>
+            <Alert
+                message={
+                    <span>
+                        Not sure how to onboard your dataset? Refer to our guide{' '}
+                        <a href={env.GUIDE} target="_blank" rel="noopener noreferrer">
+                            here
+                        </a>
+                    </span>
+                }
+                type="info"
+                closeText="Close Now"
+            />
+            ;
             <Form
                 {...layout}
                 name="main_form_item"
