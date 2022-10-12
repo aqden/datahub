@@ -15,8 +15,7 @@ RUN cd /datahub-src/metadata-ingestion && \
 FROM base as final
 ENV PROMETHEUS_MULTIPROC_DIR=/gunicorn/
 COPY --from=prod-codegen /datahub-src/metadata-ingestion /datahub-ingestion
-RUN cd /datahub-ingestion && \
-    pip install .
+RUN pip install /datahub-ingestion/.
 COPY ./ingest-api/ /ingest-api/
 WORKDIR /ingest-api/ingest_api
 RUN pip install -r ../requirements.txt && pip install ../ && mkdir /gunicorn/

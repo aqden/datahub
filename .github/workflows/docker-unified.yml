@@ -433,7 +433,7 @@ jobs:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel: github-activities
   ingestapi_build:
-    name: Build and Push DataHub GMS Docker Image
+    name: Build and Push Ingest API image
     runs-on: ubuntu-latest
     needs: setup
     outputs:
