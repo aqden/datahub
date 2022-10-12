@@ -4,14 +4,15 @@ import { CSVReader } from 'react-papaparse';
 import { Col, Form, Input, Space, Select, Button, message, Divider, Popconfirm, Row, Tooltip } from 'antd';
 import { MinusCircleOutlined, PlusOutlined, AlertOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
+import Paragraph from 'antd/lib/typography/Paragraph';
 import { CommonFields } from './CommonFields';
 import { useGetAuthenticatedUser } from '../../useGetAuthenticatedUser';
 import { GetMyToken } from '../../entity/dataset/whoAmI';
 import { WhereAmI } from '../../home/whereAmI';
-// import { DataPlatformSelect } from '../../entity/shared/tabs/Dataset/platformSelect/DataPlatformSelect';
 import { printErrorMsg, printSuccessMsg } from '../../entity/shared/tabs/Dataset/ApiCallUtils';
 import { SetParentContainer } from '../../entity/shared/tabs/Dataset/containerEdit/SetParentContainer';
 import { SpecifyBrowsePath } from './SpecifyBrowsePath';
+import { env } from '../../../env';
 
 const SearchResultContainer = styled.div`
     display: flex;
@@ -49,14 +50,10 @@ export const CsvForm = () => {
     const publishUrl = `${urlBase}custom/make_dataset`;
     const [visible, setVisible] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
-    console.log(`the publish url is ${publishUrl}`);
     const user = useGetAuthenticatedUser();
     const userUrn = user?.corpUser?.urn || '';
     const userToken = GetMyToken(userUrn);
     const sourceType = 'Select a Datasouce Type. For sources not listed, refer to admin team';
-    // const aboutType = 'Specify the datatype for field. If unsure, set "unknown"';
-    // const aboutDesc = 'Field description. Can accept markdown as well, except there is no preview in this form.';
-    // const [fileType, setFileType] = useState({ dataset_type: 'application/octet-stream' });
 
     const [form] = Form.useForm();
     const { Option } = Select;
@@ -75,7 +72,6 @@ export const CsvForm = () => {
     const popupHandleOk = () => {
         setConfirmLoading(true);
         const values = form.getFieldsValue();
-        console.log(`the values received are ${Object.values(values)}`);
         const finalValue = { ...values, dataset_owner: user?.corpUser?.username, user_token: userToken };
         axios
             .post(publishUrl, finalValue)
@@ -94,11 +90,8 @@ export const CsvForm = () => {
     const onReset = () => {
         form.resetFields();
     };
-    const handleOnFileLoad = (data, fileInfo) => {
-        console.log('data:', data);
-        console.log('fileInfo:', fileInfo);
+    const handleOnFileLoad = (data) => {
         const headerLine = 0;
-        console.log('form values', form.getFieldValue('headerLine'));
         if (data.length > 0 && headerLine <= data.length) {
             const res = data[headerLine].data.map((item) => {
                 return { field_name: item, field_description: '' };
@@ -132,15 +125,12 @@ export const CsvForm = () => {
             </SearchResultContainer>
         );
     };
-    // const aboutPlatform =
     //     'If dataset is not from an existing database, use FILE. For databases not in list, refer to admin';
     const onSelectMember = (urn: string) => {
         setSelectedPlatform(urn);
         form.setFieldsValue({ parentContainer: '' });
     };
-    console.log(`selected platform: ${selectedPlatform}`);
     const removeOption = () => {
-        console.log(`removing ${selectedPlatform}`);
         setSelectedPlatform('');
         form.setFieldsValue({ parentContainer: '' });
         form.setFieldsValue({ browsepathList: [{ browsepath: '' }] });
@@ -150,6 +140,12 @@ export const CsvForm = () => {
     const { TextArea } = Input;
     return (
         <>
+            <Paragraph>
+                Not sure how to onboard your dataset? Refer to our guide{' '}
+                <a href={env.GUIDE} target="_blank" rel="noopener noreferrer">
+                    here
+                </a>
+            </Paragraph>
             <Form
                 {...layout}
                 name="main_form_item"
@@ -238,7 +234,6 @@ export const CsvForm = () => {
                                                     fieldKey={[fieldKey, 'field_type']}
                                                     rules={[{ required: true, message: 'Missing field type' }]}
                                                 >
-                                                    {/* <Popover trigger="hover" content={aboutType}> */}
                                                     <Select showSearch placeholder="Select field type">
                                                         <Option value="num">Number</Option>
                                                         <Option value="double">Double</Option>
@@ -250,7 +245,6 @@ export const CsvForm = () => {
                                                         <Option value="bytes">Bytes</Option>
                                                         <Option value="unknown">Unknown</Option>
                                                     </Select>
-                                                    {/* </Popover> */}
                                                 </Form.Item>
                                             </Col>
                                         </Tooltip>
@@ -267,14 +261,11 @@ export const CsvForm = () => {
                                                     },
                                                 ]}
                                             >
-                                                {/* <Popover trigger="hover" content={aboutDesc}> */}
-                                                {/* <Input placeholder="Field Description" /> */}
                                                 <TextArea
                                                     rows={4}
                                                     placeholder="Field Description"
                                                     autoSize={{ minRows: 1, maxRows: 3 }}
                                                 />
-                                                {/* </Popover> */}
                                             </Form.Item>
                                         </Col>
                                         {fields.length > 1 ? (
