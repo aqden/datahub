@@ -151,7 +151,6 @@ export const CsvForm = () => {
                 type="info"
                 closeText="Close Now"
             />
-            ;
             <Form
                 {...layout}
                 name="main_form_item"
