@@ -8,7 +8,8 @@ RUN cd /datahub-src && ./gradlew :metadata-events:mxe-schemas:build
 
 FROM base as prod-codegen
 COPY --from=prod-build /datahub-src /datahub-src
-RUN cd /datahub-src/metadata-ingestion && \
+RUN apt update && apt install -y build-essential python3-dev && \
+    cd /datahub-src/metadata-ingestion && \
     pip install -e ".[base]" && \
     ./scripts/codegen.sh
 
