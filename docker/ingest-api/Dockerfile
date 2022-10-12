@@ -1,5 +1,6 @@
 FROM python:3.8-slim as base
 RUN apt-get update && apt-get install -y jq
+RUN apt update && apt install -y build-essential python3-dev
 
 # FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim as base
 FROM openjdk:8 as prod-build
@@ -8,8 +9,7 @@ RUN cd /datahub-src && ./gradlew :metadata-events:mxe-schemas:build
 
 FROM base as prod-codegen
 COPY --from=prod-build /datahub-src /datahub-src
-RUN apt update && apt install -y build-essential python3-dev && \
-    cd /datahub-src/metadata-ingestion && \
+RUN cd /datahub-src/metadata-ingestion && \
     pip install -e ".[base]" && \
     ./scripts/codegen.sh
 
