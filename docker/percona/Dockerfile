@@ -14,7 +14,7 @@ RUN wget --no-check-certificate https://repo.percona.com/apt/percona-release_lat
 &&  dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb \
 &&  percona-release enable-only tools release
 RUN apt-get update \
-&& apt-get -y install percona-xtrabackup-24 \
+&& apt-get -y install percona-xtrabackup-80 \
 && apt-get -y install qpress expect
 
 
