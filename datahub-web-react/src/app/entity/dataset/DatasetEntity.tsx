@@ -33,8 +33,7 @@ import { OperationsTab } from './profile/OperationsTab';
 import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
 import { SidebarSiblingsSection } from '../shared/containers/profile/sidebar/SidebarSiblingsSection';
 import { DatasetStatsSummarySubHeader } from './profile/stats/stats/DatasetStatsSummarySubHeader';
-import { TimelineTab } from '../shared/tabs/Dataset/Schema/TimelineTab';
-import { TimelineChronoTab } from '../shared/tabs/Dataset/Schema/TimelineChronoTab';
+import { ChangeEventsTab } from '../shared/tabs/Dataset/Schema/ChangeEventsTab';
 
 const SUBTYPES = {
     VIEW: 'view',
@@ -98,16 +97,12 @@ export class DatasetEntity implements Entity<Dataset> {
             }}
             tabs={[
                 {
-                    name: 'Timeline',
-                    component: TimelineTab,
-                },
-                {
-                    name: 'Timeline Chrono',
-                    component: TimelineChronoTab,
-                },
-                {
                     name: 'Schema',
                     component: SchemaTab,
+                },
+                {
+                    name: 'Change Events',
+                    component: ChangeEventsTab,
                 },
                 {
                     name: 'View Definition',
