@@ -1,7 +1,8 @@
 package com.linkedin.datahub.graphql.resolvers.timeline;
 
 import com.linkedin.common.urn.Urn;
-import com.linkedin.datahub.graphql.generated.*;
+import com.linkedin.datahub.graphql.generated.GetDatasetChangeEventsInput;
+import com.linkedin.datahub.graphql.generated.GetDatasetChangeEventsResult;
 import com.linkedin.datahub.graphql.types.timeline.mappers.DatasetChangeEventsMapper;
 import com.linkedin.metadata.timeline.TimelineService;
 import com.linkedin.metadata.timeline.data.ChangeCategory;
@@ -11,7 +12,11 @@ import graphql.schema.DataFetchingEnvironment;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static com.linkedin.datahub.graphql.resolvers.ResolverUtils.bindArgument;
