@@ -38,6 +38,7 @@ export const ChangeEventsTab = () => {
             dataIndex: 'actor',
             filters: nameFilter,
             filterSearch: true,
+            onFilter: (value, record) => record.name.includes(value),
         },
         {
             title: 'Datetime',
@@ -53,6 +54,7 @@ export const ChangeEventsTab = () => {
             dataIndex: 'category',
             filters: categoryFilter,
             filterSearch: true,
+            onFilter: (value, record) => record.name.includes(value),
         },
         {
             title: 'Change Operation',
