@@ -32,13 +32,36 @@ export const ChangeEventsTab = () => {
         return { text: category, value: category };
     });
 
+    // to filter the events by operation type
+    const operationFilter = Array.from(new Set(data.map((obj) => obj.operation))).map((operation) => {
+        return { text: operation, value: operation };
+    });
+
     const columns = [
         {
             title: 'Changed By',
             dataIndex: 'actor',
             filters: nameFilter,
             filterSearch: true,
-            onFilter: (value, record) => record.name.includes(value),
+            onFilter: (value, record: ChangeEvent) => record.actor.includes(value),
+        },
+        {
+            title: 'Category',
+            dataIndex: 'category',
+            filters: categoryFilter,
+            filterSearch: true,
+            onFilter: (value, record: ChangeEvent) => record.category.includes(value),
+        },
+        {
+            title: 'Change Operation',
+            dataIndex: 'operation',
+            filters: operationFilter,
+            filterSearch: true,
+            onFilter: (value, record: ChangeEvent) => record.operation.includes(value),
+        },
+        {
+            title: 'Change Description',
+            dataIndex: 'description',
         },
         {
             title: 'Datetime',
@@ -48,21 +71,6 @@ export const ChangeEventsTab = () => {
                 multiple: 3,
             },
             render: (timeStampMillis: number) => toLocalDateTimeString(timeStampMillis),
-        },
-        {
-            title: 'Category',
-            dataIndex: 'category',
-            filters: categoryFilter,
-            filterSearch: true,
-            onFilter: (value, record) => record.name.includes(value),
-        },
-        {
-            title: 'Change Operation',
-            dataIndex: 'operation',
-        },
-        {
-            title: 'Change Description',
-            dataIndex: 'description',
         },
     ];
 
