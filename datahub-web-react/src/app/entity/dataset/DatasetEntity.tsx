@@ -101,10 +101,6 @@ export class DatasetEntity implements Entity<Dataset> {
                     component: SchemaTab,
                 },
                 {
-                    name: 'Change Events',
-                    component: ChangeEventsTab,
-                },
-                {
                     name: 'View Definition',
                     component: ViewDefinitionTab,
                     display: {
@@ -190,6 +186,10 @@ export class DatasetEntity implements Entity<Dataset> {
                             );
                         },
                     },
+                },
+                {
+                    name: 'Change Events',
+                    component: ChangeEventsTab,
                 },
                 {
                     name: 'Edit Schema',
