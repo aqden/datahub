@@ -2837,6 +2837,10 @@ enum OwnershipType {
     Deprecated! This ownership type is no longer supported.
     """
     CONSUMER @deprecated
+    """
+    custom1 type
+    """
+    CUSTOM_OWNER
 }
 
 """

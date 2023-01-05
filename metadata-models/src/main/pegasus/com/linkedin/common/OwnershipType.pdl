@@ -6,6 +6,10 @@ namespace com.linkedin.common
 enum OwnershipType {
 
   /**
+   * custom owner type1
+   */
+  CUSTOM_OWNER
+  /**
    * person or group who is responsible for technical aspects of the asset.
    */
   TECHNICAL_OWNER

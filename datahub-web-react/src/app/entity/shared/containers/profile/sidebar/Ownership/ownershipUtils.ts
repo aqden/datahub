@@ -25,6 +25,11 @@ export const OWNERSHIP_DISPLAY_TYPES = [
         name: 'None',
         description: 'No ownership type specified.',
     },
+    {
+        type: OwnershipType.CustomOwner,
+        name: 'Technical Owner',
+        description: 'Involved in the production, maintenance, or distribution of the asset.',
+    },
 ];
 
 const ownershipTypeToDetails = new Map();

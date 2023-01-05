@@ -89,6 +89,10 @@ enum OwnershipType {
     A person or a group that has direct business interest
     """
     STAKEHOLDER
+    """
+    custom1 type
+    """
+    CUSTOM_OWNER
 }
 
 type Owner {
