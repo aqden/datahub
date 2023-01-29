@@ -1,4 +1,4 @@
---
+---
 version: '2.3'
 services:
   ingest-api:
@@ -8,8 +8,8 @@ services:
     hostname: ingest-api
     container_name: ingest-api
     ports:
-      - "8001:8001"
+    - 8001:8001
     volumes:
-      - apidata:/var/log/ingest/
+    - apidata:/var/log/ingest/
 volumes:
   apidata: null
