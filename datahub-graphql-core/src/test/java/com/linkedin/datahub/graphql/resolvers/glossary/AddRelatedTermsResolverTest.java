@@ -1,6 +1,7 @@
 package com.linkedin.datahub.graphql.resolvers.glossary;
 
 import com.google.common.collect.ImmutableList;
+import com.linkedin.common.AuditStamp;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.common.urn.UrnUtils;
 import com.linkedin.datahub.graphql.QueryContext;
@@ -8,6 +9,7 @@ import com.linkedin.datahub.graphql.generated.RelatedTermsInput;
 import com.linkedin.datahub.graphql.generated.TermRelationshipType;
 import com.linkedin.metadata.Constants;
 import com.linkedin.metadata.entity.EntityService;
+import com.linkedin.mxe.MetadataChangeProposal;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.concurrent.ExecutionException;
 
@@ -56,7 +58,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
     assertTrue(resolver.get(mockEnv).get());
 
-    verifyIngestProposal(mockService, 1);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
     Mockito.verify(mockService, Mockito.times(1)).exists(
         Mockito.eq(Urn.createFromString(TEST_ENTITY_URN))
     );
@@ -88,7 +93,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
     assertTrue(resolver.get(mockEnv).get());
 
-    verifyIngestProposal(mockService, 1);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
     Mockito.verify(mockService, Mockito.times(1)).exists(
         Mockito.eq(Urn.createFromString(TEST_ENTITY_URN))
     );
@@ -117,7 +125,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(ExecutionException.class, () -> resolver.get(mockEnv).get());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -137,7 +148,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(ExecutionException.class, () -> resolver.get(mockEnv).get());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -158,7 +172,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(ExecutionException.class, () -> resolver.get(mockEnv).get());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -179,7 +196,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(ExecutionException.class, () -> resolver.get(mockEnv).get());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -200,7 +220,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(ExecutionException.class, () -> resolver.get(mockEnv).get());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -223,7 +246,10 @@ public class AddRelatedTermsResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(ExecutionException.class, () -> resolver.get(mockEnv).get());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(MetadataChangeProposal.class),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
 }

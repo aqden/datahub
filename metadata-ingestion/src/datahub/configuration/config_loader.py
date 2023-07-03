@@ -2,11 +2,8 @@ import io
 import pathlib
 import re
 import sys
-import unittest.mock
-from typing import Any, Dict, Set, Union
-from urllib import parse
+from typing import Any, Dict, Union
 
-import requests
 from expandvars import UnboundVariable, expandvars
 
 from datahub.configuration.common import ConfigurationError, ConfigurationMechanism
@@ -54,21 +51,8 @@ def resolve_env_variables(config: dict) -> dict:
     return new_dict
 
 
-def list_referenced_env_variables(config: dict) -> Set[str]:
-    # This is a bit of a hack, but expandvars does a bunch of escaping
-    # and other logic that we don't want to duplicate here.
-
-    with unittest.mock.patch("expandvars.getenv") as mock_getenv:
-        mock_getenv.return_value = "mocked_value"
-
-        resolve_env_variables(config)
-
-    calls = mock_getenv.mock_calls
-    return set([call[1][0] for call in calls])
-
-
 def load_config_file(
-    config_file: Union[str, pathlib.Path],
+    config_file: Union[pathlib.Path, str],
     squirrel_original_config: bool = False,
     squirrel_field: str = "__orig_config",
     allow_stdin: bool = False,
@@ -79,28 +63,23 @@ def load_config_file(
         config_mech = YamlConfigurationMechanism()
         raw_config_file = sys.stdin.read()
     else:
-        config_file_path = pathlib.Path(config_file)
-        if config_file_path.suffix in {".yaml", ".yml"}:
+        if isinstance(config_file, str):
+            config_file = pathlib.Path(config_file)
+        if not config_file.is_file():
+            raise ConfigurationError(f"Cannot open config file {config_file}")
+
+        if config_file.suffix in {".yaml", ".yml"}:
             config_mech = YamlConfigurationMechanism()
-        elif config_file_path.suffix == ".toml":
+        elif config_file.suffix == ".toml":
             config_mech = TomlConfigurationMechanism()
         else:
             raise ConfigurationError(
-                f"Only .toml and .yml are supported. Cannot process file type {config_file_path.suffix}"
-            )
-        url_parsed = parse.urlparse(str(config_file))
-        if url_parsed.scheme in ("http", "https"):  # URLs will return http/https
-            try:
-                response = requests.get(str(config_file))
-                raw_config_file = response.text
-            except Exception as e:
-                raise ConfigurationError(
-                    f"Cannot read remote file {config_file_path}, error:{e}"
+                "Only .toml and .yml are supported. Cannot process file type {}".format(
+                    config_file.suffix
                 )
-        else:
-            if not config_file_path.is_file():
-                raise ConfigurationError(f"Cannot open config file {config_file_path}")
-            raw_config_file = config_file_path.read_text()
+            )
+
+        raw_config_file = config_file.read_text()
 
     config_fp = io.StringIO(raw_config_file)
     raw_config = config_mech.load_config(config_fp)

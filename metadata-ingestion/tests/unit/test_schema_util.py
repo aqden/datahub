@@ -271,17 +271,15 @@ def test_avro_sample_payment_schema_to_mce_fields_with_nesting():
   "namespace": "some.event.namespace",
   "fields": [
     {"name": "id", "type": "string"},
-    {"name": "amount", "type": "double", "doc": "amountDoc"},
+    {"name": "amount", "type": "double"},
     {"name": "name","type": "string","default": ""},
     {"name": "phoneNumber",
      "type": [{
          "type": "record",
          "name": "PhoneNumber",
-         "doc": "testDoc",
          "fields": [{
              "name": "areaCode",
              "type": "string",
-             "doc": "areaCodeDoc",
              "default": ""
              }, {
              "name": "countryCode",
@@ -300,21 +298,6 @@ def test_avro_sample_payment_schema_to_mce_fields_with_nesting():
          "null"
      ],
      "default": "null"
-    },
-    {"name": "address",
-     "type": [{
-         "type": "record",
-         "name": "Address",
-         "fields": [{
-             "name": "street",
-             "type": "string",
-             "default": ""
-             }]
-         },
-         "null"
-     ],
-      "doc": "addressDoc",
-     "default": "null"
     }
   ]
 }
@@ -329,14 +312,8 @@ def test_avro_sample_payment_schema_to_mce_fields_with_nesting():
         "[version=2.0].[type=Payment].[type=PhoneNumber].phoneNumber.[type=string].countryCode",
         "[version=2.0].[type=Payment].[type=PhoneNumber].phoneNumber.[type=string].prefix",
         "[version=2.0].[type=Payment].[type=PhoneNumber].phoneNumber.[type=string].number",
-        "[version=2.0].[type=Payment].[type=Address].address",
-        "[version=2.0].[type=Payment].[type=Address].address.[type=string].street",
     ]
     assert_field_paths_match(fields, expected_field_paths)
-    assert fields[1].description == "amountDoc"
-    assert fields[3].description == "testDoc\nField default value: null"
-    assert fields[4].description == "areaCodeDoc\nField default value: "
-    assert fields[8].description == "addressDoc\nField default value: null"
 
 
 def test_avro_schema_to_mce_fields_with_nesting_across_records():

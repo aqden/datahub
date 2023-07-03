@@ -1,10 +1,10 @@
-import { Button, Form, Switch, Typography } from 'antd';
-import React, { useMemo, useState } from 'react';
+import { Button, Form, Typography } from 'antd';
+import React, { useMemo } from 'react';
 import { Cron } from 'react-js-cron';
 import 'react-js-cron/dist/styles.css';
 import styled from 'styled-components';
 import cronstrue from 'cronstrue';
-import { CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined } from '@ant-design/icons';
 import { SourceBuilderState, StepProps } from './types';
 import { TimezoneSelect } from './TimezoneSelect';
 import { ANTD_GRAY, REDESIGN_COLORS } from '../../../entity/shared/constants';
@@ -51,33 +51,41 @@ const StyledFormItem = styled(Form.Item)`
     }
 `;
 
-const WarningContainer = styled.div`
-    color: ${ANTD_GRAY[7]};
-`;
-
-const StyledWarningOutlined = styled(WarningOutlined)`
-    margin-right: 4px;
-    margin-top: 12px;
-`;
-
 const ItemDescriptionText = styled(Typography.Paragraph)``;
 
 const DAILY_MIDNIGHT_CRON_INTERVAL = '0 0 * * *';
 
 export const CreateScheduleStep = ({ state, updateState, goTo, prev }: StepProps) => {
-    const { schedule } = state;
-    const interval = schedule?.interval?.replaceAll(', ', ' ') || DAILY_MIDNIGHT_CRON_INTERVAL;
-    const timezone = schedule?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const interval = state.schedule?.interval?.replaceAll(', ', ' ') || DAILY_MIDNIGHT_CRON_INTERVAL;
+    const timezone = state.schedule?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    const [scheduleEnabled, setScheduleEnabled] = useState(!!schedule);
-    const [scheduleCronInterval, setScheduleCronInterval] = useState(interval);
-    const [scheduleTimezone, setScheduleTimezone] = useState(timezone);
+    const setTimezone = (tz: string) => {
+        const newState: SourceBuilderState = {
+            ...state,
+            schedule: {
+                ...state.schedule,
+                timezone: tz,
+            },
+        };
+        updateState(newState);
+    };
+
+    const setCronInterval = (int: string) => {
+        const newState: SourceBuilderState = {
+            ...state,
+            schedule: {
+                ...state.schedule,
+                interval: int,
+            },
+        };
+        updateState(newState);
+    };
 
     const cronAsText = useMemo(() => {
-        if (scheduleCronInterval) {
+        if (interval) {
             try {
                 return {
-                    text: `Runs ${lowerFirstLetter(cronstrue.toString(scheduleCronInterval))}.`,
+                    text: `Runs ${lowerFirstLetter(cronstrue.toString(interval))}.`,
                     error: false,
                 };
             } catch (e) {
@@ -91,55 +99,33 @@ export const CreateScheduleStep = ({ state, updateState, goTo, prev }: StepProps
             text: undefined,
             error: false,
         };
-    }, [scheduleCronInterval]);
+    }, [interval]);
 
     const onClickNext = () => {
-        if (scheduleEnabled) {
-            const newState: SourceBuilderState = {
-                ...state,
-                schedule: {
-                    timezone: scheduleTimezone,
-                    interval: scheduleCronInterval,
-                },
-            };
-            updateState(newState);
-        } else {
-            const newState: SourceBuilderState = {
-                ...state,
-                schedule: undefined,
-            };
-            updateState(newState);
-        }
+        setTimezone(timezone);
+        goTo(IngestionSourceBuilderStep.NAME_SOURCE);
+    };
 
+    const onClickSkip = () => {
+        const newState: SourceBuilderState = {
+            ...state,
+            schedule: undefined,
+        };
+        updateState(newState);
         goTo(IngestionSourceBuilderStep.NAME_SOURCE);
     };
 
     return (
         <>
             <Section>
-                <SelectTemplateHeader level={5}>Configure an Ingestion Schedule</SelectTemplateHeader>
+                <SelectTemplateHeader level={5}>Create an Execution Schedule</SelectTemplateHeader>
+                <Typography.Text>Configure your ingestion source to run on a schedule.</Typography.Text>
             </Section>
             <Form layout="vertical">
-                <Form.Item
-                    tooltip="Enable to run ingestion on a schedule. Running ingestion on a schedule helps to keep the information inside of DataHub up to date."
-                    label={
-                        <Typography.Text strong>
-                            Run on a schedule <Typography.Text type="secondary">(Recommended)</Typography.Text>
-                        </Typography.Text>
-                    }
-                >
-                    <Switch checked={scheduleEnabled} onChange={(v) => setScheduleEnabled(v)} />
-                    {!scheduleEnabled && (
-                        <WarningContainer>
-                            <StyledWarningOutlined />
-                            Running ingestion without a schedule may result in out-of-date information.
-                        </WarningContainer>
-                    )}
-                </Form.Item>
                 <StyledFormItem required label={<Typography.Text strong>Schedule</Typography.Text>}>
                     <Cron
-                        value={scheduleCronInterval}
-                        setValue={setScheduleCronInterval}
+                        value={interval}
+                        setValue={setCronInterval}
                         clearButton={false}
                         className="cron-builder"
                         leadingZero
@@ -160,13 +146,16 @@ export const CreateScheduleStep = ({ state, updateState, goTo, prev }: StepProps
                     </CronText>
                 </StyledFormItem>
                 <Form.Item required label={<Typography.Text strong>Timezone</Typography.Text>}>
-                    <ItemDescriptionText>Choose a timezone for the schedule.</ItemDescriptionText>
-                    <TimezoneSelect value={scheduleTimezone} onChange={setScheduleTimezone} />
+                    <ItemDescriptionText>Select the timezone to run the cron schedule in.</ItemDescriptionText>
+                    <TimezoneSelect value={timezone} onChange={setTimezone} />
                 </Form.Item>
             </Form>
             <ControlsContainer>
                 <Button onClick={prev}>Previous</Button>
                 <div>
+                    <Button style={{ marginRight: 8 }} onClick={onClickSkip}>
+                        Skip
+                    </Button>
                     <Button disabled={!interval || interval.length === 0 || cronAsText.error} onClick={onClickNext}>
                         Next
                     </Button>

@@ -1,6 +1,5 @@
 package datahub.client.rest;
 
-import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,8 +47,6 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 
-import static com.linkedin.metadata.Constants.*;
-
 
 @ThreadSafe
 @Slf4j
@@ -80,8 +77,8 @@ public class RestEmitter implements Emitter {
   private final String ingestOpenApiUrl;
   private final String configUrl;
 
-  private final ObjectMapper objectMapper;
-  private final JacksonDataTemplateCodec dataTemplateCodec;
+  private final ObjectMapper objectMapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  private final JacksonDataTemplateCodec dataTemplateCodec = new JacksonDataTemplateCodec(objectMapper.getFactory());
   private final CloseableHttpAsyncClient httpClient;
   private final EventFormatter eventFormatter;
 
@@ -90,12 +87,6 @@ public class RestEmitter implements Emitter {
    * @param config
    */
   public RestEmitter(RestEmitterConfig config) {
-    objectMapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    int maxSize = Integer.parseInt(System.getenv().getOrDefault(INGESTION_MAX_SERIALIZED_STRING_LENGTH, MAX_JACKSON_STRING_SIZE));
-    objectMapper.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
-        .maxStringLength(maxSize).build());
-    dataTemplateCodec = new JacksonDataTemplateCodec(objectMapper.getFactory());
-
     this.config = config;
     // Override httpClient settings with RestEmitter configs if present
     if (config.getTimeoutSec() != null) {

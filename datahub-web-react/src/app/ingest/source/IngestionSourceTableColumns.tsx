@@ -61,12 +61,8 @@ const CliBadge = styled.span`
         margin-right: 5px;
     }
 `;
-interface TypeColumnProps {
-    type: string;
-    record: any;
-}
 
-export function TypeColumn({ type, record }: TypeColumnProps) {
+export function TypeColumn(type: string, record: any) {
     const iconUrl = useGetSourceLogoUrl(type);
     const typeDisplayName = capitalizeFirstLetter(type);
 
@@ -94,7 +90,7 @@ export function TypeColumn({ type, record }: TypeColumnProps) {
 export function LastExecutionColumn(time: any) {
     const executionDate = time && new Date(time);
     const localTime = executionDate && `${executionDate.toLocaleDateString()} at ${executionDate.toLocaleTimeString()}`;
-    return <Typography.Text>{localTime || 'None'}</Typography.Text>;
+    return <Typography.Text>{localTime || 'N/A'}</Typography.Text>;
 }
 
 export function ScheduleColumn(schedule: any, record: any) {
@@ -118,10 +114,10 @@ export function LastStatusColumn({ status, record, setFocusExecutionUrn }: LastS
     const color = getExecutionRequestStatusDisplayColor(status);
     return (
         <StatusContainer>
-            {Icon && <Icon style={{ color, fontSize: 14 }} />}
+            {Icon && <Icon style={{ color }} />}
             <StatusButton type="link" onClick={() => setFocusExecutionUrn(record.lastExecUrn)}>
                 <Typography.Text strong style={{ color, marginLeft: 8 }}>
-                    {text || 'Pending...'}
+                    {text || 'N/A'}
                 </Typography.Text>
             </StatusButton>
         </StatusContainer>
@@ -182,7 +178,7 @@ export function ActionsColumn({
                     DETAILS
                 </Button>
             )}
-            <Button data-testid="delete-button" onClick={() => onDelete(record.urn)} type="text" shape="circle" danger>
+            <Button onClick={() => onDelete(record.urn)} type="text" shape="circle" danger>
                 <DeleteOutlined />
             </Button>
         </ActionButtonContainer>

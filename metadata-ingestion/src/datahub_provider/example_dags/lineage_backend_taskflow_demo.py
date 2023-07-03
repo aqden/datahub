@@ -1,6 +1,7 @@
 """Lineage Backend
 
 An example DAG demonstrating the usage of DataHub's Airflow lineage backend using the TaskFlow API.
+This example only works with Airflow 2.x. See https://airflow.apache.org/docs/apache-airflow/stable/concepts/taskflow.html.
 """
 
 from datetime import timedelta
@@ -8,7 +9,7 @@ from datetime import timedelta
 from airflow.decorators import dag, task
 from airflow.utils.dates import days_ago
 
-from datahub_provider.entities import Dataset, Urn
+from datahub_provider.entities import Dataset
 
 default_args = {
     "owner": "airflow",
@@ -31,13 +32,9 @@ def datahub_lineage_backend_taskflow_demo():
     @task(
         inlets=[
             Dataset("snowflake", "mydb.schema.tableA"),
-            Dataset("snowflake", "mydb.schema.tableB", "DEV"),
-            # You can also put dataset URNs in the inlets/outlets lists.
-            Urn(
-                "urn:li:dataset:(urn:li:dataPlatform:snowflake,mydb.schema.tableC,PROD)"
-            ),
+            Dataset("snowflake", "mydb.schema.tableB"),
         ],
-        outlets=[Dataset("snowflake", "mydb.schema.tableD")],
+        outlets=[Dataset("snowflake", "mydb.schema.tableC")],
     )
     def run_data_task():
         # This is where you might run your data tooling.

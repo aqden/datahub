@@ -78,7 +78,7 @@ export const ErrorSection = (): JSX.Element => {
                     </DetailParagraph>
                     <ResourceList>
                         {resources.map((resource) => (
-                            <ResourceListItem key={resource.path}>
+                            <ResourceListItem>
                                 <a href={resource.path}>{resource.label}</a>
                             </ResourceListItem>
                         ))}

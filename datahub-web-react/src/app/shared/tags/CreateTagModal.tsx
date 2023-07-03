@@ -5,7 +5,6 @@ import { useBatchAddTagsMutation } from '../../../graphql/mutations.generated';
 import { useCreateTagMutation } from '../../../graphql/tag.generated';
 import { ResourceRefInput } from '../../../types.generated';
 import { useEnterKeyListener } from '../useEnterKeyListener';
-import { handleBatchError } from '../../entity/shared/utils';
 
 type CreateTagModalProps = {
     visible: boolean;
@@ -51,12 +50,7 @@ export default function CreateTagModal({ onClose, onBack, visible, tagName, reso
                 })
                     .catch((e) => {
                         message.destroy();
-                        message.error(
-                            handleBatchError(resources, e, {
-                                content: `Failed to add tag: \n ${e.message || ''}`,
-                                duration: 3,
-                            }),
-                        );
+                        message.error({ content: `Failed to add tag: \n ${e.message || ''}`, duration: 3 });
                         onClose();
                     })
                     .finally(() => {

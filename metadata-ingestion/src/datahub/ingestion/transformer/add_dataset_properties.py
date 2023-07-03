@@ -54,7 +54,7 @@ class AddDatasetProperties(DatasetPropertiesTransformer):
         return cls(config, ctx)
 
     @staticmethod
-    def _merge_with_server_properties(
+    def get_patch_dataset_properties_aspect(
         graph: DataHubGraph,
         entity_urn: str,
         dataset_properties_aspect: Optional[DatasetPropertiesClass],
@@ -86,11 +86,12 @@ class AddDatasetProperties(DatasetPropertiesTransformer):
     def transform_aspect(
         self, entity_urn: str, aspect_name: str, aspect: Optional[Aspect]
     ) -> Optional[Aspect]:
+
         in_dataset_properties_aspect: DatasetPropertiesClass = cast(
             DatasetPropertiesClass, aspect
         )
-        if not in_dataset_properties_aspect:
-            in_dataset_properties_aspect = DatasetPropertiesClass()
+
+        assert in_dataset_properties_aspect
 
         out_dataset_properties_aspect: DatasetPropertiesClass = copy.deepcopy(
             in_dataset_properties_aspect
@@ -107,11 +108,15 @@ class AddDatasetProperties(DatasetPropertiesTransformer):
         if self.config.semantics == TransformerSemantics.PATCH:
             assert self.ctx.graph
             patch_dataset_properties_aspect = (
-                AddDatasetProperties._merge_with_server_properties(
+                AddDatasetProperties.get_patch_dataset_properties_aspect(
                     self.ctx.graph, entity_urn, out_dataset_properties_aspect
                 )
             )
-            return cast(Optional[Aspect], patch_dataset_properties_aspect)
+            out_dataset_properties_aspect = (
+                patch_dataset_properties_aspect
+                if patch_dataset_properties_aspect is not None
+                else out_dataset_properties_aspect
+            )
 
         return cast(Aspect, out_dataset_properties_aspect)
 

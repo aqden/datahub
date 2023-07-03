@@ -7,10 +7,6 @@ import LineageVizInsideZoom from './LineageVizInsideZoom';
 
 export const defaultMargin = { top: 10, left: 280, right: 280, bottom: 10 };
 
-interface Props extends TreeProps {
-    refetchCenterNode: () => void;
-}
-
 export default function LineageViz({
     margin = defaultMargin,
     entityAndType,
@@ -19,9 +15,7 @@ export default function LineageViz({
     onEntityCenter,
     onLineageExpand,
     selectedEntity,
-    fineGrainedMap,
-    refetchCenterNode,
-}: Props) {
+}: TreeProps) {
     const [windowWidth, windowHeight] = useWindowSize();
 
     const height = windowHeight - 111;
@@ -46,7 +40,6 @@ export default function LineageViz({
         >
             {(zoom) => (
                 <LineageVizInsideZoom
-                    fineGrainedMap={fineGrainedMap}
                     entityAndType={entityAndType}
                     width={width}
                     height={height}
@@ -57,7 +50,6 @@ export default function LineageViz({
                     selectedEntity={selectedEntity}
                     zoom={zoom}
                     fetchedEntities={fetchedEntities}
-                    refetchCenterNode={refetchCenterNode}
                 />
             )}
         </Zoom>

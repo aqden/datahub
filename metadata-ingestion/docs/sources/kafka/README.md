@@ -1,1 +1,1 @@
-Extract Topics & Schemas from Apache Kafka or Confluent Cloud.
+Support exists for both Apache Kafka and Confluent Cloud.

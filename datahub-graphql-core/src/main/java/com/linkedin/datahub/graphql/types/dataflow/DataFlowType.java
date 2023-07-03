@@ -9,8 +9,8 @@ import com.linkedin.common.urn.UrnUtils;
 import com.linkedin.data.template.StringArray;
 import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.datahub.graphql.authorization.AuthorizationUtils;
-import com.datahub.authorization.ConjunctivePrivilegeGroup;
-import com.datahub.authorization.DisjunctivePrivilegeGroup;
+import com.linkedin.datahub.graphql.authorization.ConjunctivePrivilegeGroup;
+import com.linkedin.datahub.graphql.authorization.DisjunctivePrivilegeGroup;
 import com.linkedin.datahub.graphql.exception.AuthorizationException;
 import com.linkedin.datahub.graphql.generated.AutoCompleteResults;
 import com.linkedin.datahub.graphql.generated.BrowsePath;
@@ -37,8 +37,6 @@ import com.linkedin.metadata.Constants;
 import com.linkedin.metadata.authorization.PoliciesConfig;
 import com.linkedin.metadata.browse.BrowseResult;
 import com.linkedin.metadata.query.AutoCompleteResult;
-import com.linkedin.metadata.query.filter.Filter;
-import com.linkedin.metadata.query.SearchFlags;
 import com.linkedin.metadata.search.SearchResult;
 import com.linkedin.mxe.MetadataChangeProposal;
 import com.linkedin.r2.RemoteInvocationException;
@@ -72,8 +70,7 @@ public class DataFlowType implements SearchableEntityType<DataFlow, String>, Bro
         STATUS_ASPECT_NAME,
         DOMAINS_ASPECT_NAME,
         DEPRECATION_ASPECT_NAME,
-        DATA_PLATFORM_INSTANCE_ASPECT_NAME,
-        DATA_PRODUCTS_ASPECT_NAME
+        DATA_PLATFORM_INSTANCE_ASPECT_NAME
     );
     private static final Set<String> FACET_FIELDS = ImmutableSet.of("orchestrator", "cluster");
     private final EntityClient _entityClient;
@@ -137,18 +134,18 @@ public class DataFlowType implements SearchableEntityType<DataFlow, String>, Bro
                                 int count,
                                 @Nonnull final QueryContext context) throws Exception {
         final Map<String, String> facetFilters = ResolverUtils.buildFacetFilters(filters, FACET_FIELDS);
-        final SearchResult searchResult = _entityClient.search("dataFlow", query, facetFilters, start, count,
-                context.getAuthentication(), new SearchFlags().setFulltext(true));
+        final SearchResult searchResult = _entityClient.search("dataFlow", query, facetFilters, start, count, context.getAuthentication());
         return UrnSearchResultsMapper.map(searchResult);
     }
 
     @Override
     public AutoCompleteResults autoComplete(@Nonnull String query,
                                             @Nullable String field,
-                                            @Nullable Filter filters,
+                                            @Nullable List<FacetFilterInput> filters,
                                             int limit,
                                             @Nonnull final QueryContext context) throws Exception {
-        final AutoCompleteResult result = _entityClient.autoComplete("dataFlow", query, filters, limit, context.getAuthentication());
+        final Map<String, String> facetFilters = ResolverUtils.buildFacetFilters(filters, FACET_FIELDS);
+        final AutoCompleteResult result = _entityClient.autoComplete("dataFlow", query, facetFilters, limit, context.getAuthentication());
         return AutoCompleteResultsMapper.map(result);
     }
 
@@ -182,7 +179,7 @@ public class DataFlowType implements SearchableEntityType<DataFlow, String>, Bro
             proposals.forEach(proposal -> proposal.setEntityUrn(UrnUtils.getUrn(urn)));
 
             try {
-                _entityClient.batchIngestProposals(proposals, context.getAuthentication(), false);
+                _entityClient.batchIngestProposals(proposals, context.getAuthentication());
             } catch (RemoteInvocationException e) {
                 throw new RuntimeException(String.format("Failed to write entity with urn %s", urn), e);
             }

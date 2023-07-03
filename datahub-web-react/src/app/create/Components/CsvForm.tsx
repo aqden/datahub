@@ -219,12 +219,13 @@ export const CsvForm = () => {
                     <Form.List name="fields">
                         {(fields, { add, remove }) => (
                             <>
-                                {fields.map(({ key, name, ...restField }) => (
+                                {fields.map(({ key, name, fieldKey, ...restField }) => (
                                     <Row key={key}>
                                         <Col span={6}>
                                             <Form.Item
                                                 {...restField}
                                                 name={[name, 'field_name']}
+                                                fieldKey={[fieldKey, 'field_name']}
                                                 rules={[{ required: true, message: 'Missing field name' }]}
                                             >
                                                 <Input placeholder="Field Name" />
@@ -239,6 +240,7 @@ export const CsvForm = () => {
                                                 <Form.Item
                                                     {...restField}
                                                     name={[name, 'field_type']}
+                                                    fieldKey={[fieldKey, 'field_type']}
                                                     rules={[{ required: true, message: 'Missing field type' }]}
                                                 >
                                                     <Select showSearch placeholder="Select field type">
@@ -260,6 +262,7 @@ export const CsvForm = () => {
                                             <Form.Item
                                                 {...restField}
                                                 name={[name, 'field_description']}
+                                                fieldKey={[fieldKey, 'field_description']}
                                                 rules={[
                                                     {
                                                         required: false,

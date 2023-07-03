@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, Union
 
 import pydantic
 from confluent_kafka import SerializingProducer
@@ -11,7 +11,6 @@ from datahub.configuration.common import ConfigModel
 from datahub.configuration.kafka import KafkaProducerConnectionConfig
 from datahub.configuration.validate_field_rename import pydantic_renamed_field
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.api.closeable import Closeable
 from datahub.metadata.schema_classes import (
     MetadataChangeEventClass as MetadataChangeEvent,
     MetadataChangeProposalClass as MetadataChangeProposal,
@@ -55,7 +54,7 @@ class KafkaEmitterConfig(ConfigModel):
         return v
 
 
-class DatahubKafkaEmitter(Closeable):
+class DatahubKafkaEmitter:
     def __init__(self, config: KafkaEmitterConfig):
         self.config = config
         schema_registry_conf = {
@@ -114,12 +113,12 @@ class DatahubKafkaEmitter(Closeable):
             MetadataChangeProposal,
             MetadataChangeProposalWrapper,
         ],
-        callback: Optional[Callable[[Exception, str], None]] = None,
+        callback: Callable[[Exception, str], None],
     ) -> None:
         if isinstance(item, (MetadataChangeProposal, MetadataChangeProposalWrapper)):
-            return self.emit_mcp_async(item, callback or _error_reporting_callback)
+            return self.emit_mcp_async(item, callback)
         else:
-            return self.emit_mce_async(item, callback or _error_reporting_callback)
+            return self.emit_mce_async(item, callback)
 
     def emit_mce_async(
         self,
@@ -154,11 +153,3 @@ class DatahubKafkaEmitter(Closeable):
     def flush(self) -> None:
         for producer in self.producers.values():
             producer.flush()
-
-    def close(self) -> None:
-        self.flush()
-
-
-def _error_reporting_callback(err: Exception, msg: str) -> None:
-    if err:
-        logger.error(f"Failed to emit to kafka: {err} {msg}")

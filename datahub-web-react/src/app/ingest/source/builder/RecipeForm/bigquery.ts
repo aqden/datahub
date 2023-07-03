@@ -1,21 +1,18 @@
-import { RecipeField, FieldType } from './common';
+import { RecipeField, FieldType, setListValuesOnRecipe } from './common';
 
 export const BIGQUERY_PROJECT_ID: RecipeField = {
     name: 'project_id',
-    label: 'Project ID',
+    label: 'BigQuery Project ID',
     tooltip: 'Project ID where you have rights to run queries and create tables.',
-    placeholder: 'my-project-123',
     type: FieldType.TEXT,
     fieldPath: 'source.config.project_id',
     rules: null,
-    required: true,
 };
 
 export const BIGQUERY_CREDENTIAL_PROJECT_ID: RecipeField = {
     name: 'credential.project_id',
     label: 'Credentials Project ID',
-    tooltip: "The Project ID, which can be found in your service account's JSON Key (project_id)",
-    placeholder: 'my-project-123',
+    tooltip: 'Project id to set the credentials.',
     type: FieldType.TEXT,
     fieldPath: 'source.config.credential.project_id',
     rules: null,
@@ -24,43 +21,125 @@ export const BIGQUERY_CREDENTIAL_PROJECT_ID: RecipeField = {
 export const BIGQUERY_PRIVATE_KEY_ID: RecipeField = {
     name: 'credential.private_key_id',
     label: 'Private Key Id',
-    tooltip: "The Private Key id, which can be found in your service account's JSON Key (private_key_id)",
+    tooltip: 'Private key id.',
     type: FieldType.SECRET,
     fieldPath: 'source.config.credential.private_key_id',
-    placeholder: 'd0121d0000882411234e11166c6aaa23ed5d74e0',
     rules: null,
-    required: true,
 };
 
 export const BIGQUERY_PRIVATE_KEY: RecipeField = {
     name: 'credential.private_key',
     label: 'Private Key',
-    tooltip: "The Private key, which can be found in your service account's JSON Key (private_key).",
-    placeholder: '-----BEGIN PRIVATE KEY-----....\n-----END PRIVATE KEY-----',
+    tooltip: 'Private key in a form of "-----BEGIN PRIVATE KEY-----\nprivate-key\n-----END PRIVATE KEY-----\n".',
     type: FieldType.SECRET,
     fieldPath: 'source.config.credential.private_key',
     rules: null,
-    required: true,
 };
 
 export const BIGQUERY_CLIENT_EMAIL: RecipeField = {
     name: 'credential.client_email',
     label: 'Client Email',
-    tooltip: "The Client Email, which can be found in your service account's JSON Key (client_email).",
-    placeholder: 'client_email@gmail.com',
+    tooltip: 'Client email.',
     type: FieldType.TEXT,
     fieldPath: 'source.config.credential.client_email',
     rules: null,
-    required: true,
 };
 
 export const BIGQUERY_CLIENT_ID: RecipeField = {
     name: 'credential.client_id',
     label: 'Client ID',
-    tooltip: "The Client ID, which can be found in your service account's JSON Key (client_id).",
-    placeholder: '123456789098765432101',
+    tooltip: 'Client ID.',
     type: FieldType.TEXT,
     fieldPath: 'source.config.credential.client_id',
     rules: null,
-    required: true,
+};
+
+const schemaAllowFieldPath = 'source.config.schema_pattern.allow';
+export const BIGQUERY_SCHEMA_ALLOW: RecipeField = {
+    name: 'schema_pattern.allow',
+    label: 'Allow Patterns',
+    tooltip: 'Use regex here.',
+    placeholder: '^my_schema$',
+    type: FieldType.LIST,
+    buttonLabel: 'Add pattern',
+    fieldPath: schemaAllowFieldPath,
+    rules: null,
+    section: 'Schemas',
+    setValueOnRecipeOverride: (recipe: any, values: string[]) =>
+        setListValuesOnRecipe(recipe, values, schemaAllowFieldPath),
+};
+
+const schemaDenyFieldPath = 'source.config.schema_pattern.deny';
+export const BIGQUERY_SCHEMA_DENY: RecipeField = {
+    name: 'schema_pattern.deny',
+    label: 'Deny Patterns',
+    tooltip: 'Use regex here.',
+    placeholder: '^my_schema$',
+    type: FieldType.LIST,
+    buttonLabel: 'Add pattern',
+    fieldPath: schemaDenyFieldPath,
+    rules: null,
+    section: 'Schemas',
+    setValueOnRecipeOverride: (recipe: any, values: string[]) =>
+        setListValuesOnRecipe(recipe, values, schemaDenyFieldPath),
+};
+
+const tableAllowFieldPath = 'source.config.table_pattern.allow';
+export const BIGQUERY_TABLE_ALLOW: RecipeField = {
+    name: 'table_pattern.allow',
+    label: 'Allow Patterns',
+    tooltip: 'Use regex here.',
+    placeholder: '^my_schema\\.table_name$',
+    type: FieldType.LIST,
+    buttonLabel: 'Add pattern',
+    fieldPath: tableAllowFieldPath,
+    rules: null,
+    section: 'Tables',
+    setValueOnRecipeOverride: (recipe: any, values: string[]) =>
+        setListValuesOnRecipe(recipe, values, tableAllowFieldPath),
+};
+
+const tableDenyFieldPath = 'source.config.table_pattern.deny';
+export const BIGQUERY_TABLE_DENY: RecipeField = {
+    name: 'table_pattern.deny',
+    label: 'Deny Patterns',
+    tooltip: 'Use regex here.',
+    placeholder: '^my_schema\\.table_name$',
+    type: FieldType.LIST,
+    buttonLabel: 'Add pattern',
+    fieldPath: tableDenyFieldPath,
+    rules: null,
+    section: 'Tables',
+    setValueOnRecipeOverride: (recipe: any, values: string[]) =>
+        setListValuesOnRecipe(recipe, values, tableDenyFieldPath),
+};
+
+const viewAllowFieldPath = 'source.config.view_pattern.allow';
+export const BIGQUERY_VIEW_ALLOW: RecipeField = {
+    name: 'view_pattern.allow',
+    label: 'Allow Patterns',
+    tooltip: 'Use regex here.',
+    placeholder: '^my_schema\\.view_name$',
+    type: FieldType.LIST,
+    buttonLabel: 'Add pattern',
+    fieldPath: viewAllowFieldPath,
+    rules: null,
+    section: 'Views',
+    setValueOnRecipeOverride: (recipe: any, values: string[]) =>
+        setListValuesOnRecipe(recipe, values, viewAllowFieldPath),
+};
+
+const viewDenyFieldPath = 'source.config.view_pattern.deny';
+export const BIGQUERY_VIEW_DENY: RecipeField = {
+    name: 'view_pattern.deny',
+    label: 'Deny Patterns',
+    tooltip: 'Use regex here.',
+    placeholder: '^my_schema\\.view_name$',
+    type: FieldType.LIST,
+    buttonLabel: 'Add pattern',
+    fieldPath: viewDenyFieldPath,
+    rules: null,
+    section: 'Views',
+    setValueOnRecipeOverride: (recipe: any, values: string[]) =>
+        setListValuesOnRecipe(recipe, values, viewDenyFieldPath),
 };

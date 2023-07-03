@@ -1,3 +1,0 @@
-mutation($urn: String!) {
-  deleteDataProduct(urn: $urn)
-}

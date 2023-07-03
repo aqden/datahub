@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Empty, List, Pagination } from 'antd';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import * as QueryString from 'query-string';
 import { UsergroupAddOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router';
@@ -12,18 +12,9 @@ import TabToolbar from '../../entity/shared/components/styled/TabToolbar';
 import { SearchBar } from '../../search/SearchBar';
 import { useEntityRegistry } from '../../useEntityRegistry';
 import ViewInviteTokenModal from './ViewInviteTokenModal';
+import { useGetAuthenticatedUser } from '../../useGetAuthenticatedUser';
 import { useListRolesQuery } from '../../../graphql/role.generated';
 import { scrollToTop } from '../../shared/searchUtils';
-import { OnboardingTour } from '../../onboarding/OnboardingTour';
-import {
-    USERS_ASSIGN_ROLE_ID,
-    USERS_INTRO_ID,
-    USERS_INVITE_LINK_ID,
-    USERS_SSO_ID,
-} from '../../onboarding/config/UsersOnboardingConfig';
-import { useUpdateEducationStepIdsAllowlist } from '../../onboarding/useUpdateEducationStepIdsAllowlist';
-import { DEFAULT_USER_LIST_PAGE_SIZE, removeUserFromListUsersCache } from './cacheUtils';
-import { useUserContext } from '../../context/useUserContext';
 
 const UserContainer = styled.div``;
 
@@ -39,6 +30,8 @@ const UserPaginationContainer = styled.div`
     justify-content: center;
 `;
 
+const DEFAULT_PAGE_SIZE = 25;
+
 export const UserList = () => {
     const entityRegistry = useEntityRegistry();
     const location = useLocation();
@@ -49,32 +42,33 @@ export const UserList = () => {
 
     const [page, setPage] = useState(1);
     const [isViewingInviteToken, setIsViewingInviteToken] = useState(false);
+    const [removedUrns, setRemovedUrns] = useState<string[]>([]);
 
-    const authenticatedUser = useUserContext();
-    const canManagePolicies = authenticatedUser?.platformPrivileges?.managePolicies || false;
+    const authenticatedUser = useGetAuthenticatedUser();
+    const canManageUserCredentials = authenticatedUser?.platformPrivileges.manageUserCredentials || false;
 
-    const pageSize = DEFAULT_USER_LIST_PAGE_SIZE;
+    const pageSize = DEFAULT_PAGE_SIZE;
     const start = (page - 1) * pageSize;
 
     const {
         loading: usersLoading,
         error: usersError,
         data: usersData,
-        client,
         refetch: usersRefetch,
     } = useListUsersQuery({
         variables: {
             input: {
                 start,
                 count: pageSize,
-                query: (query?.length && query) || undefined,
+                query,
             },
         },
-        fetchPolicy: (query?.length || 0) > 0 ? 'no-cache' : 'cache-first',
+        fetchPolicy: 'no-cache',
     });
 
     const totalUsers = usersData?.listUsers?.total || 0;
     const users = usersData?.listUsers?.users || [];
+    const filteredUsers = users.filter((user) => !removedUrns.includes(user.urn));
 
     const onChangePage = (newPage: number) => {
         scrollToTop();
@@ -82,7 +76,12 @@ export const UserList = () => {
     };
 
     const handleDelete = (urn: string) => {
-        removeUserFromListUsersCache(urn, client, page, pageSize);
+        // Hack to deal with eventual consistency.
+        const newRemovedUrns = [...removedUrns, urn];
+        setRemovedUrns(newRemovedUrns);
+        setTimeout(function () {
+            usersRefetch?.();
+        }, 3000);
     };
 
     const {
@@ -90,11 +89,12 @@ export const UserList = () => {
         error: rolesError,
         data: rolesData,
     } = useListRolesQuery({
-        fetchPolicy: 'cache-first',
+        fetchPolicy: 'no-cache',
         variables: {
             input: {
-                start: 0,
-                count: 10,
+                start,
+                count: pageSize,
+                query,
             },
         },
     });
@@ -103,19 +103,15 @@ export const UserList = () => {
     const error = usersError || rolesError;
     const selectRoleOptions = rolesData?.listRoles?.roles?.map((role) => role as DataHubRole) || [];
 
-    useUpdateEducationStepIdsAllowlist(canManagePolicies, USERS_INVITE_LINK_ID);
-
     return (
         <>
-            <OnboardingTour stepIds={[USERS_INTRO_ID, USERS_SSO_ID, USERS_INVITE_LINK_ID, USERS_ASSIGN_ROLE_ID]} />
             {!usersData && loading && <Message type="loading" content="Loading users..." />}
             {error && <Message type="error" content="Failed to load users! An unexpected error occurred." />}
             <UserContainer>
                 <TabToolbar>
                     <div>
                         <Button
-                            id={USERS_INVITE_LINK_ID}
-                            disabled={!canManagePolicies}
+                            disabled={!canManageUserCredentials}
                             type="text"
                             onClick={() => setIsViewingInviteToken(true)}
                         >
@@ -145,12 +141,12 @@ export const UserList = () => {
                     locale={{
                         emptyText: <Empty description="No Users!" image={Empty.PRESENTED_IMAGE_SIMPLE} />,
                     }}
-                    dataSource={users}
+                    dataSource={filteredUsers}
                     renderItem={(item: any) => (
                         <UserListItem
                             onDelete={() => handleDelete(item.urn as string)}
                             user={item as CorpUser}
-                            canManageUserCredentials={canManagePolicies}
+                            canManageUserCredentials={canManageUserCredentials}
                             selectRoleOptions={selectRoleOptions}
                             refetch={usersRefetch}
                         />
@@ -167,7 +163,7 @@ export const UserList = () => {
                         showSizeChanger={false}
                     />
                 </UserPaginationContainer>
-                {canManagePolicies && (
+                {canManageUserCredentials && (
                     <ViewInviteTokenModal
                         visible={isViewingInviteToken}
                         onClose={() => setIsViewingInviteToken(false)}

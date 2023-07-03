@@ -13,9 +13,6 @@ import CreateGroupModal from './CreateGroupModal';
 import { SearchBar } from '../../search/SearchBar';
 import { useEntityRegistry } from '../../useEntityRegistry';
 import { scrollToTop } from '../../shared/searchUtils';
-import { GROUPS_CREATE_GROUP_ID, GROUPS_INTRO_ID } from '../../onboarding/config/GroupsOnboardingConfig';
-import { OnboardingTour } from '../../onboarding/OnboardingTour';
-import { addGroupToListGroupsCache, DEFAULT_GROUP_LIST_PAGE_SIZE, removeGroupFromListGroupsCache } from './cacheUtils';
 
 const GroupContainer = styled.div``;
 
@@ -31,6 +28,8 @@ const GroupPaginationContainer = styled.div`
     justify-content: center;
 `;
 
+const DEFAULT_PAGE_SIZE = 25;
+
 export const GroupList = () => {
     const entityRegistry = useEntityRegistry();
     const location = useLocation();
@@ -41,24 +40,26 @@ export const GroupList = () => {
 
     const [page, setPage] = useState(1);
     const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+    const [removedUrns, setRemovedUrns] = useState<string[]>([]);
 
     // Policy list paging.
-    const pageSize = DEFAULT_GROUP_LIST_PAGE_SIZE;
+    const pageSize = DEFAULT_PAGE_SIZE;
     const start = (page - 1) * pageSize;
 
-    const { loading, error, data, refetch, client } = useListGroupsQuery({
+    const { loading, error, data, refetch } = useListGroupsQuery({
         variables: {
             input: {
                 start,
                 count: pageSize,
-                query: (query?.length && query) || undefined,
+                query,
             },
         },
-        fetchPolicy: (query?.length || 0) > 0 ? 'no-cache' : 'cache-first',
+        fetchPolicy: 'no-cache',
     });
 
     const totalGroups = data?.listGroups?.total || 0;
     const groups = data?.listGroups?.groups || [];
+    const filteredGroups = groups.filter((group) => !removedUrns.includes(group.urn));
 
     const onChangePage = (newPage: number) => {
         scrollToTop();
@@ -66,19 +67,25 @@ export const GroupList = () => {
     };
 
     const handleDelete = (urn: string) => {
-        removeGroupFromListGroupsCache(urn, client, page, pageSize);
+        // Hack to deal with eventual consistency.
+        const newRemovedUrns = [...removedUrns, urn];
+        setRemovedUrns(newRemovedUrns);
+        setTimeout(function () {
+            refetch?.();
+        }, 3000);
     };
 
     return (
         <>
-            <OnboardingTour stepIds={[GROUPS_INTRO_ID, GROUPS_CREATE_GROUP_ID]} />
             {!data && loading && <Message type="loading" content="Loading groups..." />}
             {error && <Message type="error" content="Failed to load groups! An unexpected error occurred." />}
             <GroupContainer>
                 <TabToolbar>
-                    <Button id={GROUPS_CREATE_GROUP_ID} type="text" onClick={() => setIsCreatingGroup(true)}>
-                        <UsergroupAddOutlined /> Create group
-                    </Button>
+                    <div>
+                        <Button type="text" onClick={() => setIsCreatingGroup(true)}>
+                            <UsergroupAddOutlined /> Create group
+                        </Button>
+                    </div>
                     <SearchBar
                         initialQuery={query || ''}
                         placeholderText="Search groups..."
@@ -102,7 +109,7 @@ export const GroupList = () => {
                     locale={{
                         emptyText: <Empty description="No Groups!" image={Empty.PRESENTED_IMAGE_SIMPLE} />,
                     }}
-                    dataSource={groups}
+                    dataSource={filteredGroups}
                     renderItem={(item: any) => (
                         <GroupListItem onDelete={() => handleDelete(item.urn)} group={item as CorpGroup} />
                     )}
@@ -121,9 +128,11 @@ export const GroupList = () => {
                 {isCreatingGroup && (
                     <CreateGroupModal
                         onClose={() => setIsCreatingGroup(false)}
-                        onCreate={(group) => {
-                            addGroupToListGroupsCache(group, client);
-                            setTimeout(() => refetch(), 3000);
+                        onCreate={() => {
+                            // Hack to deal with eventual consistency.
+                            setTimeout(function () {
+                                refetch?.();
+                            }, 2000);
                         }}
                     />
                 )}

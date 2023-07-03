@@ -15,7 +15,6 @@ import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.http.HTTPRequest;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.ClientID;
-import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponseParser;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
@@ -50,14 +49,14 @@ public class CustomOidcAuthenticator implements Authenticator<OidcCredentials> {
 
   protected OidcConfiguration configuration;
 
-  protected OidcClient<OidcConfiguration> client;
+  protected OidcClient client;
 
-  private final ClientAuthentication clientAuthentication;
+  private ClientAuthentication clientAuthentication;
 
-  public CustomOidcAuthenticator(final OidcClient<OidcConfiguration> client) {
-    CommonHelper.assertNotNull("configuration", client.getConfiguration());
+  public CustomOidcAuthenticator(final OidcConfiguration configuration, final OidcClient client) {
+    CommonHelper.assertNotNull("configuration", configuration);
     CommonHelper.assertNotNull("client", client);
-    this.configuration = client.getConfiguration();
+    this.configuration = configuration;
     this.client = client;
 
     // check authentication methods
@@ -145,10 +144,8 @@ public class CustomOidcAuthenticator implements Authenticator<OidcCredentials> {
     if (code != null) {
       try {
         final String computedCallbackUrl = client.computeFinalCallbackUrl(context);
-        CodeVerifier verifier = (CodeVerifier) configuration.getValueRetriever()
-                .retrieve(client.getCodeVerifierSessionAttributeName(), client, context).orElse(null);
         // Token request
-        final TokenRequest request = createTokenRequest(new AuthorizationCodeGrant(code, new URI(computedCallbackUrl), verifier));
+        final TokenRequest request = createTokenRequest(new AuthorizationCodeGrant(code, new URI(computedCallbackUrl)));
         HTTPRequest tokenHttpRequest = request.toHTTPRequest();
         tokenHttpRequest.setConnectTimeout(configuration.getConnectTimeout());
         tokenHttpRequest.setReadTimeout(configuration.getReadTimeout());

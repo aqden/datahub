@@ -21,6 +21,7 @@ from datahub.ingestion.source.iceberg.iceberg_common import (
     IcebergSourceReport,
 )
 from datahub.metadata.schema_classes import (
+    ChangeTypeClass,
     DatasetFieldProfileClass,
     DatasetProfileClass,
 )
@@ -176,10 +177,18 @@ class IcebergProfiler:
                     )
                 dataset_profile.fieldProfiles.append(column_profile)
 
-        yield MetadataChangeProposalWrapper(
+        # https://github.com/linkedin/datahub/blob/599edd22aeb6b17c71e863587f606c73b87e3b58/metadata-ingestion/src/datahub/ingestion/source/sql/sql_common.py#L829
+        mcp = MetadataChangeProposalWrapper(
+            entityType="dataset",
             entityUrn=dataset_urn,
+            changeType=ChangeTypeClass.UPSERT,
+            aspectName="datasetProfile",
             aspect=dataset_profile,
-        ).as_workunit()
+        )
+        wu = MetadataWorkUnit(id=f"profile-{dataset_name}", mcp=mcp)
+        self.report.report_workunit(wu)
+        self.report.report_entity_profiled(dataset_name)
+        yield wu
 
     # The following will eventually be done by the Iceberg API (in the new Python refactored API).
     def _renderValue(

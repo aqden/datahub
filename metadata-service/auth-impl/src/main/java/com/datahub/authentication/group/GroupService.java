@@ -2,7 +2,6 @@ package com.datahub.authentication.group;
 
 import com.datahub.authentication.Authentication;
 import com.google.common.collect.ImmutableList;
-import com.linkedin.common.AuditStamp;
 import com.linkedin.common.CorpGroupUrnArray;
 import com.linkedin.common.CorpuserUrnArray;
 import com.linkedin.common.EntityRelationship;
@@ -11,7 +10,6 @@ import com.linkedin.common.Origin;
 import com.linkedin.common.OriginType;
 import com.linkedin.common.UrnArray;
 import com.linkedin.common.urn.Urn;
-import com.linkedin.common.urn.UrnUtils;
 import com.linkedin.entity.EntityResponse;
 import com.linkedin.entity.client.EntityClient;
 import com.linkedin.events.metadata.ChangeType;
@@ -184,7 +182,6 @@ public class GroupService {
     corpGroupInfo.setGroups(new CorpGroupUrnArray());
     corpGroupInfo.setMembers(new CorpuserUrnArray());
     corpGroupInfo.setAdmins(new CorpuserUrnArray());
-    corpGroupInfo.setCreated(new AuditStamp().setTime(System.currentTimeMillis()).setActor(UrnUtils.getUrn(authentication.getActor().toUrnStr())));
 
     // Finally, create the MetadataChangeProposal.
     final MetadataChangeProposal proposal = new MetadataChangeProposal();

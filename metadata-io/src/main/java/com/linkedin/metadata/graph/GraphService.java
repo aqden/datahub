@@ -17,7 +17,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.commons.collections.CollectionUtils;
 
-import static com.linkedin.metadata.search.utils.QueryUtils.*;
+import static com.linkedin.metadata.search.utils.QueryUtils.newFilter;
+import static com.linkedin.metadata.search.utils.QueryUtils.newRelationshipFilter;
 
 
 public interface GraphService {
@@ -30,17 +31,6 @@ public interface GraphService {
    * Adds an edge to the graph. This creates the source and destination nodes, if they do not exist.
    */
   void addEdge(final Edge edge);
-
-  /**
-   * Adds or updates an edge to the graph. This creates the source and destination nodes, if they do not exist.
-   */
-  void upsertEdge(final Edge edge);
-
-  /**
-   * Remove an edge from the graph.
-   * @param edge the edge to delete
-   */
-  void removeEdge(final Edge edge);
 
   /**
    * Find related entities (nodes) connected to a source entity via edges of given relationship types. Related entities
@@ -116,27 +106,6 @@ public interface GraphService {
   }
 
   /**
-   * Traverse from the entityUrn towards the input direction up to maxHops number of hops
-   * Abstracts away the concept of relationship types
-   *
-   * Unless overridden, it uses the lineage registry to fetch valid edge types and queries for them
-   */
-  @Nonnull
-  default EntityLineageResult getLineage(@Nonnull Urn entityUrn, @Nonnull LineageDirection direction, int offset,
-      int count, int maxHops, @Nullable Long startTimeMillis, @Nullable Long endTimeMillis) {
-    return getLineage(
-        entityUrn,
-        direction,
-        new GraphFilters(new ArrayList(getLineageRegistry().getEntitiesWithLineageToEntityType(entityUrn.getEntityType()))),
-        offset,
-        count,
-        maxHops,
-        startTimeMillis,
-        endTimeMillis
-    );
-  }
-
-  /**
    * Traverse from the entityUrn towards the input direction up to maxHops number of hops. If entityTypes is not empty,
    * will only return edges to entities that are within the entity types set.
    * Abstracts away the concept of relationship types
@@ -146,20 +115,6 @@ public interface GraphService {
   @Nonnull
   default EntityLineageResult getLineage(@Nonnull Urn entityUrn, @Nonnull LineageDirection direction,
       GraphFilters graphFilters, int offset, int count, int maxHops) {
-    return getLineage(entityUrn, direction, graphFilters, offset, count, maxHops, null, null);
-  }
-
-  /**
-   * Traverse from the entityUrn towards the input direction up to maxHops number of hops. If entityTypes is not empty,
-   * will only return edges to entities that are within the entity types set.
-   * Abstracts away the concept of relationship types
-   *
-   * Unless overridden, it uses the lineage registry to fetch valid edge types and queries for them
-   */
-  @Nonnull
-  default EntityLineageResult getLineage(@Nonnull Urn entityUrn, @Nonnull LineageDirection direction,
-      GraphFilters graphFilters, int offset, int count, int maxHops, @Nullable Long startTimeMillis,
-      @Nullable Long endTimeMillis) {
     if (maxHops > 1) {
       maxHops = 1;
     }
@@ -176,8 +131,7 @@ public interface GraphService {
     // Outgoing edges
     if (!CollectionUtils.isEmpty(edgesByDirection.get(true))) {
       List<String> relationshipTypes =
-          new ArrayList(
-              edgesByDirection.get(true).stream().map(LineageRegistry.EdgeInfo::getType).collect(Collectors.toSet()));
+          new ArrayList(edgesByDirection.get(true).stream().map(LineageRegistry.EdgeInfo::getType).collect(Collectors.toSet()));
       // Fetch outgoing edges
       RelatedEntitiesResult outgoingEdges =
           findRelatedEntities(null, newFilter("urn", entityUrn.toString()), graphFilters.getAllowedEntityTypes(),

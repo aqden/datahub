@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class KafkaEmitter implements Emitter {
 
   public static final String DEFAULT_MCP_KAFKA_TOPIC = "MetadataChangeProposal_v1";
+
   private final KafkaEmitterConfig config;
   private final KafkaProducer<Object, Object> producer;
   private final Properties kafkaConfigProperties;
@@ -37,7 +38,7 @@ public class KafkaEmitter implements Emitter {
 
   /**
    * The default constructor
-   *
+   * 
    * @param config
    * @throws IOException
    */
@@ -52,7 +53,7 @@ public class KafkaEmitter implements Emitter {
     kafkaConfigProperties.put("schema.registry.url", this.config.getSchemaRegistryUrl());
     kafkaConfigProperties.putAll(config.getSchemaRegistryConfig());
     kafkaConfigProperties.putAll(config.getProducerConfig());
-    producer = new KafkaProducer<>(kafkaConfigProperties);
+    producer = new KafkaProducer<Object, Object>(kafkaConfigProperties);
     _avroSerializer = new AvroSerializer();
   }
 

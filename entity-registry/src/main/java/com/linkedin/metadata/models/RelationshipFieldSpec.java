@@ -31,8 +31,4 @@ public class RelationshipFieldSpec implements FieldSpec {
   public List<String> getValidDestinationTypes() {
     return relationshipAnnotation.getValidDestinationTypes();
   }
-
-  public boolean isLineageRelationship() {
-    return relationshipAnnotation.isLineage();
-  }
 }

@@ -1,10 +1,5 @@
 import pytest
-from tests.utils import (
-    delete_urns_from_file,
-    get_frontend_url,
-    ingest_file_via_rest,
-    get_root_urn,
-)
+from tests.utils import delete_urns_from_file, get_frontend_url, ingest_file_via_rest
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -92,7 +87,7 @@ def test_update_deprecation_all_fields(frontend_session):
         "deprecated": True,
         "decommissionTime": 0,
         "note": "My test note",
-        "actor": get_root_urn(),
+        "actor": "urn:li:corpuser:datahub",
     }
 
 
@@ -148,6 +143,6 @@ def test_update_deprecation_partial_fields(frontend_session, ingest_cleanup_data
     assert res_data["data"]["dataset"]["deprecation"] == {
         "deprecated": False,
         "note": "",
-        "actor": get_root_urn(),
+        "actor": "urn:li:corpuser:datahub",
         "decommissionTime": None,
     }

@@ -1,8 +1,4 @@
-#!/bin/bash -x
-
-set -e
-
-SMOKE_TEST_ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+#!/bin/bash
 
 pip install -r requirements.txt
 
@@ -28,7 +24,6 @@ echo "--------------------------------------------------------------------"
 echo "Bringing up spark cluster"
 echo "--------------------------------------------------------------------"
 
-cd "${SMOKE_TEST_ROOT_DIR}"/docker
 #bring up spark cluster
 docker-compose -f spark-docker-compose.yml up -d
 

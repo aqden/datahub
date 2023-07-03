@@ -59,9 +59,3 @@ query listRoles($input: ListRolesInput!) {
         }
     }
 }
-
-query getInviteToken($input: GetInviteTokenInput!) {
-    getInviteToken(input: $input) {
-        inviteToken
-    }
-}

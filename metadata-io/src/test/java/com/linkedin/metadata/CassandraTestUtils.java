@@ -12,7 +12,6 @@ import org.testcontainers.utility.DockerImageName;
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -35,9 +34,8 @@ public class CassandraTestUtils {
         .asCompatibleSubstituteFor("cassandra");
 
     CassandraContainer container = new CassandraContainer(imageName);
-    container.withEnv("JVM_OPTS", "-Xms64M -Xmx96M")
-            .withStartupTimeout(Duration.ofMinutes(5)) // usually < 1min
-            .start();
+    container.withEnv("JVM_OPTS", "-Xms64M -Xmx64M");
+    container.start();
 
     try (Session session = container.getCluster().connect()) {
       session.execute(String.format("CREATE KEYSPACE IF NOT EXISTS %s WITH replication = \n"

@@ -10,20 +10,17 @@ import com.linkedin.datahub.graphql.generated.ListDomainsInput;
 import com.linkedin.datahub.graphql.generated.ListDomainsResult;
 import com.linkedin.entity.client.EntityClient;
 import com.linkedin.metadata.Constants;
-import com.linkedin.metadata.query.SearchFlags;
-import com.linkedin.metadata.query.filter.SortCriterion;
-import com.linkedin.metadata.query.filter.SortOrder;
 import com.linkedin.metadata.search.SearchEntity;
 import com.linkedin.metadata.search.SearchResult;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static com.linkedin.datahub.graphql.resolvers.ResolverUtils.*;
-import static com.linkedin.metadata.Constants.*;
 
 
 /**
@@ -59,12 +56,10 @@ public class ListDomainsResolver implements DataFetcher<CompletableFuture<ListDo
           final SearchResult gmsResult = _entityClient.search(
                   Constants.DOMAIN_ENTITY_NAME,
                   query,
-                  null,
-                  new SortCriterion().setField(DOMAIN_CREATED_TIME_INDEX_FIELD_NAME).setOrder(SortOrder.DESCENDING),
+                  Collections.emptyMap(),
                   start,
                   count,
-                  context.getAuthentication(),
-                  new SearchFlags().setFulltext(true));
+                  context.getAuthentication());
 
           // Now that we have entities we can bind this to a result.
           final ListDomainsResult result = new ListDomainsResult();

@@ -12,20 +12,20 @@ import UserProfile from './UserProfile';
 export class UserEntity implements Entity<CorpUser> {
     type: EntityType = EntityType.CorpUser;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <UserOutlined style={{ fontSize, color }} />;
+            return <UserOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <UserOutlined style={{ fontSize, color }} />;
+            return <UserOutlined style={{ fontSize }} />;
         }
 
         return (
             <UserOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );

@@ -1,30 +1,23 @@
 # Access Token Management
 
-DataHub provides the following `graphql` endpoints for managing Access Tokens. In this page you will see examples as well
+DataHub provides the following GraphQL endpoints for managing Access Tokens. In this page you will see examples as well
 as explanations as to how to administrate access tokens within the project whether for yourself or others, depending on the caller's privileges.
 
-_Note_: This API makes use of DataHub Policies to safeguard against improper use. By default, a user will not be able to interact with it at all unless they have at least `Generate Personal Access Tokens` privileges.
+*Note*: This API makes use of DataHub Policies to safeguard against improper use. By default, a user will not be able to interact with it at all unless they have at least `Generate Personal Access Tokens` privileges.
 
 ### Generating Access Tokens
 
-To generate an access token, simply use the `createAccessToken(input: GetAccessTokenInput!)` `graphql` Query.
+To generate an access token, simply use the `createAccessToken(input: GetAccessTokenInput!)` GraphQL Query.
 This endpoint will return an `AccessToken` object, containing the access token string itself alongside with metadata
 which will allow you to identify said access token later on.
 
-For example, to generate an access token for the `datahub` corp user, you can issue the following `graphql` Query:
+For example, to generate an access token for the `datahub` corp user, you can issue the following GraphQL Query:
 
-_As GraphQL_
+*As GraphQL*
 
 ```graphql
 mutation {
-  createAccessToken(
-    input: {
-      type: PERSONAL
-      actorUrn: "urn:li:corpuser:datahub"
-      duration: ONE_HOUR
-      name: "my personal token"
-    }
-  ) {
+  createAccessToken(input: {type: PERSONAL, actorUrn: "urn:li:corpuser:datahub", duration: ONE_HOUR, name: "my personal token"}) {
     accessToken
     metadata {
       id
@@ -35,31 +28,25 @@ mutation {
 }
 ```
 
-_As CURL_
+*As CURL*
 
 ```curl
 curl --location --request POST 'http://localhost:8080/api/graphql' \
 --header 'X-DataHub-Actor: urn:li:corpuser:datahub' \
 --header 'Content-Type: application/json' \
---data-raw '{ "query":"mutation { createAccessToken(input: { type: PERSONAL, actorUrn: \"urn:li:corpuser:datahub\", duration: ONE_HOUR, name: \"my personal token\" } ) { accessToken metadata { id name description} } }", "variables":{}}'
+--data-raw '{ "query":"{ createAccessToken(input: { type: PERSONAL, actorUrn: \"urn:li:corpuser:datahub\", duration: ONE_HOUR, name: \"my personal token\" } ) { accessToken metadata { id name description} } }", "variables":{}}'
 ```
 
 ### Listing Access Tokens
 
-Listing tokens is a powerful endpoint that allows you to list the tokens owned by a particular user (ie. YOU).
-To list all tokens that you own, you must specify a filter with: `{field: "actorUrn", value: "<your user urn>"}` configuration.
+Listing tokens is a powerful endpoint that allows you to list the tokens owned by a particular user (ie. YOU). 
+To list all tokens that you own, you must specify a filter with: `{field: "actorUrn", value: "<your user urn>"}` configuration. 
 
-_As GraphQL_
+*As GraphQL*
 
 ```graphql
 {
-  listAccessTokens(
-    input: {
-      start: 0
-      count: 100
-      filters: [{ field: "ownerUrn", value: "urn:li:corpuser:datahub" }]
-    }
-  ) {
+  listAccessTokens(input: {start: 0, count: 100, filters: [{field: "ownerUrn", value: "urn:li:corpuser:datahub"}]}) {
     start
     count
     total
@@ -72,7 +59,7 @@ _As GraphQL_
 }
 ```
 
-_As CURL_
+*As CURL*
 
 ```curl
 curl --location --request POST 'http://localhost:8080/api/graphql' \
@@ -81,13 +68,13 @@ curl --location --request POST 'http://localhost:8080/api/graphql' \
 --data-raw '{ "query":"{ listAccessTokens(input: {start: 0, count: 100, filters: [{field: \"ownerUrn\", value: \"urn:li:corpuser:datahub\"}]}) { start count total tokens {urn id actorUrn} } }", "variables":{}}'
 ```
 
-Admin users can also list tokens owned by other users of the platform. To list tokens belonging to other users, you must have the `Manage All Access Tokens` Platform privilege.
+Admin users can also list tokens owned by other users of the platform. To list tokens belonging to other users, you must have the `Manage All Access Tokens` Platform privilege. 
 
-_As GraphQL_
+*As GraphQL*
 
 ```graphql
 {
-  listAccessTokens(input: { start: 0, count: 100, filters: [] }) {
+  listAccessTokens(input: {start: 0, count: 100, filters: []}) {
     start
     count
     total
@@ -100,7 +87,7 @@ _As GraphQL_
 }
 ```
 
-_As CURL_
+*As CURL*
 
 ```curl
 curl --location --request POST 'http://localhost:8080/api/graphql' \
@@ -113,9 +100,9 @@ Other filters besides `actorUrn=<some value>` are possible. You can filter by pr
 
 ### Revoking Access Tokens
 
-To revoke an existing access token, you can use the `revokeAccessToken` mutation.
+To revoke an existing access token, you can use the `revokeAccessToken` mutation. 
 
-_As GraphQL_
+*As GraphQL*
 
 ```graphql
 mutation {
@@ -132,5 +119,7 @@ curl --location --request POST 'http://localhost:8080/api/graphql' \
 
 This endpoint will return a boolean detailing whether the operation was successful. In case of failure, an error message will appear explaining what went wrong.
 
-> Visit our [Slack channel](https://slack.datahubproject.io) to ask questions, tell us what we can do better, & make requests for what you'd like to see in the future. Or just
-> stop by to say 'Hi'.
+## Feedback, Feature Requests, & Support
+
+Visit our [Slack channel](https://slack.datahubproject.io) to ask questions, tell us what we can do better, & make requests for what you'd like to see in the future. Or just
+stop by to say 'Hi'. 

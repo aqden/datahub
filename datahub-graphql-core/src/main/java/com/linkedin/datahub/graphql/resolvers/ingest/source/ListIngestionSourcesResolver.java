@@ -11,7 +11,6 @@ import com.linkedin.datahub.graphql.resolvers.ingest.IngestionResolverUtils;
 import com.linkedin.entity.EntityResponse;
 import com.linkedin.entity.client.EntityClient;
 import com.linkedin.metadata.Constants;
-import com.linkedin.metadata.query.SearchFlags;
 import com.linkedin.metadata.search.SearchEntity;
 import com.linkedin.metadata.search.SearchResult;
 import graphql.schema.DataFetcher;
@@ -61,8 +60,7 @@ public class ListIngestionSourcesResolver implements DataFetcher<CompletableFutu
               Collections.emptyMap(),
               start,
               count,
-              context.getAuthentication(),
-              new SearchFlags().setFulltext(true));
+              context.getAuthentication());
 
           // Then, resolve all ingestion sources
           final Map<Urn, EntityResponse> entities = _entityClient.batchGetV2(

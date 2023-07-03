@@ -11,8 +11,10 @@ from datahub.ingestion.api.decorators import (
     platform_name,
     support_status,
 )
-from datahub.ingestion.source.sql.sql_common import SQLAlchemySource
-from datahub.ingestion.source.sql.sql_config import BasicSQLAlchemyConfig
+from datahub.ingestion.source.sql.sql_common import (
+    BasicSQLAlchemyConfig,
+    SQLAlchemySource,
+)
 
 
 class HanaConfig(BasicSQLAlchemyConfig):

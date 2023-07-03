@@ -11,8 +11,10 @@ from datahub.ingestion.api.decorators import (
     platform_name,
     support_status,
 )
-from datahub.ingestion.source.sql.sql_common import SQLAlchemySource
-from datahub.ingestion.source.sql.sql_config import BasicSQLAlchemyConfig
+from datahub.ingestion.source.sql.sql_common import (
+    BasicSQLAlchemyConfig,
+    SQLAlchemySource,
+)
 
 
 class DruidConfig(BasicSQLAlchemyConfig):
@@ -44,7 +46,7 @@ class DruidConfig(BasicSQLAlchemyConfig):
 
 @platform_name("Druid")
 @config_class(DruidConfig)
-@support_status(SupportStatus.INCUBATING)
+@support_status(SupportStatus.CERTIFIED)
 @capability(SourceCapability.PLATFORM_INSTANCE, "Enabled by default")
 class DruidSource(SQLAlchemySource):
     """

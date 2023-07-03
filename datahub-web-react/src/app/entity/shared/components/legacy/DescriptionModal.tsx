@@ -1,22 +1,22 @@
 import { Typography, Modal, Button, Form } from 'antd';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Editor } from '../../tabs/Documentation/components/editor/Editor';
-import { ANTD_GRAY } from '../../constants';
+import MDEditor from '@uiw/react-md-editor';
+
+const DescriptionMarkdown = styled(MDEditor.Markdown)`
+    padding: 4px 10px;
+`;
 
 const FormLabel = styled(Typography.Text)`
     font-size: 10px;
     font-weight: bold;
 `;
 
-const StyledEditor = styled(Editor)`
-    border: 1px solid ${ANTD_GRAY[4.5]};
-`;
-
-const StyledViewer = styled(Editor)`
-    .remirror-editor.ProseMirror {
-        padding: 0;
-    }
+const MarkDownHelpLink = styled(Typography.Link)`
+    position: absolute;
+    right: 0;
+    top: -18px;
+    font-size: 12px;
 `;
 
 type Props = {
@@ -48,12 +48,36 @@ export default function UpdateDescriptionModal({ title, description, original, o
             }
         >
             <Form layout="vertical">
-                <Form.Item>
-                    <StyledEditor content={updatedDesc} onChange={setDesc} />
-                </Form.Item>
+                {isAddDesc ? (
+                    <Form.Item>
+                        <MarkDownHelpLink href="https://joplinapp.org/markdown" target="_blank" type="secondary">
+                            markdown supported
+                        </MarkDownHelpLink>
+                        <MDEditor
+                            style={{ fontWeight: 400 }}
+                            value={updatedDesc}
+                            onChange={(v) => setDesc(v || '')}
+                            preview="live"
+                            height={400}
+                        />
+                    </Form.Item>
+                ) : (
+                    <Form.Item>
+                        <MarkDownHelpLink href="https://joplinapp.org/markdown" target="_blank" type="secondary">
+                            markdown supported
+                        </MarkDownHelpLink>
+                        <MDEditor
+                            style={{ fontWeight: 400 }}
+                            value={updatedDesc}
+                            onChange={(v) => setDesc(v || '')}
+                            preview="live"
+                            height={400}
+                        />
+                    </Form.Item>
+                )}
                 {!isAddDesc && description && original && (
                     <Form.Item label={<FormLabel>Original:</FormLabel>}>
-                        <StyledViewer content={original || ''} readOnly />
+                        <DescriptionMarkdown source={original || ''} />
                     </Form.Item>
                 )}
             </Form>

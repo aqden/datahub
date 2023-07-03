@@ -22,10 +22,7 @@ export const BrowsableEntityPage = ({
     lineageSupported,
     isBrowsable,
 }: Props) => {
-    const { data } = useGetBrowsePathsQuery({
-        variables: { input: { urn: _urn, type: _type } },
-        fetchPolicy: 'cache-first',
-    });
+    const { data } = useGetBrowsePathsQuery({ variables: { input: { urn: _urn, type: _type } } });
 
     return (
         <>

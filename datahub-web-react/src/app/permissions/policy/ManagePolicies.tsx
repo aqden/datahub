@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Empty, message, Modal, Pagination, Tag } from 'antd';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import * as QueryString from 'query-string';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router';
@@ -15,7 +15,6 @@ import {
     PolicyMatchFilter,
     PolicyMatchFilterInput,
     PolicyMatchCriterionInput,
-    EntityType,
 } from '../../../types.generated';
 import { useAppConfig } from '../../useAppConfig';
 import PolicyDetailsModal from './PolicyDetailsModal';
@@ -34,9 +33,6 @@ import { useEntityRegistry } from '../../useEntityRegistry';
 import { ANTD_GRAY } from '../../entity/shared/constants';
 import { SearchBar } from '../../search/SearchBar';
 import { scrollToTop } from '../../shared/searchUtils';
-import analytics, { EventType } from '../../analytics';
-import { POLICIES_CREATE_POLICY_ID, POLICIES_INTRO_ID } from '../../onboarding/config/PoliciesOnboardingConfig';
-import { OnboardingTour } from '../../onboarding/OnboardingTour';
 
 const SourceContainer = styled.div``;
 
@@ -251,13 +247,8 @@ export const ManagePolicies = () => {
             content: `Are you sure you want to remove policy?`,
             onOk() {
                 deletePolicy({ variables: { urn: policy?.urn as string } }); // There must be a focus policy urn.
-                analytics.event({
-                    type: EventType.DeleteEntityEvent,
-                    entityUrn: policy?.urn,
-                    entityType: EntityType.DatahubPolicy,
-                });
                 message.success('Successfully removed policy.');
-                setTimeout(() => {
+                setTimeout(function () {
                     policiesRefetch();
                 }, 3000);
                 onCancelViewPolicy();
@@ -283,7 +274,7 @@ export const ManagePolicies = () => {
             },
         });
         message.success(`Successfully ${newState === PolicyState.Active ? 'activated' : 'deactivated'} policy.`);
-        setTimeout(() => {
+        setTimeout(function () {
             policiesRefetch();
         }, 3000);
         setShowViewPolicyModal(false);
@@ -294,19 +285,12 @@ export const ManagePolicies = () => {
         if (focusPolicyUrn) {
             // If there's an URN associated with the focused policy, then we are editing an existing policy.
             updatePolicy({ variables: { urn: focusPolicyUrn, input: toPolicyInput(savePolicy) } });
-            analytics.event({
-                type: EventType.UpdatePolicyEvent,
-                policyUrn: focusPolicyUrn,
-            });
         } else {
             // If there's no URN associated with the focused policy, then we are creating.
             createPolicy({ variables: { input: toPolicyInput(savePolicy) } });
-            analytics.event({
-                type: EventType.CreatePolicyEvent,
-            });
         }
         message.success('Successfully saved policy.');
-        setTimeout(() => {
+        setTimeout(function () {
             policiesRefetch();
         }, 3000);
         onClosePolicyBuilder();
@@ -385,13 +369,7 @@ export const ManagePolicies = () => {
                     {record?.state === PolicyState.Active ? (
                         <Button
                             disabled={!record?.editable}
-                            onClick={() => {
-                                onToggleActiveDuplicate(record?.policy);
-                                analytics.event({
-                                    type: EventType.DeactivatePolicyEvent,
-                                    policyUrn: record?.policy?.urn,
-                                });
-                            }}
+                            onClick={() => onToggleActiveDuplicate(record?.policy)}
                             style={{ color: record?.editable ? 'red' : ANTD_GRAY[6], width: 100 }}
                         >
                             DEACTIVATE
@@ -399,13 +377,7 @@ export const ManagePolicies = () => {
                     ) : (
                         <Button
                             disabled={!record?.editable}
-                            onClick={() => {
-                                onToggleActiveDuplicate(record?.policy);
-                                analytics.event({
-                                    type: EventType.ActivatePolicyEvent,
-                                    policyUrn: record?.policy?.urn,
-                                });
-                            }}
+                            onClick={() => onToggleActiveDuplicate(record?.policy)}
                             style={{ color: record?.editable ? 'green' : ANTD_GRAY[6], width: 100 }}
                         >
                             ACTIVATE
@@ -444,7 +416,6 @@ export const ManagePolicies = () => {
 
     return (
         <PageContainer>
-            <OnboardingTour stepIds={[POLICIES_INTRO_ID, POLICIES_CREATE_POLICY_ID]} />
             {policiesLoading && !policiesData && (
                 <Message type="loading" content="Loading policies..." style={{ marginTop: '10%' }} />
             )}
@@ -453,12 +424,7 @@ export const ManagePolicies = () => {
             <SourceContainer>
                 <TabToolbar>
                     <div>
-                        <Button
-                            id={POLICIES_CREATE_POLICY_ID}
-                            type="text"
-                            onClick={onClickNewPolicy}
-                            data-testid="add-policy-button"
-                        >
+                        <Button type="text" onClick={onClickNewPolicy} data-testid="add-policy-button">
                             <PlusOutlined /> Create new policy
                         </Button>
                     </div>

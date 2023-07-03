@@ -24,8 +24,8 @@ public class ElasticSearchSystemMetadataServiceFactory {
   @Bean(name = "elasticSearchSystemMetadataService")
   @Nonnull
   protected ElasticSearchSystemMetadataService getInstance() {
-    return new ElasticSearchSystemMetadataService(components.getBulkProcessor(), components.getIndexConvention(),
+    return new ElasticSearchSystemMetadataService(components.getSearchClient(), components.getIndexConvention(),
         new ESSystemMetadataDAO(components.getSearchClient(), components.getIndexConvention(),
-            components.getBulkProcessor(), components.getNumRetries()), components.getIndexBuilder());
+            components.getBulkProcessor()), components.getIndexBuilder());
   }
 }

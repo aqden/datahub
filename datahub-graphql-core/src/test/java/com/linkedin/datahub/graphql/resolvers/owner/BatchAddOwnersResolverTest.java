@@ -74,7 +74,10 @@ public class BatchAddOwnersResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
     assertTrue(resolver.get(mockEnv).get());
 
-    verifyIngestProposal(mockService, 2);
+    Mockito.verify(mockService, Mockito.times(2)).ingestProposal(
+        Mockito.any(), // Ownership has a dynamically generated timestamp
+        Mockito.any(AuditStamp.class)
+    );
 
     Mockito.verify(mockService, Mockito.times(1)).exists(
         Mockito.eq(Urn.createFromString(TEST_OWNER_URN_1))
@@ -130,7 +133,10 @@ public class BatchAddOwnersResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
     assertTrue(resolver.get(mockEnv).get());
 
-    verifyIngestProposal(mockService, 2);
+    Mockito.verify(mockService, Mockito.times(2)).ingestProposal(
+        Mockito.any(), // Ownership has a dynamically generated timestamp
+        Mockito.any(AuditStamp.class)
+    );
 
     Mockito.verify(mockService, Mockito.times(1)).exists(
         Mockito.eq(Urn.createFromString(TEST_OWNER_URN_1))
@@ -174,7 +180,9 @@ public class BatchAddOwnersResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(CompletionException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any(AuditStamp.class));
   }
 
   @Test
@@ -216,7 +224,9 @@ public class BatchAddOwnersResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(CompletionException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any(AuditStamp.class));
   }
 
   @Test
@@ -243,7 +253,9 @@ public class BatchAddOwnersResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(CompletionException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any(AuditStamp.class));
   }
 
   @Test
@@ -252,7 +264,7 @@ public class BatchAddOwnersResolverTest {
 
     Mockito.doThrow(RuntimeException.class).when(mockService).ingestProposal(
         Mockito.any(),
-        Mockito.any(AuditStamp.class), Mockito.anyBoolean());
+        Mockito.any(AuditStamp.class));
 
     BatchAddOwnersResolver resolver = new BatchAddOwnersResolver(mockService);
 

@@ -10,13 +10,12 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 import click
 import requests
 import yaml
-from deprecated import deprecated
 from pydantic import BaseModel, ValidationError
 from requests.models import Response
 from requests.sessions import Session
 
 from datahub.emitter.aspect import ASPECT_MAP, TIMESERIES_ASPECT_MAP
-from datahub.emitter.request_helper import make_curl_command
+from datahub.emitter.request_helper import _make_curl_command
 from datahub.emitter.serialization_helper import post_json_transform
 from datahub.metadata.schema_classes import _Aspect
 from datahub.utilities.urns.urn import Urn, guess_entity_type
@@ -54,16 +53,6 @@ class DatahubConfig(BaseModel):
     gms: GmsConfig
 
 
-def get_boolean_env_variable(key: str, default: bool = False) -> bool:
-    value = os.environ.get(key)
-    if value is None:
-        return default
-    elif value.lower() in ("true", "1"):
-        return True
-    else:
-        return False
-
-
 def set_env_variables_override_config(url: str, token: Optional[str]) -> None:
     """Should be used to override the config when using rest emitter"""
     config_override[ENV_METADATA_HOST_URL] = url
@@ -71,34 +60,20 @@ def set_env_variables_override_config(url: str, token: Optional[str]) -> None:
         config_override[ENV_METADATA_TOKEN] = token
 
 
-def persist_datahub_config(config: dict) -> None:
+def write_datahub_config(host: str, token: Optional[str]) -> None:
+    config = {
+        "gms": {
+            "server": host,
+            "token": token,
+        }
+    }
     with open(DATAHUB_CONFIG_PATH, "w+") as outfile:
         yaml.dump(config, outfile, default_flow_style=False)
     return None
 
 
-def write_gms_config(
-    host: str, token: Optional[str], merge_with_previous: bool = True
-) -> None:
-    config = DatahubConfig(gms=GmsConfig(server=host, token=token))
-    if merge_with_previous:
-        try:
-            previous_config = get_client_config(as_dict=True)
-            assert isinstance(previous_config, dict)
-        except Exception as e:
-            # ok to fail on this
-            previous_config = {}
-            log.debug(
-                f"Failed to retrieve config from file {DATAHUB_CONFIG_PATH}: {e}. This isn't fatal."
-            )
-        config_dict = {**previous_config, **config.dict()}
-    else:
-        config_dict = config.dict()
-    persist_datahub_config(config_dict)
-
-
 def should_skip_config() -> bool:
-    return get_boolean_env_variable(ENV_SKIP_CONFIG, False)
+    return os.getenv(ENV_SKIP_CONFIG, False) == "True"
 
 
 def ensure_datahub_config() -> None:
@@ -107,40 +82,30 @@ def ensure_datahub_config() -> None:
             f"No {CONDENSED_DATAHUB_CONFIG_PATH} file found, generating one for you...",
             bold=True,
         )
-        write_gms_config(DEFAULT_GMS_HOST, None)
+        write_datahub_config(DEFAULT_GMS_HOST, None)
 
 
-def get_client_config(as_dict: bool = False) -> Union[Optional[DatahubConfig], dict]:
+def get_details_from_config():
     with open(DATAHUB_CONFIG_PATH, "r") as stream:
         try:
             config_json = yaml.safe_load(stream)
-            if as_dict:
-                return config_json
             try:
-                datahub_config = DatahubConfig.parse_obj(config_json)
-                return datahub_config
+                datahub_config = DatahubConfig(**config_json)
             except ValidationError as e:
                 click.echo(
                     f"Received error, please check your {CONDENSED_DATAHUB_CONFIG_PATH}"
                 )
                 click.echo(e, err=True)
                 sys.exit(1)
+
+            gms_config = datahub_config.gms
+
+            gms_host = gms_config.server
+            gms_token = gms_config.token
+            return gms_host, gms_token
         except yaml.YAMLError as exc:
             click.secho(f"{DATAHUB_CONFIG_PATH} malformed, error: {exc}", bold=True)
-            return None
-
-
-def get_details_from_config():
-    datahub_config = get_client_config(as_dict=False)
-    assert isinstance(datahub_config, DatahubConfig)
-    if datahub_config is not None:
-        gms_config = datahub_config.gms
-
-        gms_host = gms_config.server
-        gms_token = gms_config.token
-        return gms_host, gms_token
-    else:
-        return None, None
+    return None, None
 
 
 def get_details_from_env() -> Tuple[Optional[str], Optional[str]]:
@@ -318,7 +283,50 @@ def post_rollback_endpoint(
     )
 
 
-@deprecated(reason="Use DataHubGraph.get_urns_by_filter instead")
+def post_delete_references_endpoint(
+    payload_obj: dict,
+    path: str,
+    cached_session_host: Optional[Tuple[Session, str]] = None,
+) -> Tuple[int, List[Dict]]:
+    session, gms_host = cached_session_host or get_session_and_host()
+    url = gms_host + path
+
+    payload = json.dumps(payload_obj)
+    response = session.post(url, payload)
+    summary = parse_run_restli_response(response)
+    reference_count = summary.get("total", 0)
+    related_aspects = summary.get("relatedAspects", [])
+    return reference_count, related_aspects
+
+
+def post_delete_endpoint(
+    payload_obj: dict,
+    path: str,
+    cached_session_host: Optional[Tuple[Session, str]] = None,
+) -> typing.Tuple[str, int, int]:
+    session, gms_host = cached_session_host or get_session_and_host()
+    url = gms_host + path
+
+    return post_delete_endpoint_with_session_and_url(session, url, payload_obj)
+
+
+def post_delete_endpoint_with_session_and_url(
+    session: Session,
+    url: str,
+    payload_obj: dict,
+) -> typing.Tuple[str, int, int]:
+    payload = json.dumps(payload_obj)
+
+    response = session.post(url, payload)
+
+    summary = parse_run_restli_response(response)
+    urn: str = summary.get("urn", "")
+    rows_affected: int = summary.get("rows", 0)
+    timeseries_rows_affected: int = summary.get("timeseriesRows", 0)
+
+    return urn, rows_affected, timeseries_rows_affected
+
+
 def get_urns_by_filter(
     platform: Optional[str],
     env: Optional[str] = None,
@@ -327,7 +335,6 @@ def get_urns_by_filter(
     include_removed: bool = False,
     only_soft_deleted: Optional[bool] = None,
 ) -> Iterable[str]:
-    # TODO: Replace with DataHubGraph call
     session, gms_host = get_session_and_host()
     endpoint: str = "/entities?action=search"
     url = gms_host + endpoint
@@ -344,7 +351,7 @@ def get_urns_by_filter(
     ):
         filter_criteria.append(
             {
-                "field": "platform.keyword",
+                "field": "platform",
                 "value": f"urn:li:dataPlatform:{platform}",
                 "condition": "EQUAL",
             }
@@ -394,10 +401,9 @@ def get_urns_by_filter(
             entities_yielded += 1
             log.debug(f"yielding {x['entity']}")
             yield x["entity"]
-        if entities_yielded != num_entities:
-            log.warning(
-                f"Discrepancy in entities yielded {entities_yielded} and num entities {num_entities}. This means all entities may not have been deleted."
-            )
+        assert (
+            entities_yielded == num_entities
+        ), "Did not delete all entities, try running this command again!"
     else:
         log.error(f"Failed to execute search query with {str(response.content)}")
         response.raise_for_status()
@@ -533,8 +539,6 @@ def get_entity(
         raise Exception(
             f"urn {urn} does not seem to be a valid raw (starts with urn:) or encoded urn (starts with urn%3A)"
         )
-
-    # TODO: Replace with DataHubGraph.get_entity_raw.
     endpoint: str = f"/entitiesV2/{encoded_urn}"
 
     if aspect and len(aspect):
@@ -551,7 +555,6 @@ def post_entity(
     aspect_name: str,
     aspect_value: Dict,
     cached_session_host: Optional[Tuple[Session, str]] = None,
-    is_async: Optional[str] = "false",
 ) -> int:
     session, gms_host = cached_session_host or get_session_and_host()
     endpoint: str = "/aspects/?action=ingestProposal"
@@ -566,22 +569,16 @@ def post_entity(
                 "contentType": "application/json",
                 "value": json.dumps(aspect_value),
             },
-        },
-        "async": is_async,
+        }
     }
     payload = json.dumps(proposal)
     url = gms_host + endpoint
-    curl_command = make_curl_command(session, "POST", url, payload)
+    curl_command = _make_curl_command(session, "POST", url, payload)
     log.debug(
         "Attempting to emit to DataHub GMS; using curl equivalent to:\n%s",
         curl_command,
     )
     response = session.post(url, payload)
-    if not response.ok:
-        try:
-            log.info(response.json()["message"].strip())
-        except Exception:
-            log.info(f"post_entity failed: {response.text}")
     response.raise_for_status()
     return response.status_code
 
@@ -614,7 +611,7 @@ def get_latest_timeseries_aspect_values(
 
 def get_aspects_for_entity(
     entity_urn: str,
-    aspects: List[str],
+    aspects: List[str] = [],
     typed: bool = False,
     cached_session_host: Optional[Tuple[Session, str]] = None,
 ) -> Dict[str, Union[dict, _Aspect]]:
@@ -647,6 +644,8 @@ def get_aspects_for_entity(
         aspect_py_class: Optional[Type[Any]] = _get_pydantic_class_from_aspect_name(
             aspect_name
         )
+        if aspect_name == "unknown":
+            print(f"Failed to find aspect_name for class {aspect_name}")
 
         aspect_dict = a["value"]
         if not typed:
@@ -657,32 +656,8 @@ def get_aspects_for_entity(
                 aspect_map[aspect_name] = aspect_py_class.from_obj(post_json_obj)
             except Exception as e:
                 log.error(f"Error on {json.dumps(aspect_dict)}", e)
-        else:
-            log.debug(f"Failed to find class for aspect {aspect_name}")
 
     if aspects:
         return {k: v for (k, v) in aspect_map.items() if k in aspects}
     else:
         return dict(aspect_map)
-
-
-def make_shim_command(name: str, suggestion: str) -> click.Command:
-    @click.command(
-        name=name,
-        context_settings=dict(
-            ignore_unknown_options=True,
-            allow_extra_args=True,
-        ),
-    )
-    @click.pass_context
-    def command(ctx: click.Context) -> None:
-        """<disabled due to missing dependencies>"""
-
-        click.secho(
-            "This command is disabled due to missing dependencies. "
-            f"Please {suggestion} to enable it.",
-            fg="red",
-        )
-        ctx.exit(1)
-
-    return command

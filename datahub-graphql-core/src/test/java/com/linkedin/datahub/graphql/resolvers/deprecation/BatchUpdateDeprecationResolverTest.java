@@ -73,7 +73,10 @@ public class BatchUpdateDeprecationResolverTest {
     proposal1.setAspect(GenericRecordUtils.serializeAspect(newDeprecation));
     proposal1.setChangeType(ChangeType.UPSERT);
 
-    verifyIngestProposal(mockService, 1, proposal1);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal1),
+        Mockito.any(AuditStamp.class)
+    );
 
     final MetadataChangeProposal proposal2 = new MetadataChangeProposal();
     proposal2.setEntityUrn(Urn.createFromString(TEST_ENTITY_URN_2));
@@ -82,7 +85,10 @@ public class BatchUpdateDeprecationResolverTest {
     proposal2.setAspect(GenericRecordUtils.serializeAspect(newDeprecation));
     proposal2.setChangeType(ChangeType.UPSERT);
 
-    verifyIngestProposal(mockService, 1, proposal2);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal2),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -134,7 +140,10 @@ public class BatchUpdateDeprecationResolverTest {
     proposal1.setAspect(GenericRecordUtils.serializeAspect(newDeprecation));
     proposal1.setChangeType(ChangeType.UPSERT);
 
-    verifyIngestProposal(mockService, 1, proposal1);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal1),
+        Mockito.any(AuditStamp.class)
+    );
 
     final MetadataChangeProposal proposal2 = new MetadataChangeProposal();
     proposal2.setEntityUrn(Urn.createFromString(TEST_ENTITY_URN_2));
@@ -143,7 +152,10 @@ public class BatchUpdateDeprecationResolverTest {
     proposal2.setAspect(GenericRecordUtils.serializeAspect(newDeprecation));
     proposal2.setChangeType(ChangeType.UPSERT);
 
-    verifyIngestProposal(mockService, 1, proposal2);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal2),
+        Mockito.any(AuditStamp.class)
+    );
   }
 
   @Test
@@ -176,7 +188,9 @@ public class BatchUpdateDeprecationResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(CompletionException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any(AuditStamp.class));
   }
 
   @Test
@@ -195,7 +209,9 @@ public class BatchUpdateDeprecationResolverTest {
     Mockito.when(mockEnv.getContext()).thenReturn(mockContext);
 
     assertThrows(CompletionException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any(AuditStamp.class));
   }
 
   @Test
@@ -204,7 +220,7 @@ public class BatchUpdateDeprecationResolverTest {
 
     Mockito.doThrow(RuntimeException.class).when(mockService).ingestProposal(
         Mockito.any(),
-        Mockito.any(AuditStamp.class), Mockito.anyBoolean());
+        Mockito.any(AuditStamp.class));
 
     BatchUpdateDeprecationResolver resolver = new BatchUpdateDeprecationResolver(mockService);
 

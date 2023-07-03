@@ -122,9 +122,7 @@ export type Props = {
 };
 
 export default function HistoricalStatsView({ urn, toggleView }: Props) {
-    const [getDataProfiles, { data: profilesData, loading: profilesLoading }] = useGetDataProfilesLazyQuery({
-        fetchPolicy: 'cache-first',
-    });
+    const [getDataProfiles, { data: profilesData, loading: profilesLoading }] = useGetDataProfilesLazyQuery();
 
     /**
      * Perform initial fetch of default lookback window stats.

@@ -10,6 +10,7 @@ from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
 # Imports for metadata model classes
 from datahub.metadata.schema_classes import (
     AuditStampClass,
+    ChangeTypeClass,
     EditableSchemaFieldInfoClass,
     EditableSchemaMetadataClass,
     GlobalTagsClass,
@@ -34,9 +35,9 @@ def get_simple_field_path_from_v2_field_path(field_path: str) -> str:
 
 
 # Inputs -> the column, dataset and the tag to set
-column = "user_name"
-dataset_urn = make_dataset_urn(platform="hive", name="fct_users_created", env="PROD")
-tag_to_add = make_tag_urn("deprecated")
+column = "address.zipcode"
+dataset_urn = make_dataset_urn(platform="hive", name="realestate_db.sales", env="PROD")
+tag_to_add = make_tag_urn("location")
 
 
 # First we get the current editable schema metadata
@@ -44,8 +45,9 @@ gms_endpoint = "http://localhost:8080"
 graph = DataHubGraph(DatahubClientConfig(server=gms_endpoint))
 
 
-current_editable_schema_metadata = graph.get_aspect(
+current_editable_schema_metadata = graph.get_aspect_v2(
     entity_urn=dataset_urn,
+    aspect="editableSchemaMetadata",
     aspect_type=EditableSchemaMetadataClass,
 )
 
@@ -92,7 +94,10 @@ else:
 
 if need_write:
     event: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+        entityType="dataset",
+        changeType=ChangeTypeClass.UPSERT,
         entityUrn=dataset_urn,
+        aspectName="editableSchemaMetadata",
         aspect=current_editable_schema_metadata,
     )
     graph.emit(event)

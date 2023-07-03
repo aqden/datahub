@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { GetDatasetQuery } from '../../../../../../../graphql/dataset.generated';
 import { EntityType } from '../../../../../../../types.generated';
-import { decodeSchemaField } from '../../../../../../lineage/utils/columnLineageUtils';
 import CompactContext from '../../../../../../shared/CompactContext';
 import { useEntityRegistry } from '../../../../../../useEntityRegistry';
 import { ANTD_GRAY } from '../../../../constants';
@@ -87,19 +86,23 @@ const ArrowContainer = styled.div`
     margin-top: 40px;
 `;
 
-export const SchemaRow = React.forwardRef<HTMLTableRowElement>((props, ref) => {
-    /* eslint-disable react/prop-types */
-    const { children, ...rest } = props;
+export const SchemaRow = ({
+    children,
+    className,
+    'data-row-key': fieldPath,
+}: {
+    children: any;
+    className: string;
+    'data-row-key': string;
+}) => {
     const selectedFk = useContext(FkContext);
     const entityRegistry = useEntityRegistry();
     const baseEntity = useBaseEntity<GetDatasetQuery>();
 
     return (
         <>
-            <tr {...rest} ref={ref}>
-                {children}
-            </tr>
-            {selectedFk?.fieldPath && props['data-row-key'] === selectedFk?.fieldPath && (
+            <tr className={className}>{children}</tr>
+            {fieldPath && fieldPath === selectedFk?.fieldPath && (
                 <ForeignKeyContent>
                     <ForiegnKeyTd>
                         <HeaderContent>
@@ -127,7 +130,7 @@ export const SchemaRow = React.forwardRef<HTMLTableRowElement>((props, ref) => {
                                     <TableTitle>{baseEntity.dataset?.name}</TableTitle>
                                     {selectedFk?.constraint?.sourceFields?.map((field) => (
                                         <div key={field?.fieldPath}>
-                                            <FieldBadge count={decodeSchemaField(field?.fieldPath || '')} />
+                                            <FieldBadge count={field?.fieldPath} />
                                         </div>
                                     ))}
                                 </div>
@@ -136,7 +139,7 @@ export const SchemaRow = React.forwardRef<HTMLTableRowElement>((props, ref) => {
                                     <TableTitle>{selectedFk?.constraint?.foreignDataset?.name}</TableTitle>
                                     {selectedFk?.constraint?.foreignFields?.map((field) => (
                                         <div key={field?.fieldPath}>
-                                            <FieldBadge count={decodeSchemaField(field?.fieldPath || '')} />
+                                            <FieldBadge count={field?.fieldPath} />
                                         </div>
                                     ))}
                                 </div>
@@ -147,4 +150,4 @@ export const SchemaRow = React.forwardRef<HTMLTableRowElement>((props, ref) => {
             )}
         </>
     );
-});
+};

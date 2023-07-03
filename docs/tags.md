@@ -72,16 +72,10 @@ You can search for a tag in the search bar, and even filter entities by the pres
 
 ### GraphQL
 
-* [addTag](../graphql/mutations.md#addtag)
-* [addTags](../graphql/mutations.md#addtags)
-* [batchAddTags](../graphql/mutations.md#batchaddtags)
-* [removeTag](../graphql/mutations.md#removetag)
-* [batchRemoveTags](../graphql/mutations.md#batchremovetags)
-* [createTag](../graphql/mutations.md#createtag)
-* [updateTag](../graphql/mutations.md#updatetag)
-* [deleteTag](../graphql/mutations.md#deletetag)
-
-You can easily fetch the Tags for an entity with a given its URN using the **tags** property. Check out [Working with Metadata Entities](./api/graphql/how-to-set-up-graphql.md#querying-for-tags-of-an-asset) for an example. 
+* [Tag](../graphql/queries.md#tag)
+* [AddTagsInput](../graphql/inputObjects.md#addtagsinput)
+* [BatchAddTagsInput](../graphql/inputObjects.md#batchaddtagsinput)
+* [BatchRemoveTagsInput](../graphql/inputObjects.md#batchremovetagsinput)
 
 ### DataHub Blog
 
@@ -107,5 +101,5 @@ Domains are a set of top-level categories usually aligned to business units/disc
 
 ### Related Features
 
-* [Glossary Terms](./glossary/business-glossary.md)
+* [Glossary Terms](./how/business-glossary-guide.md)
 * [Domains](./domains.md)

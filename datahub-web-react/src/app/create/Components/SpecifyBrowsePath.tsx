@@ -28,13 +28,14 @@ export const SpecifyBrowsePath = () => {
                 >
                     {(fields, { add, remove }, { errors }) => (
                         <>
-                            {fields.map(({ key, name, ...restField }) => (
+                            {fields.map(({ key, name, fieldKey, ...restField }) => (
                                 <Row key={key}>
                                     <Col span={6}>
                                         <Tooltip title={aboutBrowsePath}>
                                             <Form.Item
                                                 {...restField}
                                                 name={[name, 'browsepath']}
+                                                fieldKey={[fieldKey, 'browsepath']}
                                                 validateTrigger={['onChange', 'onBlur']}
                                                 rules={[
                                                     {

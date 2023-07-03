@@ -3,13 +3,9 @@
 <!-- Plain-language description of what this integration is meant to do.  -->
 <!-- Include details about where metadata is extracted from (ie. logs, source API, manifest, etc.)   -->
 
-The DataHub Vertica Plugin extracts the following: 
- 
-* Metadata for databases, schemas, views, tables, and projections
-* Table level lineage
-* Metadata for ML Models
-* Metadata for Vertica OAuth
+This plugin extracts metadata for Tables and Views on Vertica.
 
+This plugin is in beta and has only been tested on sample data on the Vertica database.
 
 ### Concept Mapping
 
@@ -25,7 +21,6 @@ This ingestion source maps the following Source System Concepts to DataHub Conce
 | `Vertica`      | [Data Platform](../../metamodel/entities/dataPlatform.md) |       |
 | Table          | [Dataset](../../metamodel/entities/dataset.md)            |       |
 | View           | [Dataset](../../metamodel/entities/dataset.md)            |       |
-| Projections    | [Dataset](../../metamodel/entities/dataset.md)            |       |
 
 ## Metadata Ingestion Quickstart
 

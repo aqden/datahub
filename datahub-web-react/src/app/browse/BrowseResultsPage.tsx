@@ -39,7 +39,6 @@ export const BrowseResultsPage = () => {
                 filters: null,
             },
         },
-        fetchPolicy: 'cache-first',
     });
 
     const onChangePage = (newPage: number) => {

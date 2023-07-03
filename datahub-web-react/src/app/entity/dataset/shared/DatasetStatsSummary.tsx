@@ -1,88 +1,81 @@
 import React from 'react';
-import styled from 'styled-components/macro';
-import { Popover } from 'antd';
-import { ClockCircleOutlined, ConsoleSqlOutlined, TableOutlined, TeamOutlined, HddOutlined } from '@ant-design/icons';
+import styled from 'styled-components';
+import { Popover, Tooltip } from 'antd';
+import {
+    ClockCircleOutlined,
+    ConsoleSqlOutlined,
+    TableOutlined,
+    TeamOutlined,
+    QuestionCircleOutlined,
+} from '@ant-design/icons';
 import { formatNumberWithoutAbbreviation } from '../../../shared/formatNumber';
 import { ANTD_GRAY } from '../../shared/constants';
 import { toLocalDateTimeString, toRelativeTimeString } from '../../../shared/time/timeUtils';
 import { StatsSummary } from '../../shared/components/styled/StatsSummary';
-import { FormattedBytesStat } from './FormattedBytesStat';
 
-const StatText = styled.span<{ color: string }>`
-    color: ${(props) => props.color};
+const StatText = styled.span`
+    color: ${ANTD_GRAY[8]};
 `;
 
-const PopoverContent = styled.div`
-    max-width: 300px;
+const HelpIcon = styled(QuestionCircleOutlined)`
+    color: ${ANTD_GRAY[7]};
+    padding-left: 4px;
 `;
 
 type Props = {
     rowCount?: number | null;
-    columnCount?: number | null;
-    sizeInBytes?: number | null;
     queryCountLast30Days?: number | null;
     uniqueUserCountLast30Days?: number | null;
     lastUpdatedMs?: number | null;
-    color?: string;
 };
 
 export const DatasetStatsSummary = ({
     rowCount,
-    columnCount,
-    sizeInBytes,
     queryCountLast30Days,
     uniqueUserCountLast30Days,
     lastUpdatedMs,
-    color,
 }: Props) => {
-    const displayedColor = color !== undefined ? color : ANTD_GRAY[7];
-
     const statsViews = [
-        !!rowCount && (
-            <StatText color={displayedColor}>
-                <TableOutlined style={{ marginRight: 8, color: displayedColor }} />
+        (!!rowCount && (
+            <StatText>
+                <TableOutlined style={{ marginRight: 8, color: ANTD_GRAY[7] }} />
                 <b>{formatNumberWithoutAbbreviation(rowCount)}</b> rows
-                {!!columnCount && (
-                    <>
-                        , <b>{formatNumberWithoutAbbreviation(columnCount)}</b> columns
-                    </>
-                )}
             </StatText>
-        ),
-        !!sizeInBytes && (
-            <StatText color={displayedColor}>
-                <HddOutlined style={{ marginRight: 8, color: displayedColor }} />
-                <FormattedBytesStat bytes={sizeInBytes} />
-            </StatText>
-        ),
-        !!queryCountLast30Days && (
-            <StatText color={displayedColor}>
-                <ConsoleSqlOutlined style={{ marginRight: 8, color: displayedColor }} />
+        )) ||
+            undefined,
+        (!!queryCountLast30Days && (
+            <StatText>
+                <ConsoleSqlOutlined style={{ marginRight: 8, color: ANTD_GRAY[7] }} />
                 <b>{formatNumberWithoutAbbreviation(queryCountLast30Days)}</b> queries last month
             </StatText>
-        ),
-        !!uniqueUserCountLast30Days && (
-            <StatText color={displayedColor}>
-                <TeamOutlined style={{ marginRight: 8, color: displayedColor }} />
+        )) ||
+            undefined,
+        (!!uniqueUserCountLast30Days && (
+            <StatText>
+                <TeamOutlined style={{ marginRight: 8, color: ANTD_GRAY[7] }} />
                 <b>{formatNumberWithoutAbbreviation(uniqueUserCountLast30Days)}</b> unique users
             </StatText>
-        ),
-        !!lastUpdatedMs && (
+        )) ||
+            undefined,
+        (!!lastUpdatedMs && (
             <Popover
                 content={
-                    <PopoverContent>
-                        Data was last updated in the source platform on{' '}
-                        <strong>{toLocalDateTimeString(lastUpdatedMs)}</strong>
-                    </PopoverContent>
+                    <div>
+                        Changed on {toLocalDateTimeString(lastUpdatedMs)}.{' '}
+                        <Tooltip title="The time at which the data was last changed in the source platform">
+                            <HelpIcon />
+                        </Tooltip>
+                    </div>
                 }
             >
-                <StatText color={displayedColor}>
+                <StatText>
                     <ClockCircleOutlined style={{ marginRight: 8, color: ANTD_GRAY[7] }} />
-                    Updated {toRelativeTimeString(lastUpdatedMs)}
+                    Changed {toRelativeTimeString(lastUpdatedMs)}
                 </StatText>
             </Popover>
-        ),
-    ].filter((stat) => stat);
+        )) ||
+            undefined,
+    ].filter((stat) => stat !== undefined);
 
     return <>{statsViews.length > 0 && <StatsSummary stats={statsViews} />}</>;
 };

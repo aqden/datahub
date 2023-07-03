@@ -1,6 +1,5 @@
 package com.linkedin.metadata.models.registry;
 
-import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.linkedin.data.schema.DataSchema;
@@ -32,7 +31,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.linkedin.metadata.Constants.*;
 import static com.linkedin.metadata.models.registry.EntityRegistryUtils.*;
 
 
@@ -51,10 +49,6 @@ public class ConfigEntityRegistry implements EntityRegistry {
   private final Map<String, AspectSpec> _aspectNameToSpec;
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
-  static {
-    int maxSize = Integer.parseInt(System.getenv().getOrDefault(INGESTION_MAX_SERIALIZED_STRING_LENGTH, MAX_JACKSON_STRING_SIZE));
-    OBJECT_MAPPER.getFactory().setStreamReadConstraints(StreamReadConstraints.builder().maxStringLength(maxSize).build());
-  }
 
   public ConfigEntityRegistry(Pair<Path, Path> configFileClassPathPair) throws IOException {
     this(DataSchemaFactory.withCustomClasspath(configFileClassPathPair.getSecond()), configFileClassPathPair.getFirst());

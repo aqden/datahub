@@ -37,21 +37,12 @@ query appConfig {
         visualConfig {
             logoUrl
             faviconUrl
-            queriesTab {
-                queriesTabResultSize
-            }
         }
         telemetryConfig {
             enableThirdPartyLogging
         }
         testsConfig {
             enabled
-        }
-        viewsConfig {
-            enabled
-        }
-        featureFlags {
-            readOnlyModeEnabled
         }
     }
 }
@@ -63,14 +54,4 @@ query getEntityCounts($input: EntityCountInput) {
             count
         }
     }
-}
-
-query getGlobalViewsSettings {
-    globalViewsSettings {
-        defaultView
-    }
-}
-
-mutation updateGlobalViewsSettings($input: UpdateGlobalViewsSettingsInput!) {
-    updateGlobalViewsSettings(input: $input)
 }

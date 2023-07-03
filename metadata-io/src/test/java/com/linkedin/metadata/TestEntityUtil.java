@@ -1,9 +1,6 @@
 package com.linkedin.metadata;
 
-import com.datahub.test.TestBrowsePaths;
-import com.datahub.test.TestBrowsePathsV2;
-import com.datahub.test.BrowsePathEntry;
-import com.datahub.test.BrowsePathEntryArray;
+import com.datahub.test.BrowsePaths;
 import com.datahub.test.KeyPartEnum;
 import com.datahub.test.SearchFeatures;
 import com.datahub.test.SimpleNestedRecord1;
@@ -43,10 +40,8 @@ public class TestEntityUtil {
         ImmutableList.of(new SimpleNestedRecord2().setNestedArrayStringField("nestedArray1"),
             new SimpleNestedRecord2().setNestedArrayStringField("nestedArray2")
                 .setNestedArrayArrayField(new StringArray(ImmutableList.of("testNestedArray1", "testNestedArray2"))))));
-    testEntityInfo.setCustomProperties(new StringMap(ImmutableMap.of("key1", "value1", "key2", "value2",
-            "shortValue", "123", "longValue", "0123456789")));
-    testEntityInfo.setEsObjectField(new StringMap(ImmutableMap.of("key1", "value1", "key2", "value2",
-            "shortValue", "123", "longValue", "0123456789")));
+    testEntityInfo.setCustomProperties(new StringMap(ImmutableMap.of("key1", "value1", "key2", "value2")));
+    testEntityInfo.setEsObjectField(new StringMap(ImmutableMap.of("key1", "value1", "key2", "value2")));
     return testEntityInfo;
   }
 
@@ -55,19 +50,13 @@ public class TestEntityUtil {
     Urn urn = getTestEntityUrn();
     snapshot.setUrn(urn);
 
-    TestBrowsePaths browsePaths = new TestBrowsePaths().setPaths(new StringArray(ImmutableList.of("/a/b/c", "d/e/f")));
-    BrowsePathEntryArray browsePathV2Entries = new BrowsePathEntryArray();
-    BrowsePathEntry entry1 = new BrowsePathEntry().setId("levelOne");
-    BrowsePathEntry entry2 = new BrowsePathEntry().setId("levelTwo");
-    browsePathV2Entries.add(entry1);
-    browsePathV2Entries.add(entry2);
-    TestBrowsePathsV2 browsePathsV2 = new TestBrowsePathsV2().setPath(browsePathV2Entries);
+    BrowsePaths browsePaths = new BrowsePaths().setPaths(new StringArray(ImmutableList.of("/a/b/c", "d/e/f")));
     SearchFeatures searchFeatures = new SearchFeatures().setFeature1(2).setFeature2(1);
 
     TestEntityAspectArray aspects = new TestEntityAspectArray(
         ImmutableList.of(TestEntityAspect.create(getTestEntityKey(urn)),
             TestEntityAspect.create(getTestEntityInfo(urn)), TestEntityAspect.create(browsePaths),
-            TestEntityAspect.create(searchFeatures), TestEntityAspect.create(browsePathsV2)));
+            TestEntityAspect.create(searchFeatures)));
     snapshot.setAspects(aspects);
     return snapshot;
   }

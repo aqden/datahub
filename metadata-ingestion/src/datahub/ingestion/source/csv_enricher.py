@@ -1,11 +1,7 @@
 import csv
-import pathlib
 import time
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
-from urllib import parse
-
-import requests
 
 from datahub.configuration.common import ConfigurationError
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
@@ -17,24 +13,13 @@ from datahub.ingestion.api.decorators import (
     support_status,
 )
 from datahub.ingestion.api.source import Source, SourceReport
-from datahub.ingestion.api.source_helpers import auto_workunit_reporter
 from datahub.ingestion.api.workunit import MetadataWorkUnit
 from datahub.ingestion.source_config.csv_enricher import CSVEnricherConfig
 from datahub.metadata.schema_classes import (
     AuditStampClass,
+    ChangeTypeClass,
     DomainsClass,
-    EditableChartPropertiesClass,
-    EditableContainerPropertiesClass,
-    EditableDashboardPropertiesClass,
-    EditableDataFlowPropertiesClass,
-    EditableDataJobPropertiesClass,
     EditableDatasetPropertiesClass,
-    EditableMLFeaturePropertiesClass,
-    EditableMLFeatureTablePropertiesClass,
-    EditableMLModelGroupPropertiesClass,
-    EditableMLModelPropertiesClass,
-    EditableMLPrimaryKeyPropertiesClass,
-    EditableNotebookPropertiesClass,
     EditableSchemaFieldInfoClass,
     EditableSchemaMetadataClass,
     GlobalTagsClass,
@@ -46,10 +31,16 @@ from datahub.metadata.schema_classes import (
     TagAssociationClass,
 )
 from datahub.utilities.urns.dataset_urn import DatasetUrn
-from datahub.utilities.urns.urn import Urn, guess_entity_type
+from datahub.utilities.urns.urn import Urn
 
-DATASET_ENTITY_TYPE = DatasetUrn.ENTITY_TYPE
+SCHEMA_ASPECT_NAME = "editableSchemaMetadata"
+DATASET_ENTITY_TYPE = "dataset"
+GLOSSARY_TERMS_ASPECT_NAME = "glossaryTerms"
+TAGS_ASPECT_NAME = "globalTags"
+OWNERSHIP_ASPECT_NAME = "ownership"
+EDITABLE_DATASET_PROPERTIES_ASPECT_NAME = "editableDatasetProperties"
 ACTOR = "urn:li:corpuser:ingestion"
+DOMAIN_ASPECT_NAME = "domains"
 
 
 def get_audit_stamp() -> AuditStampClass:
@@ -114,10 +105,6 @@ class CSVEnricherSource(Source):
     be applied at the entity field. If a subresource IS populated (as it is for the second and third rows), glossary
     terms and tags will be applied on the subresource. Every row MUST have a resource. Also note that owners can only
     be applied at the resource level and will be ignored if populated for a row with a subresource.
-
-    :::note
-    This source will not work on very large csv files that do not fit in memory.
-    :::
     """
 
     def __init__(self, config: CSVEnricherConfig, ctx: PipelineContext):
@@ -137,6 +124,7 @@ class CSVEnricherSource(Source):
     def get_resource_glossary_terms_work_unit(
         self,
         entity_urn: str,
+        entity_type: str,
         term_associations: List[GlossaryTermAssociationClass],
     ) -> Optional[MetadataWorkUnit]:
         # Check if there are glossary terms to add. If not, return None.
@@ -167,14 +155,23 @@ class CSVEnricherSource(Source):
             # Add any terms that don't already exist in the existing GlossaryTerms object to the object
             current_terms.terms.extend(term_associations_filtered)
 
-        return MetadataChangeProposalWrapper(
+        terms_mcpw: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+            entityType=entity_type,
             entityUrn=entity_urn,
+            changeType=ChangeTypeClass.UPSERT,
+            aspectName=GLOSSARY_TERMS_ASPECT_NAME,
             aspect=current_terms,
-        ).as_workunit()
+        )
+        terms_wu: MetadataWorkUnit = MetadataWorkUnit(
+            id=f"{entity_urn}-{GLOSSARY_TERMS_ASPECT_NAME}",
+            mcp=terms_mcpw,
+        )
+        return terms_wu
 
     def get_resource_tags_work_unit(
         self,
         entity_urn: str,
+        entity_type: str,
         tag_associations: List[TagAssociationClass],
     ) -> Optional[MetadataWorkUnit]:
         # Check if there are tags to add. If not, return None.
@@ -203,14 +200,23 @@ class CSVEnricherSource(Source):
             # Add any terms that don't already exist in the existing GlobalTags object to the object
             current_tags.tags.extend(tag_associations_filtered)
 
-        return MetadataChangeProposalWrapper(
+        tags_mcpw: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+            entityType=entity_type,
             entityUrn=entity_urn,
+            changeType=ChangeTypeClass.UPSERT,
+            aspectName=TAGS_ASPECT_NAME,
             aspect=current_tags,
-        ).as_workunit()
+        )
+        tags_wu: MetadataWorkUnit = MetadataWorkUnit(
+            id=f"{entity_urn}-{TAGS_ASPECT_NAME}",
+            mcp=tags_mcpw,
+        )
+        return tags_wu
 
     def get_resource_owners_work_unit(
         self,
         entity_urn: str,
+        entity_type: str,
         owners: List[OwnerClass],
     ) -> Optional[MetadataWorkUnit]:
         # Check if there are owners to add. If not, return None.
@@ -239,14 +245,23 @@ class CSVEnricherSource(Source):
             # Add any terms that don't already exist in the existing GlobalTags object to the object
             current_ownership.owners.extend(owners_filtered)
 
-        return MetadataChangeProposalWrapper(
+        owners_mcpw: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+            entityType=entity_type,
             entityUrn=entity_urn,
+            changeType=ChangeTypeClass.UPSERT,
+            aspectName=OWNERSHIP_ASPECT_NAME,
             aspect=current_ownership,
-        ).as_workunit()
+        )
+        owners_wu: MetadataWorkUnit = MetadataWorkUnit(
+            id=f"{entity_urn}-{OWNERSHIP_ASPECT_NAME}",
+            mcp=owners_mcpw,
+        )
+        return owners_wu
 
     def get_resource_domain_work_unit(
         self,
         entity_urn: str,
+        entity_type: str,
         domain: Optional[str],
     ) -> Optional[MetadataWorkUnit]:
         # Check if there is a domain to add. If not, return None.
@@ -262,88 +277,70 @@ class CSVEnricherSource(Source):
             # If we want to overwrite or there is no existing domain, create a new object
             current_domain = DomainsClass([domain])
 
-        return MetadataChangeProposalWrapper(
+        domain_mcpw: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+            entityType=entity_type,
             entityUrn=entity_urn,
+            changeType=ChangeTypeClass.UPSERT,
+            aspectName=DOMAIN_ASPECT_NAME,
             aspect=current_domain,
-        ).as_workunit()
+        )
+        domain_wu: MetadataWorkUnit = MetadataWorkUnit(
+            id=f"{entity_urn}-{DOMAIN_ASPECT_NAME}",
+            mcp=domain_mcpw,
+        )
+        return domain_wu
 
     def get_resource_description_work_unit(
         self,
         entity_urn: str,
+        entity_type: str,
         description: Optional[str],
     ) -> Optional[MetadataWorkUnit]:
         # Check if there is a description to add. If not, return None.
         if not description:
             return None
+
         # If the description is empty, return None.
         if len(description) <= 0:
             return None
-        entityType = guess_entity_type(entity_urn)
 
-        entityClass = {
-            "chart": EditableChartPropertiesClass,
-            "dataset": EditableDatasetPropertiesClass,
-            "container": EditableContainerPropertiesClass,
-            "mlPrimaryKey": EditableMLPrimaryKeyPropertiesClass,
-            "mlModel": EditableMLModelPropertiesClass,
-            "mlModelGroup": EditableMLModelGroupPropertiesClass,
-            "mlFeatureTable": EditableMLFeatureTablePropertiesClass,
-            "mlFeature": EditableMLFeaturePropertiesClass,
-            "dashboard": EditableDashboardPropertiesClass,
-            "datajob": EditableDataJobPropertiesClass,
-            "dataflow": EditableDataFlowPropertiesClass,
-            "notebook": EditableNotebookPropertiesClass,
-        }.get(entityType, None)
-
-        if not entityClass:
-            raise ValueError(
-                f"Entity Type {entityType} cannot be operated on using csv-enricher"
-            )
-        current_editable_properties: Optional[
-            Union[
-                EditableDatasetPropertiesClass,
-                EditableContainerPropertiesClass,
-                EditableChartPropertiesClass,
-                EditableMLPrimaryKeyPropertiesClass,
-                EditableMLModelPropertiesClass,
-                EditableMLModelGroupPropertiesClass,
-                EditableMLFeatureTablePropertiesClass,
-                EditableMLFeaturePropertiesClass,
-                EditableDashboardPropertiesClass,
-                EditableDataJobPropertiesClass,
-                EditableDataFlowPropertiesClass,
-                EditableNotebookPropertiesClass,
-            ]
-        ] = None
+        current_editable_properties: Optional[EditableDatasetPropertiesClass] = None
         if self.ctx.graph and not self.should_overwrite:
             # Get the existing editable properties for the entity from the DataHub graph
-            current_editable_properties = self.ctx.graph.get_aspect(
+            current_editable_properties = self.ctx.graph.get_aspect_v2(
                 entity_urn=entity_urn,
-                aspect_type=entityClass,
+                aspect=EDITABLE_DATASET_PROPERTIES_ASPECT_NAME,
+                aspect_type=EditableDatasetPropertiesClass,
             )
 
         if not current_editable_properties:
             # If we want to overwrite or there are no existing editable dataset properties, create a new object
-            current_editable_properties = entityClass(
+            current_editable_properties = EditableDatasetPropertiesClass(
+                created=get_audit_stamp(),
+                lastModified=get_audit_stamp(),
                 description=description,
             )
         else:
             current_editable_properties.description = description
+            current_editable_properties.lastModified = get_audit_stamp()
 
-        if current_editable_properties:  # to satisfy mypy, else this line is redundant
-            if hasattr(current_editable_properties, "created"):
-                current_editable_properties.created = get_audit_stamp()
-            if hasattr(current_editable_properties, "lastModified"):
-                current_editable_properties.lastModified = get_audit_stamp()
-
-        return MetadataChangeProposalWrapper(
+        description_mcpw: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+            entityType=entity_type,
             entityUrn=entity_urn,
+            changeType=ChangeTypeClass.UPSERT,
+            aspectName=EDITABLE_DATASET_PROPERTIES_ASPECT_NAME,
             aspect=current_editable_properties,
-        ).as_workunit()
+        )
+        description_wu: MetadataWorkUnit = MetadataWorkUnit(
+            id=f"{entity_urn}-{EDITABLE_DATASET_PROPERTIES_ASPECT_NAME}",
+            mcp=description_mcpw,
+        )
+        return description_wu
 
     def get_resource_workunits(
         self,
         entity_urn: str,
+        entity_type: str,
         term_associations: List[GlossaryTermAssociationClass],
         tag_associations: List[TagAssociationClass],
         owners: List[OwnerClass],
@@ -354,48 +351,58 @@ class CSVEnricherSource(Source):
             MetadataWorkUnit
         ] = self.get_resource_glossary_terms_work_unit(
             entity_urn=entity_urn,
+            entity_type=entity_type,
             term_associations=term_associations,
         )
         if maybe_terms_wu:
             self.report.num_glossary_term_workunits_produced += 1
+            self.report.report_workunit(maybe_terms_wu)
             yield maybe_terms_wu
 
         maybe_tags_wu: Optional[MetadataWorkUnit] = self.get_resource_tags_work_unit(
             entity_urn=entity_urn,
+            entity_type=entity_type,
             tag_associations=tag_associations,
         )
         if maybe_tags_wu:
             self.report.num_tag_workunits_produced += 1
+            self.report.report_workunit(maybe_tags_wu)
             yield maybe_tags_wu
 
         maybe_owners_wu: Optional[
             MetadataWorkUnit
         ] = self.get_resource_owners_work_unit(
             entity_urn=entity_urn,
+            entity_type=entity_type,
             owners=owners,
         )
         if maybe_owners_wu:
             self.report.num_owners_workunits_produced += 1
+            self.report.report_workunit(maybe_owners_wu)
             yield maybe_owners_wu
 
         maybe_domain_wu: Optional[
             MetadataWorkUnit
         ] = self.get_resource_domain_work_unit(
             entity_urn=entity_urn,
+            entity_type=entity_type,
             domain=domain,
         )
         if maybe_domain_wu:
             self.report.num_domain_workunits_produced += 1
+            self.report.report_workunit(maybe_domain_wu)
             yield maybe_domain_wu
 
         maybe_description_wu: Optional[
             MetadataWorkUnit
         ] = self.get_resource_description_work_unit(
             entity_urn=entity_urn,
+            entity_type=entity_type,
             description=description,
         )
         if maybe_description_wu:
             self.report.num_description_workunits_produced += 1
+            self.report.report_workunit(maybe_description_wu)
             yield maybe_description_wu
 
     def process_sub_resource_row(
@@ -503,8 +510,9 @@ class CSVEnricherSource(Source):
             ] = None
             if self.ctx.graph and not self.should_overwrite:
                 # Fetch the current editable schema metadata
-                current_editable_schema_metadata = self.ctx.graph.get_aspect(
+                current_editable_schema_metadata = self.ctx.graph.get_aspect_v2(
                     entity_urn=entity_urn,
+                    aspect=SCHEMA_ASPECT_NAME,
                     aspect_type=EditableSchemaMetadataClass,
                 )
 
@@ -517,7 +525,9 @@ class CSVEnricherSource(Source):
                 needs_write = True
 
             # Iterate over each sub resource row
-            for sub_resource_row in self.editable_schema_metadata_map[entity_urn]:
+            for sub_resource_row in self.editable_schema_metadata_map[
+                entity_urn
+            ]:  # type: SubResourceRow
                 (
                     current_editable_schema_metadata,
                     needs_write,
@@ -527,11 +537,20 @@ class CSVEnricherSource(Source):
 
             # Write an MCPW if needed.
             if needs_write:
-                self.report.num_editable_schema_metadata_workunits_produced += 1
-                yield MetadataChangeProposalWrapper(
-                    entityUrn=entity_urn,
-                    aspect=current_editable_schema_metadata,
-                ).as_workunit()
+                editable_schema_metadata_mcpw: MetadataChangeProposalWrapper = (
+                    MetadataChangeProposalWrapper(
+                        entityType=DATASET_ENTITY_TYPE,
+                        changeType=ChangeTypeClass.UPSERT,
+                        entityUrn=entity_urn,
+                        aspectName=SCHEMA_ASPECT_NAME,
+                        aspect=current_editable_schema_metadata,
+                    )
+                )
+                wu: MetadataWorkUnit = MetadataWorkUnit(
+                    id=f"{entity_urn}-{SCHEMA_ASPECT_NAME}",
+                    mcp=editable_schema_metadata_mcpw,
+                )
+                yield wu
 
     def maybe_extract_glossary_terms(
         self, row: Dict[str, str]
@@ -585,86 +604,84 @@ class CSVEnricherSource(Source):
         return owners
 
     def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        return auto_workunit_reporter(self.report, self.get_workunits_internal())
+        with open(self.config.filename, "r") as f:
+            rows = csv.DictReader(f, delimiter=self.config.delimiter)
+            for row in rows:
+                # We need the resource to move forward
+                if not row["resource"]:
+                    continue
 
-    def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
-        # As per https://stackoverflow.com/a/49150749/5004662, we want to use
-        # the 'utf-8-sig' encoding to handle any BOM character that may be
-        # present in the file. Excel is known to add a BOM to CSV files.
-        # As per https://stackoverflow.com/a/63508823/5004662,
-        # this is also safe with normal files that don't have a BOM.
-        parsed_location = parse.urlparse(self.config.filename)
-        if parsed_location.scheme in ("http", "https"):
-            try:
-                resp = requests.get(self.config.filename)
-                decoded_content = resp.content.decode("utf-8-sig")
-                rows = list(
-                    csv.DictReader(
-                        decoded_content.splitlines(), delimiter=self.config.delimiter
-                    )
+                is_resource_row: bool = not row["subresource"]
+
+                entity_urn = row["resource"]
+                entity_type = Urn.create_from_string(row["resource"]).get_type()
+
+                term_associations: List[
+                    GlossaryTermAssociationClass
+                ] = self.maybe_extract_glossary_terms(row)
+
+                tag_associations: List[TagAssociationClass] = self.maybe_extract_tags(
+                    row
                 )
-            except Exception as e:
-                raise ConfigurationError(
-                    f"Cannot read remote file {self.config.filename}, error:{e}"
+
+                owners: List[OwnerClass] = self.maybe_extract_owners(
+                    row, is_resource_row
                 )
-        else:
-            with open(
-                pathlib.Path(self.config.filename), mode="r", encoding="utf-8-sig"
-            ) as f:
-                rows = list(csv.DictReader(f, delimiter=self.config.delimiter))
 
-        for row in rows:
-            # We need the resource to move forward
-            if not row["resource"]:
-                continue
-
-            is_resource_row: bool = not row["subresource"]
-            entity_urn = row["resource"]
-            entity_type = Urn.create_from_string(row["resource"]).get_type()
-
-            term_associations: List[
-                GlossaryTermAssociationClass
-            ] = self.maybe_extract_glossary_terms(row)
-            tag_associations: List[TagAssociationClass] = self.maybe_extract_tags(row)
-            owners: List[OwnerClass] = self.maybe_extract_owners(row, is_resource_row)
-
-            domain: Optional[str] = (
-                row["domain"]
-                if row["domain"] and entity_type == DATASET_ENTITY_TYPE
-                else None
-            )
-            description: Optional[str] = (
-                row["description"]
-                if row["description"] and entity_type == DATASET_ENTITY_TYPE
-                else None
-            )
-
-            if is_resource_row:
-                yield from self.get_resource_workunits(
-                    entity_urn=entity_urn,
-                    term_associations=term_associations,
-                    tag_associations=tag_associations,
-                    owners=owners,
-                    domain=domain,
-                    description=description,
+                domain: Optional[str] = (
+                    row["domain"]
+                    if row["domain"] and entity_type == DATASET_ENTITY_TYPE
+                    else None
                 )
-            elif entity_type == DATASET_ENTITY_TYPE:
-                # Only dataset sub-resources are currently supported.
-                # Add the row to the map from entity (dataset) to SubResource rows. We cannot emit work units for
-                # EditableSchemaMetadata until we parse the whole CSV due to read-modify-write issues.
-                self.editable_schema_metadata_map.setdefault(entity_urn, [])
-                self.editable_schema_metadata_map[entity_urn].append(
-                    SubResourceRow(
+
+                description: Optional[str] = (
+                    row["description"]
+                    if row["description"] and entity_type == DATASET_ENTITY_TYPE
+                    else None
+                )
+
+                if is_resource_row:
+                    for wu in self.get_resource_workunits(
                         entity_urn=entity_urn,
-                        field_path=row["subresource"],
+                        entity_type=entity_type,
                         term_associations=term_associations,
                         tag_associations=tag_associations,
-                        description=description,
+                        owners=owners,
                         domain=domain,
-                    )
-                )
+                        description=description,
+                    ):
+                        yield wu
 
-        yield from self.get_sub_resource_work_units()
+                # If this row is not applying changes at the resource level, modify the EditableSchemaMetadata map.
+                else:
+                    # Only dataset sub-resources are currently supported.
+                    if entity_type != DATASET_ENTITY_TYPE:
+                        continue
+
+                    field_path = row["subresource"]
+                    if entity_urn not in self.editable_schema_metadata_map:
+                        self.editable_schema_metadata_map[entity_urn] = []
+                    # Add the row to the map from entity (dataset) to SubResource rows. We cannot emit work units for
+                    # EditableSchemaMetadata until we parse the whole CSV due to read-modify-write issues.
+                    self.editable_schema_metadata_map[entity_urn].append(
+                        SubResourceRow(
+                            entity_urn=entity_urn,
+                            field_path=field_path,
+                            term_associations=term_associations,
+                            tag_associations=tag_associations,
+                            description=description,
+                            domain=domain,
+                        )
+                    )
+
+        # Yield sub resource work units once the map has been fully populated.
+        for wu in self.get_sub_resource_work_units():
+            self.report.num_editable_schema_metadata_workunits_produced += 1
+            self.report.report_workunit(wu)
+            yield wu
 
     def get_report(self):
         return self.report
+
+    def close(self):
+        pass

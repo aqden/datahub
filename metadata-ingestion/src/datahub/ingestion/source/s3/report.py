@@ -2,13 +2,11 @@ import dataclasses
 from dataclasses import field as dataclass_field
 from typing import List
 
-from datahub.ingestion.source.state.stale_entity_removal_handler import (
-    StaleEntityRemovalSourceReport,
-)
+from datahub.ingestion.api.source import SourceReport
 
 
 @dataclasses.dataclass
-class DataLakeSourceReport(StaleEntityRemovalSourceReport):
+class DataLakeSourceReport(SourceReport):
     files_scanned = 0
     filtered: List[str] = dataclass_field(default_factory=list)
 

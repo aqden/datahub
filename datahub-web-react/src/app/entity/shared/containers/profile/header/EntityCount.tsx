@@ -13,22 +13,16 @@ export const EntityCountText = styled(Typography.Text)`
 
 interface Props {
     entityCount?: number;
-    displayAssetsText?: boolean;
 }
 
 function EntityCount(props: Props) {
-    const { entityCount, displayAssetsText } = props;
+    const { entityCount } = props;
 
     if (!entityCount || entityCount <= 0) return null;
 
     return (
         <EntityCountText className="entityCount">
-            {entityCount.toLocaleString()}{' '}
-            {displayAssetsText ? (
-                <>{entityCount === 1 ? 'asset' : 'assets'}</>
-            ) : (
-                <>{entityCount === 1 ? 'entity' : 'entities'}</>
-            )}
+            {entityCount.toLocaleString()} {entityCount === 1 ? 'entity' : 'entities'}
         </EntityCountText>
     );
 }

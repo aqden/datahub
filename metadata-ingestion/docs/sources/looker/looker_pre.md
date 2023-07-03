@@ -1,4 +1,4 @@
-### Prerequisites
+### Pre-Requisites
 
 #### Set up the right permissions
 You need to provide the following permissions for ingestion to work correctly. 

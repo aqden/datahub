@@ -82,7 +82,9 @@ export const LinkList = ({ refetch }: LinkListProps) => {
                                     <>
                                         Added {formatDateString(link.created.time)} by{' '}
                                         <Link
-                                            to={`${entityRegistry.getEntityUrl(EntityType.CorpUser, link.author.urn)}`}
+                                            to={`/${entityRegistry.getPathName(EntityType.CorpUser)}/${
+                                                link.author.urn
+                                            }`}
                                         >
                                             {link.author.username}
                                         </Link>

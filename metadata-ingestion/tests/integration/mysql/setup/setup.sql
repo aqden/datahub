@@ -48,13 +48,13 @@ CREATE TABLE metadata_index (
 CREATE VIEW metadata_index_view AS SELECT id, urn, path, doubleVal FROM metadata_index;
 
 -- -----------------------------------------------------
--- Some sample data, from https://github.com/dataCharmer/test_db.
+-- Some sample data, from https://github.com/datacharmer/test_db.
 -- -----------------------------------------------------
 
-CREATE SCHEMA IF NOT EXISTS `dataCharmer` ;
-USE `dataCharmer` ;
+CREATE SCHEMA IF NOT EXISTS `datacharmer` ;
+USE `datacharmer` ;
 
-CREATE TABLE `dataCharmer`.`employees` (
+CREATE TABLE `datacharmer`.`employees` (
     emp_no      INT             NOT NULL,
     birth_date  DATE            NOT NULL,
     first_name  VARCHAR(14)     NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE `dataCharmer`.`employees` (
     PRIMARY KEY (emp_no)
 );
 
-CREATE TABLE `dataCharmer`.`salaries` (
+CREATE TABLE `datacharmer`.`salaries` (
     emp_no      INT             NOT NULL,
     salary      INT             NOT NULL,
     from_date   DATE            NOT NULL,
@@ -271,7 +271,7 @@ CREATE TABLE IF NOT EXISTS `test_cases`.`test_empty` (
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
-CREATE TABLE IF NOT EXISTS `test_cases`.`myset` (col SET('a', 'b', 'c', 'd'));
+
 
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

@@ -1,25 +1,22 @@
 package com.linkedin.datahub.graphql.resolvers.search;
 
-import com.linkedin.common.urn.UrnUtils;
-import com.linkedin.datahub.graphql.QueryContext;
+import com.linkedin.datahub.graphql.generated.EntityType;
 import com.linkedin.datahub.graphql.generated.SearchAcrossEntitiesInput;
 import com.linkedin.datahub.graphql.generated.SearchResults;
+import com.linkedin.datahub.graphql.resolvers.EntityTypeMapper;
 import com.linkedin.datahub.graphql.resolvers.ResolverUtils;
 import com.linkedin.datahub.graphql.types.mappers.UrnSearchResultsMapper;
 import com.linkedin.entity.client.EntityClient;
-import com.linkedin.metadata.query.SearchFlags;
-import com.linkedin.metadata.query.filter.Filter;
-import com.linkedin.metadata.service.ViewService;
-import com.linkedin.view.DataHubViewInfo;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.linkedin.datahub.graphql.resolvers.ResolverUtils.bindArgument;
-import static com.linkedin.datahub.graphql.resolvers.search.SearchUtils.*;
+import static com.linkedin.datahub.graphql.resolvers.search.SearchUtils.SEARCHABLE_ENTITY_TYPES;
 
 
 /**
@@ -33,15 +30,15 @@ public class SearchAcrossEntitiesResolver implements DataFetcher<CompletableFutu
   private static final int DEFAULT_COUNT = 10;
 
   private final EntityClient _entityClient;
-  private final ViewService _viewService;
 
   @Override
   public CompletableFuture<SearchResults> get(DataFetchingEnvironment environment) {
-    final QueryContext context = environment.getContext();
     final SearchAcrossEntitiesInput input =
         bindArgument(environment.getArgument("input"), SearchAcrossEntitiesInput.class);
 
-    final List<String> entityNames = getEntityNames(input.getTypes());
+    List<EntityType> entityTypes =
+        (input.getTypes() == null || input.getTypes().isEmpty()) ? SEARCHABLE_ENTITY_TYPES : input.getTypes();
+    List<String> entityNames = entityTypes.stream().map(EntityTypeMapper::getName).collect(Collectors.toList());
 
     // escape forward slash since it is a reserved character in Elasticsearch
     final String sanitizedQuery = ResolverUtils.escapeForwardSlash(input.getQuery());
@@ -50,39 +47,19 @@ public class SearchAcrossEntitiesResolver implements DataFetcher<CompletableFutu
     final int count = input.getCount() != null ? input.getCount() : DEFAULT_COUNT;
 
     return CompletableFuture.supplyAsync(() -> {
-
-      final DataHubViewInfo maybeResolvedView = (input.getViewUrn() != null)
-          ? resolveView(_viewService, UrnUtils.getUrn(input.getViewUrn()), context.getAuthentication())
-          : null;
-
-      final Filter baseFilter = ResolverUtils.buildFilter(input.getFilters(), input.getOrFilters());
-
-      SearchFlags searchFlags = mapInputFlags(input.getSearchFlags());
-
       try {
         log.debug(
             "Executing search for multiple entities: entity types {}, query {}, filters: {}, start: {}, count: {}",
-            input.getTypes(), input.getQuery(), input.getOrFilters(), start, count);
-
-        return UrnSearchResultsMapper.map(_entityClient.searchAcrossEntities(
-            maybeResolvedView != null
-                ? SearchUtils.intersectEntityTypes(entityNames, maybeResolvedView.getDefinition().getEntityTypes())
-                : entityNames,
-            sanitizedQuery,
-            maybeResolvedView != null
-                ? SearchUtils.combineFilters(baseFilter, maybeResolvedView.getDefinition().getFilter())
-                : baseFilter,
-            start,
-            count,
-            searchFlags,
-            ResolverUtils.getAuthentication(environment)));
+            input.getTypes(), input.getQuery(), input.getFilters(), start, count);
+        return UrnSearchResultsMapper.map(_entityClient.searchAcrossEntities(entityNames, sanitizedQuery,
+            ResolverUtils.buildFilter(input.getFilters()), start, count, ResolverUtils.getAuthentication(environment)));
       } catch (Exception e) {
         log.error(
             "Failed to execute search for multiple entities: entity types {}, query {}, filters: {}, start: {}, count: {}",
-            input.getTypes(), input.getQuery(), input.getOrFilters(), start, count);
+            input.getTypes(), input.getQuery(), input.getFilters(), start, count);
         throw new RuntimeException(
             "Failed to execute search: " + String.format("entity types %s, query %s, filters: %s, start: %s, count: %s",
-                input.getTypes(), input.getQuery(), input.getOrFilters(), start, count), e);
+                input.getTypes(), input.getQuery(), input.getFilters(), start, count), e);
       }
     });
   }

@@ -1,20 +1,17 @@
 import { useDeleteAssertionMutation } from '../../graphql/assertion.generated';
-import { useDeleteDataProductMutation } from '../../graphql/dataProduct.generated';
 import { useDeleteDomainMutation } from '../../graphql/domain.generated';
 import { useDeleteGlossaryEntityMutation } from '../../graphql/glossary.generated';
 import { useRemoveGroupMutation } from '../../graphql/group.generated';
 import { useDeleteTagMutation } from '../../graphql/tag.generated';
 import { useRemoveUserMutation } from '../../graphql/user.generated';
 import { EntityType } from '../../types.generated';
-import { GenericEntityProperties } from '../entity/shared/types';
 
 /**
  * Returns a relative redirect path which is used after an Entity has been deleted from it's profile page.
  *
  * @param type the entity type being deleted
  */
-export const getEntityProfileDeleteRedirectPath = (type: EntityType, entityData: GenericEntityProperties | null) => {
-    const domain = entityData?.domain?.domain;
+export const getEntityProfileDeleteRedirectPath = (type: EntityType) => {
     switch (type) {
         case EntityType.CorpGroup:
         case EntityType.CorpUser:
@@ -26,12 +23,6 @@ export const getEntityProfileDeleteRedirectPath = (type: EntityType, entityData:
         case EntityType.GlossaryTerm:
             // Return to glossary page.
             return '/glossary';
-        case EntityType.DataProduct:
-            // Return to Data Products tab of the domain it was part of
-            if (domain) {
-                return `/domain/${domain.urn}/Data Products`;
-            }
-            return '/';
         default:
             return () => undefined;
     }
@@ -59,8 +50,6 @@ export const getDeleteEntityMutation = (type: EntityType) => {
         case EntityType.GlossaryNode:
         case EntityType.GlossaryTerm:
             return useDeleteGlossaryEntityMutation;
-        case EntityType.DataProduct:
-            return useDeleteDataProductMutation;
         default:
             return () => undefined;
     }

@@ -46,7 +46,7 @@ public class RecentlySearchedSource implements RecommendationSource {
 
   @Override
   public String getTitle() {
-    return "Recent searches";
+    return "Recent Searches";
   }
 
   @Override
@@ -75,7 +75,7 @@ public class RecentlySearchedSource implements RecommendationSource {
   public List<RecommendationContent> getRecommendations(@Nonnull Urn userUrn,
       @Nonnull RecommendationRequestContext requestContext) {
     SearchRequest searchRequest = buildSearchRequest(userUrn);
-    try (Timer.Context ignored = MetricUtils.timer(this.getClass(), "getRecentlySearched").time()) {
+    try (Timer.Context ignored = MetricUtils.timer(this.getClass(), "getRecentlyViewed").time()) {
       final SearchResponse searchResponse = _searchClient.search(searchRequest, RequestOptions.DEFAULT);
       // extract results
       ParsedTerms parsedTerms = searchResponse.getAggregations().get(ENTITY_AGG_NAME);

@@ -15,6 +15,7 @@ from datahub.metadata.schema_classes import (
 DATASET_URN = (
     "urn:li:dataset:(urn:li:dataPlatform:bigquery,test_dataset.test.Test,PROD)"
 )
+DATASET_ENTITY_TYPE = "dataset"
 
 
 def create_owners_list_from_urn_list(
@@ -69,7 +70,9 @@ def create_base_csv_enricher_config() -> Dict:
 
 def test_get_resource_glossary_terms_work_unit_no_terms():
     source = create_mocked_csv_enricher_source()
-    maybe_terms_wu = source.get_resource_glossary_terms_work_unit(DATASET_URN, [])
+    maybe_terms_wu = source.get_resource_glossary_terms_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, []
+    )
     assert not maybe_terms_wu
 
 
@@ -83,7 +86,7 @@ def test_get_resource_glossary_terms_no_new_glossary_terms():
         GlossaryTermAssociationClass(term) for term in new_glossary_terms
     ]
     maybe_terms_wu = source.get_resource_glossary_terms_work_unit(
-        DATASET_URN, term_associations
+        DATASET_URN, DATASET_ENTITY_TYPE, term_associations
     )
     assert not maybe_terms_wu
 
@@ -98,14 +101,16 @@ def test_get_resource_glossary_terms_work_unit_produced():
         GlossaryTermAssociationClass(term) for term in new_glossary_terms
     ]
     maybe_terms_wu = source.get_resource_glossary_terms_work_unit(
-        DATASET_URN, term_associations
+        DATASET_URN, DATASET_ENTITY_TYPE, term_associations
     )
     assert maybe_terms_wu
 
 
 def test_get_resource_tags_work_unit_no_tags():
     source = create_mocked_csv_enricher_source()
-    maybe_tags_wu = source.get_resource_tags_work_unit(DATASET_URN, [])
+    maybe_tags_wu = source.get_resource_tags_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, []
+    )
     assert not maybe_tags_wu
 
 
@@ -115,7 +120,9 @@ def test_get_resource_tags_no_new_tags():
     tag_associations: List[TagAssociationClass] = [
         TagAssociationClass(tag) for tag in new_tags
     ]
-    maybe_tags_wu = source.get_resource_tags_work_unit(DATASET_URN, tag_associations)
+    maybe_tags_wu = source.get_resource_tags_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, tag_associations
+    )
     assert not maybe_tags_wu
 
 
@@ -125,13 +132,17 @@ def test_get_resource_tags_work_unit_produced():
     tag_associations: List[TagAssociationClass] = [
         TagAssociationClass(tag) for tag in new_tags
     ]
-    maybe_tags_wu = source.get_resource_tags_work_unit(DATASET_URN, tag_associations)
+    maybe_tags_wu = source.get_resource_tags_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, tag_associations
+    )
     assert maybe_tags_wu
 
 
 def test_get_resource_owners_work_unit_no_terms():
     source = create_mocked_csv_enricher_source()
-    maybe_owners_wu = source.get_resource_owners_work_unit(DATASET_URN, [])
+    maybe_owners_wu = source.get_resource_owners_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, []
+    )
     assert not maybe_owners_wu
 
 
@@ -141,7 +152,9 @@ def test_get_resource_owners_no_new_owners():
     owners: List[OwnerClass] = [
         OwnerClass(owner, type=OwnershipTypeClass.NONE) for owner in new_owners
     ]
-    maybe_owners_wu = source.get_resource_owners_work_unit(DATASET_URN, owners)
+    maybe_owners_wu = source.get_resource_owners_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, owners
+    )
     assert maybe_owners_wu
 
 
@@ -151,7 +164,9 @@ def test_get_resource_owners_work_unit_produced():
     owners: List[OwnerClass] = [
         OwnerClass(owner, type=OwnershipTypeClass.NONE) for owner in new_owners
     ]
-    maybe_owners_wu = source.get_resource_owners_work_unit(DATASET_URN, owners)
+    maybe_owners_wu = source.get_resource_owners_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, owners
+    )
     assert maybe_owners_wu
 
 
@@ -159,7 +174,7 @@ def test_get_resource_description_no_description():
     source = create_mocked_csv_enricher_source()
     new_description = None
     maybe_description_wu = source.get_resource_description_work_unit(
-        DATASET_URN, new_description
+        DATASET_URN, DATASET_ENTITY_TYPE, new_description
     )
     assert not maybe_description_wu
 
@@ -168,7 +183,7 @@ def test_get_resource_description_work_unit_produced():
     source = create_mocked_csv_enricher_source()
     new_description = "description"
     maybe_description_wu = source.get_resource_description_work_unit(
-        DATASET_URN, new_description
+        DATASET_URN, DATASET_ENTITY_TYPE, new_description
     )
     assert maybe_description_wu
 
@@ -176,12 +191,16 @@ def test_get_resource_description_work_unit_produced():
 def test_get_resource_domain_no_domain():
     source = create_mocked_csv_enricher_source()
     new_domain = None
-    maybe_domain_wu = source.get_resource_domain_work_unit(DATASET_URN, new_domain)
+    maybe_domain_wu = source.get_resource_domain_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, new_domain
+    )
     assert not maybe_domain_wu
 
 
 def test_get_resource_domain_work_unit_produced():
     source = create_mocked_csv_enricher_source()
     new_domain = "domain"
-    maybe_domain_wu = source.get_resource_domain_work_unit(DATASET_URN, new_domain)
+    maybe_domain_wu = source.get_resource_domain_work_unit(
+        DATASET_URN, DATASET_ENTITY_TYPE, new_domain
+    )
     assert maybe_domain_wu

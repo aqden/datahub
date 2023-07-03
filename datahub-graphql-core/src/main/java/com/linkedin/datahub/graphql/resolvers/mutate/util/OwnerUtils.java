@@ -1,7 +1,6 @@
 package com.linkedin.datahub.graphql.resolvers.mutate.util;
 
 import com.google.common.collect.ImmutableList;
-import com.linkedin.common.urn.CorpuserUrn;
 
 import com.linkedin.common.Owner;
 import com.linkedin.common.OwnerArray;
@@ -13,8 +12,8 @@ import com.linkedin.common.urn.Urn;
 import com.linkedin.common.urn.UrnUtils;
 import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.datahub.graphql.authorization.AuthorizationUtils;
-import com.datahub.authorization.ConjunctivePrivilegeGroup;
-import com.datahub.authorization.DisjunctivePrivilegeGroup;
+import com.linkedin.datahub.graphql.authorization.ConjunctivePrivilegeGroup;
+import com.linkedin.datahub.graphql.authorization.DisjunctivePrivilegeGroup;
 import com.linkedin.datahub.graphql.generated.OwnerEntityType;
 import com.linkedin.datahub.graphql.generated.OwnerInput;
 import com.linkedin.datahub.graphql.generated.ResourceRefInput;
@@ -35,7 +34,6 @@ import static com.linkedin.datahub.graphql.resolvers.mutate.MutationUtils.*;
 // TODO: Move to consuming from OwnerService
 @Slf4j
 public class OwnerUtils {
-  
   private static final ConjunctivePrivilegeGroup ALL_PRIVILEGES_GROUP = new ConjunctivePrivilegeGroup(ImmutableList.of(
       PoliciesConfig.EDIT_ENTITY_PRIVILEGE.getType()
   ));
@@ -104,7 +102,7 @@ public class OwnerUtils {
 
     final OwnerArray ownerArray = new OwnerArray(ownershipAspect.getOwners()
         .stream()
-        .filter(owner ->  !(owner.getOwner().equals(ownerUrn) && owner.getType().equals(type)))
+        .filter(owner ->  !owner.getOwner().equals(ownerUrn))
         .collect(Collectors.toList()));
 
     Owner newOwner = new Owner();
@@ -217,26 +215,7 @@ public class OwnerUtils {
   private static void ingestChangeProposals(List<MetadataChangeProposal> changes, EntityService entityService, Urn actor) {
     // TODO: Replace this with a batch ingest proposals endpoint.
     for (MetadataChangeProposal change : changes) {
-      entityService.ingestProposal(change, getAuditStamp(actor), false);
-    }
-  }
-
-  public static void addCreatorAsOwner(
-    QueryContext context,
-    String urn,
-    OwnerEntityType ownerEntityType,
-    com.linkedin.datahub.graphql.generated.OwnershipType ownershipType,
-    EntityService entityService) {
-    try {
-      Urn actorUrn = CorpuserUrn.createFromString(context.getActorUrn());
-      addOwnersToResources(
-          ImmutableList.of(new OwnerInput(actorUrn.toString(), ownerEntityType, ownershipType)),
-          ImmutableList.of(new ResourceRefInput(urn, null, null)),
-          actorUrn,
-          entityService
-      );
-    } catch (Exception e) {
-      log.error(String.format("Failed to add creator as owner of tag %s", urn), e);
+      entityService.ingestProposal(change, getAuditStamp(actor));
     }
   }
 }

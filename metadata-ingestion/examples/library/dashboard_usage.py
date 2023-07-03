@@ -9,6 +9,7 @@ from datahub.emitter.rest_emitter import DatahubRestEmitter
 # Imports for metadata model classes
 from datahub.metadata.schema_classes import (
     CalendarIntervalClass,
+    ChangeTypeClass,
     DashboardUsageStatisticsClass,
     DashboardUserUsageCountsClass,
     TimeWindowSizeClass,
@@ -27,7 +28,10 @@ usage_day_1_user_counts: List[DashboardUserUsageCountsClass] = [
 ]
 
 usage_day_1: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+    entityType="dashboard",
+    changeType=ChangeTypeClass.UPSERT,
     entityUrn=make_dashboard_urn("looker", "dashboards.999999"),
+    aspectName="dashboardUsageStatistics",
     aspect=DashboardUsageStatisticsClass(
         timestampMillis=round(
             datetime.strptime("2022-02-09", "%Y-%m-%d").timestamp() * 1000
@@ -41,7 +45,10 @@ usage_day_1: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
 
 absolute_usage_as_of_day_1: MetadataChangeProposalWrapper = (
     MetadataChangeProposalWrapper(
+        entityType="dashboard",
+        changeType=ChangeTypeClass.UPSERT,
         entityUrn=make_dashboard_urn("looker", "dashboards.999999"),
+        aspectName="dashboardUsageStatistics",
         aspect=DashboardUsageStatisticsClass(
             timestampMillis=round(
                 datetime.strptime("2022-02-09", "%Y-%m-%d").timestamp() * 1000
@@ -70,7 +77,10 @@ usage_day_2_user_counts: List[DashboardUserUsageCountsClass] = [
     ),
 ]
 usage_day_2: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+    entityType="dashboard",
+    changeType=ChangeTypeClass.UPSERT,
     entityUrn=make_dashboard_urn("looker", "dashboards.999999"),
+    aspectName="dashboardUsageStatistics",
     aspect=DashboardUsageStatisticsClass(
         timestampMillis=round(
             datetime.strptime("2022-02-10", "%Y-%m-%d").timestamp() * 1000
@@ -84,7 +94,10 @@ usage_day_2: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
 
 absolute_usage_as_of_day_2: MetadataChangeProposalWrapper = (
     MetadataChangeProposalWrapper(
+        entityType="dashboard",
+        changeType=ChangeTypeClass.UPSERT,
         entityUrn=make_dashboard_urn("looker", "dashboards.999999"),
+        aspectName="dashboardUsageStatistics",
         aspect=DashboardUsageStatisticsClass(
             timestampMillis=round(
                 datetime.strptime("2022-02-10", "%Y-%m-%d").timestamp() * 1000
@@ -110,7 +123,10 @@ usage_day_3_user_counts: List[DashboardUserUsageCountsClass] = [
     ),
 ]
 usage_day_3: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+    entityType="dashboard",
+    changeType=ChangeTypeClass.UPSERT,
     entityUrn=make_dashboard_urn("looker", "dashboards.999999"),
+    aspectName="dashboardUsageStatistics",
     aspect=DashboardUsageStatisticsClass(
         timestampMillis=round(
             datetime.strptime("2022-02-11", "%Y-%m-%d").timestamp() * 1000
@@ -124,7 +140,10 @@ usage_day_3: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
 
 absolute_usage_as_of_day_3: MetadataChangeProposalWrapper = (
     MetadataChangeProposalWrapper(
+        entityType="dashboard",
+        changeType=ChangeTypeClass.UPSERT,
         entityUrn=make_dashboard_urn("looker", "dashboards.999999"),
+        aspectName="dashboardUsageStatistics",
         aspect=DashboardUsageStatisticsClass(
             timestampMillis=round(
                 datetime.strptime("2022-02-11", "%Y-%m-%d").timestamp() * 1000

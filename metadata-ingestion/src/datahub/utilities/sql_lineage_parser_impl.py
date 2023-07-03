@@ -8,8 +8,6 @@ from typing import Dict, List, Optional, Set
 from sqllineage.core.holders import Column, SQLLineageHolder
 from sqllineage.exceptions import SQLLineageException
 
-from datahub.utilities.sql_parser_base import SQLParser, SqlParserException
-
 with contextlib.suppress(ImportError):
     import sqlparse
     from networkx import DiGraph
@@ -19,7 +17,7 @@ with contextlib.suppress(ImportError):
 logger = logging.getLogger(__name__)
 
 
-class SqlLineageSQLParserImpl(SQLParser):
+class SqlLineageSQLParserImpl:
     _DATE_SWAP_TOKEN = "__d_a_t_e"
     _HOUR_SWAP_TOKEN = "__h_o_u_r"
     _TIMESTAMP_SWAP_TOKEN = "__t_i_m_e_s_t_a_m_p"
@@ -28,10 +26,8 @@ class SqlLineageSQLParserImpl(SQLParser):
     _MYVIEW_SQL_TABLE_NAME_TOKEN = "__my_view__.__sql_table_name__"
     _MYVIEW_LOOKER_TOKEN = "my_view.SQL_TABLE_NAME"
 
-    def __init__(self, sql_query: str, use_raw_names: bool = False) -> None:
-        super().__init__(sql_query)
+    def __init__(self, sql_query: str) -> None:
         original_sql_query = sql_query
-        self._use_raw_names = use_raw_names
 
         # SqlLineageParser makes mistakes on lateral flatten queries, use the prefix
         if "lateral flatten" in sql_query:
@@ -101,9 +97,7 @@ class SqlLineageSQLParserImpl(SQLParser):
                     ]
                     self._sql_holder = SQLLineageHolder.of(*self._stmt_holders)
         except SQLLineageException as e:
-            raise SqlParserException(
-                f"SQL lineage analyzer error '{e}' for query: '{self._sql}"
-            ) from e
+            logger.error(f"SQL lineage analyzer error '{e}' for query: '{self._sql}")
 
     def get_tables(self) -> List[str]:
         result: List[str] = []
@@ -111,13 +105,7 @@ class SqlLineageSQLParserImpl(SQLParser):
             logger.error("sql holder not present so cannot get tables")
             return result
         for table in self._sql_holder.source_tables:
-            table_normalized = re.sub(
-                r"^<default>.",
-                "",
-                str(table)
-                if not self._use_raw_names
-                else f"{table.schema.raw_name}.{table.raw_name}",
-            )
+            table_normalized = re.sub(r"^<default>.", "", str(table))
             result.append(str(table_normalized))
 
         # We need to revert TOKEN replacements
@@ -135,7 +123,8 @@ class SqlLineageSQLParserImpl(SQLParser):
 
     def get_columns(self) -> List[str]:
         if self._sql_holder is None:
-            raise SqlParserException("sql holder not present so cannot get columns")
+            logger.error("sql holder not present so cannot get columns")
+            return []
         graph: DiGraph = self._sql_holder.graph  # For mypy attribute checking
         column_nodes = [n for n in graph.nodes if isinstance(n, Column)]
         column_graph = graph.subgraph(column_nodes)

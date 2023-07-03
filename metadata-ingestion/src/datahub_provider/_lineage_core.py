@@ -10,10 +10,10 @@ from datahub_provider.entities import _Entity
 
 if TYPE_CHECKING:
     from airflow import DAG
+    from airflow.models.baseoperator import BaseOperator
     from airflow.models.dagrun import DagRun
     from airflow.models.taskinstance import TaskInstance
 
-    from datahub_provider._airflow_shims import Operator
     from datahub_provider.hooks.datahub import DatahubGenericHook
 
 
@@ -22,8 +22,6 @@ def _entities_to_urn_list(iolets: List[_Entity]) -> List[DatasetUrn]:
 
 
 class DatahubBasicLineageConfig(ConfigModel):
-    enabled: bool = True
-
     # DataHub hook connection ID.
     datahub_conn_id: str
 
@@ -47,16 +45,13 @@ class DatahubBasicLineageConfig(ConfigModel):
 
 def send_lineage_to_datahub(
     config: DatahubBasicLineageConfig,
-    operator: "Operator",
+    operator: "BaseOperator",
     inlets: List[_Entity],
     outlets: List[_Entity],
     context: Dict,
 ) -> None:
-    if not config.enabled:
-        return
-
     dag: "DAG" = context["dag"]
-    task: "Operator" = context["task"]
+    task: "BaseOperator" = context["task"]
     ti: "TaskInstance" = context["task_instance"]
 
     hook = config.make_emitter_hook()
@@ -110,5 +105,3 @@ def send_lineage_to_datahub(
             end_timestamp_millis=int(datetime.utcnow().timestamp() * 1000),
         )
         operator.log.info(f"Emitted from Lineage: {dpi}")
-
-    emitter.flush()

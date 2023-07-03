@@ -13,10 +13,6 @@ record DatasetKey {
   /**
   * Data platform urn associated with the dataset
   */
-  @Searchable = {
-    "fieldType": "URN",
-    "enableAutocomplete": true
-  }
   platform: Urn
 
   /**

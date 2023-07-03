@@ -8,7 +8,7 @@ import { useEnterKeyListener } from '../../../../../../shared/useEnterKeyListene
 type Props = {
     onCloseModal: () => void;
     defaultValues?: { urn: string; entity?: Entity | null }[];
-    onOk?: (result: string[]) => void;
+    onOkOverride?: (result: string[]) => void;
     titleOverride?: string;
 };
 
@@ -33,7 +33,7 @@ const PreviewImage = styled.img`
     margin-right: 4px;
 `;
 
-export const SelectPlatformModal = ({ onCloseModal, defaultValues, onOk, titleOverride }: Props) => {
+export const SelectPlatformModal = ({ onCloseModal, defaultValues, onOkOverride, titleOverride }: Props) => {
     const [platformSearch, { data: platforSearchData }] = useGetSearchResultsLazyQuery();
     const platformSearchResults =
         platforSearchData?.search?.searchResults?.map((searchResult) => searchResult.entity) || [];
@@ -102,16 +102,16 @@ export const SelectPlatformModal = ({ onCloseModal, defaultValues, onOk, titleOv
     };
 
     const onDeselectPlatform = (val) => {
-        setSelectedPlatforms(selectedPlatforms?.filter((platform) => platform.urn !== val.value));
+        setSelectedPlatforms(selectedPlatforms?.filter((platform) => platform.urn !== val));
     };
 
-    const handleOk = () => {
+    const onOk = async () => {
         if (!selectedPlatforms) {
             return;
         }
 
-        if (onOk) {
-            onOk(selectedPlatforms?.map((platform) => platform.urn));
+        if (onOkOverride) {
+            onOkOverride(selectedPlatforms?.map((platform) => platform.urn));
         }
     };
 
@@ -144,7 +144,7 @@ export const SelectPlatformModal = ({ onCloseModal, defaultValues, onOk, titleOv
                     <Button onClick={onModalClose} type="text">
                         Cancel
                     </Button>
-                    <Button id="setPlatformButton" disabled={selectedPlatforms?.length === 0} onClick={handleOk}>
+                    <Button id="setPlatformButton" disabled={selectedPlatforms?.length === 0} onClick={onOk}>
                         Add
                     </Button>
                 </>

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Form, Select, Tag, Tooltip, Typography } from 'antd';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 
 import { useEntityRegistry } from '../../useEntityRegistry';
 import { useAppConfig } from '../../useAppConfig';
@@ -224,7 +224,6 @@ export default function PolicyPrivilegeForm({
 
     // Handle resource search, if the resource type has an associated EntityType mapping.
     const handleResourceSearch = (text: string) => {
-        const trimmedText: string = text.trim();
         const entityTypes = resourceTypeSelectValue
             .map((resourceType) => mapResourceTypeToEntityType(resourceType, resourcePrivileges))
             .filter((entityType): entityType is EntityType => !!entityType);
@@ -232,7 +231,7 @@ export default function PolicyPrivilegeForm({
             variables: {
                 input: {
                     types: entityTypes,
-                    query: trimmedText.length > 2 ? trimmedText : '*',
+                    query: text,
                     start: 0,
                     count: 10,
                 },
@@ -242,12 +241,11 @@ export default function PolicyPrivilegeForm({
 
     // Handle domain search, if the domain type has an associated EntityType mapping.
     const handleDomainSearch = (text: string) => {
-        const trimmedText: string = text.trim();
         searchDomains({
             variables: {
                 input: {
                     type: EntityType.Domain,
-                    query: trimmedText.length > 2 ? trimmedText : '*',
+                    query: text,
                     start: 0,
                     count: 10,
                 },
@@ -262,7 +260,7 @@ export default function PolicyPrivilegeForm({
                 <Link
                     target="_blank"
                     rel="noopener noreferrer"
-                    to={() => `${entityRegistry.getEntityUrl(result.entity.type, result.entity.urn)}`}
+                    to={() => `/${entityRegistry.getPathName(result.entity.type)}/${result.entity.urn}`}
                 >
                     View
                 </Link>
@@ -315,7 +313,6 @@ export default function PolicyPrivilegeForm({
                         applied to <b>all</b> resources of the given type.
                     </Typography.Paragraph>
                     <Select
-                        notFoundContent="No search results found"
                         value={resourceSelectValue}
                         mode="multiple"
                         filterOption={false}
@@ -348,7 +345,6 @@ export default function PolicyPrivilegeForm({
                         <b>all</b> resources in all domains.
                     </Typography.Paragraph>
                     <Select
-                        notFoundContent="No search results found"
                         value={domainSelectValue}
                         mode="multiple"
                         filterOption={false}

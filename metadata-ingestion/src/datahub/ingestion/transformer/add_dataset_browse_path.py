@@ -36,7 +36,7 @@ class AddDatasetBrowsePathTransformer(DatasetBrowsePathsTransformer):
         return cls(config, ctx)
 
     @staticmethod
-    def _merge_with_server_browse_paths(
+    def get_browse_paths_to_set(
         graph: DataHubGraph, urn: str, mce_browse_paths: Optional[BrowsePathsClass]
     ) -> Optional[BrowsePathsClass]:
         if not mce_browse_paths or not mce_browse_paths.paths:
@@ -82,11 +82,12 @@ class AddDatasetBrowsePathTransformer(DatasetBrowsePathsTransformer):
 
         if self.config.semantics == TransformerSemantics.PATCH:
             assert self.ctx.graph
-            return cast(
-                Optional[Aspect],
-                AddDatasetBrowsePathTransformer._merge_with_server_browse_paths(
-                    self.ctx.graph, entity_urn, browse_paths
-                ),
+            patch_browse_paths: Optional[
+                BrowsePathsClass
+            ] = AddDatasetBrowsePathTransformer.get_browse_paths_to_set(
+                self.ctx.graph, entity_urn, browse_paths
             )
-        else:
-            return cast(Aspect, browse_paths)
+            if patch_browse_paths is not None:
+                browse_paths = patch_browse_paths
+
+        return cast(Optional[Aspect], browse_paths)

@@ -1,38 +1,15 @@
 import datetime
 from abc import ABCMeta, abstractmethod
-from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import partial
-from typing import (
-    Callable,
-    Dict,
-    Generic,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Dict, Generic, Iterable, List, Optional, Type, TypeVar, Union, cast
 
 from pydantic import BaseModel
 
 from datahub.configuration.common import ConfigModel
-from datahub.emitter.mcp_builder import mcps_from_mce
 from datahub.ingestion.api.closeable import Closeable
 from datahub.ingestion.api.common import PipelineContext, RecordEnvelope, WorkUnit
 from datahub.ingestion.api.report import Report
-from datahub.ingestion.api.source_helpers import (
-    auto_materialize_referenced_tags,
-    auto_status_aspect,
-    auto_workunit_reporter,
-)
-from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
 from datahub.utilities.lossy_collections import LossyDict, LossyList
 from datahub.utilities.type_annotations import get_class_from_annotation
 
@@ -57,38 +34,14 @@ class SourceCapability(Enum):
 class SourceReport(Report):
     events_produced: int = 0
     events_produced_per_sec: int = 0
-
-    _urns_seen: Set[str] = field(default_factory=set)
-    entities: Dict[str, list] = field(default_factory=lambda: defaultdict(LossyList))
-    aspects: Dict[str, Dict[str, int]] = field(
-        default_factory=lambda: defaultdict(lambda: defaultdict(int))
-    )
+    event_ids: List[str] = field(default_factory=LossyList)
 
     warnings: LossyDict[str, LossyList[str]] = field(default_factory=LossyDict)
     failures: LossyDict[str, LossyList[str]] = field(default_factory=LossyDict)
 
     def report_workunit(self, wu: WorkUnit) -> None:
         self.events_produced += 1
-
-        if isinstance(wu, MetadataWorkUnit):
-            urn = wu.get_urn()
-
-            # Specialized entity reporting.
-            if not isinstance(wu.metadata, MetadataChangeEvent):
-                mcps = [wu.metadata]
-            else:
-                mcps = list(mcps_from_mce(wu.metadata))
-
-            for mcp in mcps:
-                entityType = mcp.entityType
-                aspectName = mcp.aspectName
-
-                if urn not in self._urns_seen:
-                    self._urns_seen.add(urn)
-                    self.entities[entityType].append(urn)
-
-                if aspectName is not None:  # usually true
-                    self.aspects[entityType][aspectName] += 1
+        self.event_ids.append(wu.id)
 
     def report_warning(self, key: str, reason: str) -> None:
         warnings = self.warnings.get(key, LossyList())
@@ -137,9 +90,6 @@ class TestConnectionReport(Report):
 WorkUnitType = TypeVar("WorkUnitType", bound=WorkUnit)
 ExtractorConfig = TypeVar("ExtractorConfig", bound=ConfigModel)
 
-WorkUnitProcessor = Callable[[Iterable[WorkUnitType]], Iterable[WorkUnitType]]
-MetadataWorkUnitProcessor = WorkUnitProcessor[MetadataWorkUnit]
-
 
 class Extractor(Generic[WorkUnitType, ExtractorConfig], Closeable, metaclass=ABCMeta):
     ctx: PipelineContext
@@ -164,54 +114,21 @@ class Extractor(Generic[WorkUnitType, ExtractorConfig], Closeable, metaclass=ABC
         pass
 
 
-@dataclass
+# See https://github.com/python/mypy/issues/5374 for why we suppress this mypy error.
+@dataclass  # type: ignore[misc]
 class Source(Closeable, metaclass=ABCMeta):
     ctx: PipelineContext
 
     @classmethod
     def create(cls, config_dict: dict, ctx: PipelineContext) -> "Source":
-        # Technically, this method should be abstract. However, the @config_class
-        # decorator automatically generates a create method at runtime if one is
-        # not defined. Python still treats the class as abstract because it thinks
-        # the create method is missing. To avoid the class becoming abstract, we
-        # can't make this method abstract.
-        raise NotImplementedError('sources must implement "create"')
+        pass
 
-    def get_workunit_processors(self) -> List[Optional[MetadataWorkUnitProcessor]]:
-        """A list of functions that transforms the workunits produced by this source.
-        Run in order, first in list is applied first. Be careful with order when overriding.
-        """
-        return [
-            auto_status_aspect,
-            auto_materialize_referenced_tags,
-            partial(auto_workunit_reporter, self.get_report()),
-        ]
-
-    @staticmethod
-    def _apply_workunit_processors(
-        workunit_processors: Sequence[Optional[MetadataWorkUnitProcessor]],
-        stream: Iterable[MetadataWorkUnit],
-    ) -> Iterable[MetadataWorkUnit]:
-        for processor in workunit_processors:
-            if processor is not None:
-                stream = processor(stream)
-        return stream
-
-    def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        return self._apply_workunit_processors(
-            self.get_workunit_processors(), self.get_workunits_internal()
-        )
-
-    def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
-        raise NotImplementedError(
-            "get_workunits_internal must be implemented if get_workunits is not overriden."
-        )
+    @abstractmethod
+    def get_workunits(self) -> Iterable[WorkUnit]:
+        pass
 
     @abstractmethod
     def get_report(self) -> SourceReport:
-        pass
-
-    def close(self) -> None:
         pass
 
 

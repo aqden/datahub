@@ -4,7 +4,6 @@ import com.linkedin.common.UrnArray;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.data.template.LongMap;
 import com.linkedin.metadata.query.ListResult;
-import com.linkedin.metadata.query.SearchFlags;
 import com.linkedin.metadata.query.filter.ConjunctiveCriterion;
 import com.linkedin.metadata.query.filter.ConjunctiveCriterionArray;
 import com.linkedin.metadata.query.filter.Criterion;
@@ -12,7 +11,6 @@ import com.linkedin.metadata.query.filter.CriterionArray;
 import com.linkedin.metadata.query.filter.Filter;
 import com.linkedin.metadata.search.AggregationMetadata;
 import com.linkedin.metadata.search.FilterValueArray;
-import com.linkedin.metadata.search.ScrollResult;
 import com.linkedin.metadata.search.SearchEntity;
 import com.linkedin.metadata.search.SearchEntityArray;
 import com.linkedin.metadata.search.SearchResult;
@@ -25,7 +23,6 @@ import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,12 +40,6 @@ public class SearchUtils {
       new SearchResult().setEntities(new SearchEntityArray(Collections.emptyList()))
           .setMetadata(new SearchResultMetadata())
           .setFrom(0)
-          .setPageSize(0)
-          .setNumEntities(0);
-
-  public static final ScrollResult EMPTY_SCROLL_RESULT =
-      new ScrollResult().setEntities(new SearchEntityArray(Collections.emptyList()))
-          .setMetadata(new SearchResultMetadata())
           .setPageSize(0)
           .setNumEntities(0);
 
@@ -145,16 +136,9 @@ public class SearchUtils {
     Map<String, Long> mergedMap =
         Stream.concat(one.getAggregations().entrySet().stream(), two.getAggregations().entrySet().stream())
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum));
-
-    // we want to make sure the values that were used in the filter are prioritized to appear in the response aggregation
-    Set<String> filteredValues = Stream.concat(one.getFilterValues().stream(), two.getFilterValues().stream()).filter(val -> val.isFiltered()).map(
-        val -> val.getValue()
-    ).collect(Collectors.toSet());
-
     return one.clone()
-        .setDisplayName(two.getDisplayName() != two.getName() ? two.getDisplayName() : one.getDisplayName())
         .setAggregations(new LongMap(mergedMap))
-        .setFilterValues(new FilterValueArray(SearchUtil.convertToFilters(mergedMap, filteredValues)));
+        .setFilterValues(new FilterValueArray(SearchUtil.convertToFilters(mergedMap)));
   }
 
   public static ListResult toListResult(final SearchResult searchResult) {
@@ -168,30 +152,5 @@ public class SearchUtils {
     listResult.setEntities(
         new UrnArray(searchResult.getEntities().stream().map(SearchEntity::getEntity).collect(Collectors.toList())));
     return listResult;
-  }
-
-  @SneakyThrows
-  public static SearchFlags applyDefaultSearchFlags(@Nullable SearchFlags inputFlags, @Nullable String query,
-                                                    @Nonnull SearchFlags defaultFlags) {
-    SearchFlags finalSearchFlags = inputFlags != null ? inputFlags : defaultFlags.copy();
-    if (!finalSearchFlags.hasFulltext() || finalSearchFlags.isFulltext() == null) {
-      finalSearchFlags.setFulltext(defaultFlags.isFulltext());
-    }
-    if (query == null || Set.of("*", "").contains(query)) {
-      // No highlighting if no query string
-      finalSearchFlags.setSkipHighlighting(true);
-    } else if (!finalSearchFlags.hasSkipHighlighting() || finalSearchFlags.isSkipHighlighting() == null) {
-      finalSearchFlags.setSkipHighlighting(defaultFlags.isSkipHighlighting());
-    }
-    if (!finalSearchFlags.hasSkipAggregates() || finalSearchFlags.isSkipAggregates() == null) {
-      finalSearchFlags.setSkipAggregates(defaultFlags.isSkipAggregates());
-    }
-    if (!finalSearchFlags.hasMaxAggValues() || finalSearchFlags.getMaxAggValues() == null) {
-      finalSearchFlags.setMaxAggValues(defaultFlags.getMaxAggValues());
-    }
-    if (!finalSearchFlags.hasSkipCache() || finalSearchFlags.isSkipCache() == null) {
-      finalSearchFlags.setSkipCache(defaultFlags.isSkipCache());
-    }
-    return finalSearchFlags;
   }
 }

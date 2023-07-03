@@ -6,11 +6,11 @@ import javax.annotation.Nonnull;
 
 /**
  * Base interface for BackupReader used for creating the BackupIterator to retrieve EbeanAspectV2 object to be
- * ingested back into GMS. Must have a constructor that takes a List of Optional Strings
+ * ingested back into GMS
  */
-public interface BackupReader<T extends ReaderWrapper> {
+public interface BackupReader {
   String getName();
 
   @Nonnull
-  EbeanAspectBackupIterator<T> getBackupIterator(UpgradeContext context);
+  EbeanAspectBackupIterator getBackupIterator(UpgradeContext context);
 }

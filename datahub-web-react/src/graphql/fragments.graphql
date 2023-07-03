@@ -6,7 +6,6 @@ fragment globalTagsFields on GlobalTags {
             name
             description
             properties {
-                name
                 colorHex
             }
         }
@@ -20,8 +19,8 @@ fragment glossaryNode on GlossaryNode {
     properties {
         name
     }
-    children: relationships(input: { types: ["IsPartOf"], direction: INCOMING, start: 0, count: 10000 }) {
-        total
+    children: relationships(input: { types: ["IsPartOf"], direction: INCOMING, start: 0, count: 1000 }) {
+        count
     }
 }
 
@@ -67,18 +66,14 @@ fragment deprecationFields on Deprecation {
 fragment parentContainersFields on ParentContainersResult {
     count
     containers {
-        ...parentContainerFields
+        ...entityContainer
     }
 }
 
 fragment parentNodesFields on ParentNodesResult {
     count
     nodes {
-        urn
-        type
-        properties {
-            name
-        }
+        ...glossaryNode
     }
 }
 
@@ -173,10 +168,6 @@ fragment ownershipFields on Ownership {
     }
 }
 
-fragment embedFields on Embed {
-    renderUrl
-}
-
 fragment institutionalMemoryFields on InstitutionalMemory {
     elements {
         url
@@ -224,6 +215,18 @@ fragment nonRecursiveDatasetFields on Dataset {
     institutionalMemory {
         ...institutionalMemoryFields
     }
+    schemaMetadata(version: 0) {
+        ...schemaMetadataFields
+    }
+    editableSchemaMetadata {
+        editableSchemaFieldInfo {
+            fieldPath
+            description
+            globalTags {
+                ...globalTagsFields
+            }
+        }
+    }
     globalTags {
         ...globalTagsFields
     }
@@ -236,15 +239,11 @@ fragment nonRecursiveDatasetFields on Dataset {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     container {
         ...entityContainer
     }
     deprecation {
         ...deprecationFields
-    }
-    embed {
-        ...embedFields
     }
 }
 
@@ -276,7 +275,6 @@ fragment nonRecursiveDataFlowFields on DataFlow {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     deprecation {
         ...deprecationFields
     }
@@ -299,7 +297,6 @@ fragment nonRecursiveDataJobFields on DataJob {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     deprecation {
         ...deprecationFields
     }
@@ -308,7 +305,6 @@ fragment nonRecursiveDataJobFields on DataJob {
 fragment dataJobFields on DataJob {
     urn
     type
-    exists
     lastIngested
     dataFlow {
         ...nonRecursiveDataFlowFields
@@ -341,7 +337,6 @@ fragment dataJobFields on DataJob {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     deprecation {
         ...deprecationFields
     }
@@ -351,15 +346,11 @@ fragment dataJobFields on DataJob {
     dataPlatformInstance {
         ...dataPlatformInstanceFields
     }
-    privileges {
-        canEditLineage
-    }
 }
 
 fragment dashboardFields on Dashboard {
     urn
     type
-    exists
     lastIngested
     tool
     dashboardId
@@ -401,15 +392,11 @@ fragment dashboardFields on Dashboard {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     parentContainers {
         ...parentContainersFields
     }
     status {
         removed
-    }
-    embed {
-        ...embedFields
     }
     deprecation {
         ...deprecationFields
@@ -442,16 +429,11 @@ fragment dashboardFields on Dashboard {
     subTypes {
         typeNames
     }
-    privileges {
-        canEditLineage
-        canEditEmbed
-    }
 }
 
 fragment nonRecursiveMLFeature on MLFeature {
     urn
     type
-    exists
     lastIngested
     name
     featureNamespace
@@ -491,7 +473,6 @@ fragment nonRecursiveMLFeature on MLFeature {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     tags {
         ...globalTagsFields
     }
@@ -521,7 +502,6 @@ fragment nonRecursiveMLFeature on MLFeature {
 fragment nonRecursiveMLPrimaryKey on MLPrimaryKey {
     urn
     type
-    exists
     lastIngested
     name
     featureNamespace
@@ -561,7 +541,6 @@ fragment nonRecursiveMLPrimaryKey on MLPrimaryKey {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     tags {
         ...globalTagsFields
     }
@@ -591,7 +570,6 @@ fragment nonRecursiveMLPrimaryKey on MLPrimaryKey {
 fragment nonRecursiveMLFeatureTable on MLFeatureTable {
     urn
     type
-    exists
     lastIngested
     name
     platform {
@@ -629,7 +607,6 @@ fragment nonRecursiveMLFeatureTable on MLFeatureTable {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     tags {
         ...globalTagsFields
     }
@@ -718,7 +695,6 @@ fragment schemaMetadataFields on SchemaMetadata {
 fragment nonRecursiveMLModel on MLModel {
     urn
     type
-    exists
     lastIngested
     name
     description
@@ -735,7 +711,6 @@ fragment nonRecursiveMLModel on MLModel {
     properties {
         description
         date
-        externalUrl
         version
         type
         trainingMetrics {
@@ -771,7 +746,6 @@ fragment nonRecursiveMLModel on MLModel {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     tags {
         ...globalTagsFields
     }
@@ -781,15 +755,11 @@ fragment nonRecursiveMLModel on MLModel {
     deprecation {
         ...deprecationFields
     }
-    institutionalMemory {
-        ...institutionalMemoryFields
-    }
 }
 
 fragment nonRecursiveMLModelGroupFields on MLModelGroup {
     urn
     type
-    exists
     lastIngested
     name
     description
@@ -812,7 +782,6 @@ fragment nonRecursiveMLModelGroupFields on MLModelGroup {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     tags {
         ...globalTagsFields
     }
@@ -890,13 +859,6 @@ fragment entityContainer on Container {
     }
 }
 
-fragment parentContainerFields on Container {
-    urn
-    properties {
-        name
-    }
-}
-
 fragment entityDomain on DomainAssociation {
     domain {
         urn
@@ -907,27 +869,6 @@ fragment entityDomain on DomainAssociation {
         }
     }
     associatedUrn
-}
-
-fragment entityDataProduct on Entity {
-    dataProduct: relationships(input: { types: ["DataProductContains"], direction: INCOMING, start: 0, count: 1 }) {
-        relationships {
-            type
-            entity {
-                urn
-                type
-                ... on DataProduct {
-                    properties {
-                        name
-                        description
-                    }
-                    domain {
-                        ...entityDomain
-                    }
-                }
-            }
-        }
-    }
 }
 
 fragment inputFieldsFields on InputFields {

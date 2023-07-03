@@ -419,8 +419,7 @@ curl 'http://localhost:8080/entities?action=ingest' -X POST --data '{
 ##### Soft Deleting an Entity
 
 DataHub uses a special "Status" aspect associated with each entity to represent the lifecycle state of an Entity.
-To soft delete an entire Entity, you can use the special "Status" aspect. Note that soft deletion means that
-an entity will not be discoverable via Search or Browse, but its entity page will still be viewable.
+To soft delete an entire Entity, such that it no longer appears in the UI, you can use the special "Status" aspect.
 
 For example, to delete a particular chart:
 
@@ -1238,15 +1237,13 @@ curl -X POST 'http://localhost:8080/entities?action=search' \
     "start": 0,
     "count": 10,
     "filter": {
-        "or": [{
-            "and": [
-               {
-                  "field": "title",
-                  "value": "Baz Chart 1",
-                  "condition": "EQUAL"
-               }
-            ]   
-        }]
+        "criteria": [
+           {
+                "field": "title",
+                "value": "Baz Chart 1",
+                "condition": "EQUAL"
+           }
+        ]
     }
 }'
 
@@ -1342,15 +1339,13 @@ curl -X POST 'http://localhost:8080/entities?action=autocomplete' \
     "start": 0,
     "limit": 10,
     "filter": {
-        "or": [{
-            "and": [
-               {
+        "criteria": [
+           {
                 "field": "tool",
                 "value": "looker",
                 "condition": "EQUAL"
-               }
-            ]   
-        }]
+           }
+        ]
     }
 }'
 

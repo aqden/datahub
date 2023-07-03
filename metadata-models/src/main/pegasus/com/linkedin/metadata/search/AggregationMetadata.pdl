@@ -22,7 +22,5 @@ record AggregationMetadata {
       value: string
       entity: optional Urn
       facetCount: long
-      // indicates that the FilterValue is part of the search request
-      filtered: optional boolean
     }]
 }

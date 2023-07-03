@@ -1,15 +1,15 @@
 import React from 'react';
 import { Button, Typography } from 'antd';
 import { FilterOutlined } from '@ant-design/icons';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import TabToolbar from '../TabToolbar';
 import { SearchBar } from '../../../../../search/SearchBar';
 import { useEntityRegistry } from '../../../../../useEntityRegistry';
-import { EntityType, AndFilterInput } from '../../../../../../types.generated';
+import { EntityType, FacetFilterInput, SearchAcrossEntitiesInput } from '../../../../../../types.generated';
+import { SearchResultsInterface } from './types';
 import SearchExtendedMenu from './SearchExtendedMenu';
 import { SearchSelectBar } from './SearchSelectBar';
 import { EntityAndType } from '../../../types';
-import { DownloadSearchResultsInput, DownloadSearchResults } from '../../../../../search/utils/types';
 
 const HeaderContainer = styled.div`
     display: flex;
@@ -32,9 +32,11 @@ type Props = {
     onSearch: (q: string) => void;
     onToggleFilters: () => void;
     placeholderText?: string | null;
-    downloadSearchResults: (input: DownloadSearchResultsInput) => Promise<DownloadSearchResults | null | undefined>;
+    callSearchOnVariables: (variables: {
+        input: SearchAcrossEntitiesInput;
+    }) => Promise<SearchResultsInterface | null | undefined>;
     entityFilters: EntityType[];
-    filters: AndFilterInput[];
+    filters: FacetFilterInput[];
     query: string;
     isSelectMode: boolean;
     isSelectAll: boolean;
@@ -50,7 +52,7 @@ export default function EmbeddedListSearchHeader({
     onSearch,
     onToggleFilters,
     placeholderText,
-    downloadSearchResults,
+    callSearchOnVariables,
     entityFilters,
     filters,
     query,
@@ -75,7 +77,6 @@ export default function EmbeddedListSearchHeader({
                     </Button>
                     <SearchAndDownloadContainer>
                         <SearchBar
-                            data-testid="embedded-search-bar"
                             initialQuery=""
                             placeholderText={placeholderText || 'Search entities...'}
                             suggestions={[]}
@@ -98,7 +99,7 @@ export default function EmbeddedListSearchHeader({
                         />
                         <SearchMenuContainer>
                             <SearchExtendedMenu
-                                downloadSearchResults={downloadSearchResults}
+                                callSearchOnVariables={callSearchOnVariables}
                                 entityFilters={entityFilters}
                                 filters={filters}
                                 query={query}

@@ -20,8 +20,6 @@ public class ConfigEntitySpec implements EntitySpec {
   private final EntityAnnotation _entityAnnotation;
   private final Map<String, AspectSpec> _aspectSpecs;
 
-  private List<SearchableFieldSpec> _searchableFieldSpecs;
-
   public ConfigEntitySpec(
       @Nonnull final String entityName,
       @Nonnull final String keyAspect,
@@ -78,15 +76,6 @@ public class ConfigEntitySpec implements EntitySpec {
   @Override
   public TyperefDataSchema getAspectTyperefSchema() {
     throw new UnsupportedOperationException("Failed to find Typeref schema associated with Config-based Entity");
-  }
-
-  @Override
-  public List<SearchableFieldSpec> getSearchableFieldSpecs() {
-    if (_searchableFieldSpecs == null) {
-      _searchableFieldSpecs = EntitySpec.super.getSearchableFieldSpecs();
-    }
-
-    return _searchableFieldSpecs;
   }
 }
 

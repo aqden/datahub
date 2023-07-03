@@ -21,6 +21,7 @@ from datahub.metadata.schema_classes import (
 )
 
 if TYPE_CHECKING:
+
     from mypy_boto3_sagemaker import SageMakerClient
     from mypy_boto3_sagemaker.type_defs import (
         DescribeFeatureGroupResponseTypeDef,
@@ -91,7 +92,7 @@ class FeatureGroupProcessor:
         feature_group_snapshot = MLFeatureTableSnapshot(
             urn=builder.make_ml_feature_table_urn("sagemaker", feature_group_name),
             aspects=[
-                BrowsePathsClass(paths=["/sagemaker"]),
+                BrowsePathsClass(paths=[f"/sagemaker/{feature_group_name}"]),
             ],
         )
 
@@ -134,6 +135,7 @@ class FeatureGroupProcessor:
     }
 
     def get_feature_type(self, aws_type: str, feature_name: str) -> str:
+
         mapped_type = self.field_type_mappings.get(aws_type)
 
         if mapped_type is None:
@@ -170,6 +172,7 @@ class FeatureGroupProcessor:
         feature_sources = []
 
         if "OfflineStoreConfig" in feature_group_details:
+
             # remove S3 prefix (s3://)
             s3_name = feature_group_details["OfflineStoreConfig"]["S3StorageConfig"][
                 "S3Uri"
@@ -187,6 +190,7 @@ class FeatureGroupProcessor:
             )
 
             if "DataCatalogConfig" in feature_group_details["OfflineStoreConfig"]:
+
                 # if Glue catalog associated with offline store
                 glue_database = feature_group_details["OfflineStoreConfig"][
                     "DataCatalogConfig"
@@ -257,15 +261,21 @@ class FeatureGroupProcessor:
         )
 
     def get_workunits(self) -> Iterable[MetadataWorkUnit]:
+
         feature_groups = self.get_all_feature_groups()
 
         for feature_group in feature_groups:
+
             feature_group_details = self.get_feature_group_details(
                 feature_group["FeatureGroupName"]
             )
 
             for feature in feature_group_details["FeatureDefinitions"]:
                 self.report.report_feature_scanned()
-                yield self.get_feature_wu(feature_group_details, feature)
+                wu = self.get_feature_wu(feature_group_details, feature)
+                self.report.report_workunit(wu)
+                yield wu
             self.report.report_feature_group_scanned()
-            yield self.get_feature_group_wu(feature_group_details)
+            wu = self.get_feature_group_wu(feature_group_details)
+            self.report.report_workunit(wu)
+            yield wu

@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import * as React from 'react';
 import {
     ApiOutlined,
@@ -12,12 +12,9 @@ import {
     EditOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { Button, Dropdown, Menu, Tooltip } from 'antd';
+import { Button, Dropdown, Menu } from 'antd';
 import { useAppConfig } from '../../useAppConfig';
-import { ANTD_GRAY } from '../../entity/shared/constants';
-import { HOME_PAGE_INGESTION_ID } from '../../onboarding/config/HomePageOnboardingConfig';
-import { useUpdateEducationStepIdsAllowlist } from '../../onboarding/useUpdateEducationStepIdsAllowlist';
-import { useUserContext } from '../../context/useUserContext';
+import { useGetAuthenticatedUser } from '../../useGetAuthenticatedUser';
 import { env } from '../../../env';
 
 const LinkWrapper = styled.span`
@@ -40,24 +37,6 @@ const LinksWrapper = styled.div<{ areLinksHidden?: boolean }>`
 const MenuItem = styled(Menu.Item)`
     font-size: 12px;
     font-weight: bold;
-    max-width: 240px;
-`;
-
-const NavTitleContainer = styled.span`
-    display: flex;
-    align-items: center;
-    justify-content: left;
-    padding: 2px;
-`;
-
-const NavTitleText = styled.span`
-    margin-left: 6px;
-`;
-
-const NavTitleDescription = styled.div`
-    font-size: 12px;
-    font-weight: normal;
-    color: ${ANTD_GRAY[7]};
 `;
 
 interface Props {
@@ -66,19 +45,17 @@ interface Props {
 
 export function HeaderLinks(props: Props) {
     const { areLinksHidden } = props;
-    const me = useUserContext();
+    const me = useGetAuthenticatedUser();
     const { config } = useAppConfig();
 
     const isAnalyticsEnabled = config?.analyticsConfig.enabled;
     const isIngestionEnabled = config?.managedIngestionConfig.enabled;
 
-    const showAnalytics = (isAnalyticsEnabled && me && me?.platformPrivileges?.viewAnalytics) || false;
+    const showAnalytics = (isAnalyticsEnabled && me && me.platformPrivileges.viewAnalytics) || false;
     const showSettings = true;
     const showIngestion =
-        isIngestionEnabled && me && me.platformPrivileges?.manageIngestion && me.platformPrivileges?.manageSecrets;
-    const showDomains = me?.platformPrivileges?.createDomains || me?.platformPrivileges?.manageDomains;
-
-    useUpdateEducationStepIdsAllowlist(!!showIngestion, HOME_PAGE_INGESTION_ID);
+        isIngestionEnabled && me && me.platformPrivileges.manageIngestion && me.platformPrivileges.manageSecrets;
+    const showDomains = me?.platformPrivileges.createDomains || me?.platformPrivileges.manageDomains;
     const showCreateDataset = true;
 
     return (
@@ -87,12 +64,7 @@ export function HeaderLinks(props: Props) {
                 <LinkWrapper>
                     <Link to="/analytics">
                         <Button type="text">
-                            <Tooltip title="View DataHub usage analytics">
-                                <NavTitleContainer>
-                                    <BarChartOutlined />
-                                    <NavTitleText>Analytics</NavTitleText>
-                                </NavTitleContainer>
-                            </Tooltip>
+                            <BarChartOutlined /> Analytics
                         </Button>
                     </Link>
                 </LinkWrapper>
@@ -100,13 +72,8 @@ export function HeaderLinks(props: Props) {
             {showIngestion && (
                 <LinkWrapper>
                     <Link to="/ingestion">
-                        <Button id={HOME_PAGE_INGESTION_ID} type="text">
-                            <Tooltip title="Connect DataHub to your organization's data sources">
-                                <NavTitleContainer>
-                                    <ApiOutlined />
-                                    <NavTitleText>Ingestion</NavTitleText>
-                                </NavTitleContainer>
-                            </Tooltip>
+                        <Button type="text">
+                            <ApiOutlined /> Ingestion
                         </Button>
                     </Link>
                 </LinkWrapper>
@@ -117,21 +84,13 @@ export function HeaderLinks(props: Props) {
                     <Menu>
                         <MenuItem key="0">
                             <Link to="/glossary">
-                                <NavTitleContainer>
-                                    <BookOutlined style={{ fontSize: '14px', fontWeight: 'bold' }} />
-                                    <NavTitleText>Glossary</NavTitleText>
-                                </NavTitleContainer>
-                                <NavTitleDescription>View and modify your data dictionary</NavTitleDescription>
+                                <BookOutlined style={{ fontSize: '14px', fontWeight: 'bold' }} /> Glossary
                             </Link>
                         </MenuItem>
                         {showDomains && (
                             <MenuItem key="1">
                                 <Link to="/domains">
-                                    <NavTitleContainer>
-                                        <FolderOutlined style={{ fontSize: '14px', fontWeight: 'bold' }} />
-                                        <NavTitleText>Domains</NavTitleText>
-                                    </NavTitleContainer>
-                                    <NavTitleDescription>Manage related groups of data assets</NavTitleDescription>
+                                    <FolderOutlined style={{ fontSize: '14px', fontWeight: 'bold' }} /> Domains
                                 </Link>
                             </MenuItem>
                         )}
@@ -180,9 +139,7 @@ export function HeaderLinks(props: Props) {
                 <LinkWrapper style={{ marginRight: 12 }}>
                     <Link to="/settings">
                         <Button type="text">
-                            <Tooltip title="Manage your DataHub settings">
-                                <SettingOutlined />
-                            </Tooltip>
+                            <SettingOutlined />
                         </Button>
                     </Link>
                 </LinkWrapper>

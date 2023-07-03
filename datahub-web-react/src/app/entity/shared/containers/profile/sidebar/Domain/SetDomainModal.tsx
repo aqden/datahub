@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Button, Form, message, Modal, Select } from 'antd';
+import { Button, Form, message, Modal, Select, Tag } from 'antd';
+import styled from 'styled-components';
 
 import { useGetSearchResultsLazyQuery } from '../../../../../../../graphql/search.generated';
 import { Entity, EntityType } from '../../../../../../../types.generated';
@@ -8,16 +9,11 @@ import { useEntityRegistry } from '../../../../../../useEntityRegistry';
 import { useEnterKeyListener } from '../../../../../../shared/useEnterKeyListener';
 import { useGetRecommendations } from '../../../../../../shared/recommendation';
 import { DomainLabel } from '../../../../../../shared/DomainLabel';
-import { handleBatchError } from '../../../../utils';
-import { tagRender } from '../tagRenderer';
 
 type Props = {
     urns: string[];
     onCloseModal: () => void;
     refetch?: () => Promise<any>;
-    defaultValue?: { urn: string; entity?: Entity | null };
-    onOkOverride?: (result: string) => void;
-    titleOverride?: string;
 };
 
 type SelectedDomain = {
@@ -26,18 +22,18 @@ type SelectedDomain = {
     urn: string;
 };
 
-export const SetDomainModal = ({ urns, onCloseModal, refetch, defaultValue, onOkOverride, titleOverride }: Props) => {
+const StyleTag = styled(Tag)`
+    padding: 0px 7px;
+    margin-right: 3px;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+`;
+
+export const SetDomainModal = ({ urns, onCloseModal, refetch }: Props) => {
     const entityRegistry = useEntityRegistry();
     const [inputValue, setInputValue] = useState('');
-    const [selectedDomain, setSelectedDomain] = useState<SelectedDomain | undefined>(
-        defaultValue
-            ? {
-                  displayName: entityRegistry.getDisplayName(EntityType.Domain, defaultValue?.entity),
-                  type: EntityType.Domain,
-                  urn: defaultValue?.urn,
-              }
-            : undefined,
-    );
+    const [selectedDomain, setSelectedDomain] = useState<SelectedDomain | undefined>(undefined);
     const [domainSearch, { data: domainSearchData }] = useGetSearchResultsLazyQuery();
     const domainSearchResults =
         domainSearchData?.search?.searchResults?.map((searchResult) => searchResult.entity) || [];
@@ -100,16 +96,10 @@ export const SetDomainModal = ({ urns, onCloseModal, refetch, defaultValue, onOk
         setSelectedDomain(undefined);
     };
 
-    const onOk = () => {
+    const onOk = async () => {
         if (!selectedDomain) {
             return;
         }
-
-        if (onOkOverride) {
-            onOkOverride(selectedDomain?.urn);
-            return;
-        }
-
         batchSetDomainMutation({
             variables: {
                 input: {
@@ -128,12 +118,7 @@ export const SetDomainModal = ({ urns, onCloseModal, refetch, defaultValue, onOk
             })
             .catch((e) => {
                 message.destroy();
-                message.error(
-                    handleBatchError(urns, e, {
-                        content: `Failed to add assets to Domain: \n ${e.message || ''}`,
-                        duration: 3,
-                    }),
-                );
+                message.error({ content: `Failed to add assets to Domain: \n ${e.message || ''}`, duration: 3 });
             });
     };
 
@@ -144,13 +129,27 @@ export const SetDomainModal = ({ urns, onCloseModal, refetch, defaultValue, onOk
         querySelectorToExecuteClick: '#setDomainButton',
     });
 
+    const tagRender = (props) => {
+        // eslint-disable-next-line react/prop-types
+        const { label, closable, onClose } = props;
+        const onPreventMouseDown = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+        return (
+            <StyleTag onMouseDown={onPreventMouseDown} closable={closable} onClose={onClose}>
+                {label}
+            </StyleTag>
+        );
+    };
+
     function handleBlur() {
         setInputValue('');
     }
 
     return (
         <Modal
-            title={titleOverride || 'Set Domain'}
+            title="Set Domain"
             visible
             onCancel={onModalClose}
             footer={

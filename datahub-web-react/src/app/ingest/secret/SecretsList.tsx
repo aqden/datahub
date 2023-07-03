@@ -17,7 +17,6 @@ import { StyledTable } from '../../entity/shared/components/styled/StyledTable';
 import { SearchBar } from '../../search/SearchBar';
 import { useEntityRegistry } from '../../useEntityRegistry';
 import { scrollToTop } from '../../shared/searchUtils';
-import { addSecretToListSecretsCache, removeSecretFromListSecretsCache } from './cacheUtils';
 
 const DeleteButtonContainer = styled.div`
     display: flex;
@@ -46,30 +45,36 @@ export const SecretsList = () => {
 
     // Whether or not there is an urn to show in the modal
     const [isCreatingSecret, setIsCreatingSecret] = useState<boolean>(false);
+    const [removedUrns, setRemovedUrns] = useState<string[]>([]);
 
     const [deleteSecretMutation] = useDeleteSecretMutation();
     const [createSecretMutation] = useCreateSecretMutation();
-    const { loading, error, data, client } = useListSecretsQuery({
+    const { loading, error, data, refetch } = useListSecretsQuery({
         variables: {
             input: {
                 start,
                 count: pageSize,
-                query: query && query.length > 0 ? query : undefined,
+                query,
             },
         },
-        fetchPolicy: query && query.length > 0 ? 'no-cache' : 'cache-first',
+        fetchPolicy: 'no-cache',
     });
 
     const totalSecrets = data?.listSecrets?.total || 0;
     const secrets = data?.listSecrets?.secrets || [];
+    const filteredSecrets = secrets.filter((user) => !removedUrns.includes(user.urn));
 
-    const deleteSecret = (urn: string) => {
+    const deleteSecret = async (urn: string) => {
         deleteSecretMutation({
             variables: { urn },
         })
             .then(() => {
                 message.success({ content: 'Removed secret.', duration: 2 });
-                removeSecretFromListSecretsCache(urn, client, page, pageSize);
+                const newRemovedUrns = [...removedUrns, urn];
+                setRemovedUrns(newRemovedUrns);
+                setTimeout(function () {
+                    refetch?.();
+                }, 3000);
             })
             .catch((e: unknown) => {
                 message.destroy();
@@ -94,22 +99,14 @@ export const SecretsList = () => {
                 },
             },
         })
-            .then((res) => {
+            .then(() => {
                 message.success({
                     content: `Successfully created Secret!`,
                     duration: 3,
                 });
                 resetBuilderState();
                 setIsCreatingSecret(false);
-                addSecretToListSecretsCache(
-                    {
-                        urn: res.data?.createSecret || '',
-                        name: state.name,
-                        description: state.description,
-                    },
-                    client,
-                    pageSize,
-                );
+                setTimeout(() => refetch(), 3000);
             })
             .catch((e) => {
                 message.destroy();
@@ -163,7 +160,7 @@ export const SecretsList = () => {
         },
     ];
 
-    const tableData = secrets?.map((secret) => ({
+    const tableData = filteredSecrets?.map((secret) => ({
         urn: secret.urn,
         name: secret.name,
         description: secret.description,

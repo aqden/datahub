@@ -7,25 +7,25 @@
 
 saluation () {
    echo "--------------------------------------------------------"
-   echo "Starting execution $1"
+   echo "Starting exectuion"
    echo "--------------------------------------------------------"
 
 }
 
-saluation "HdfsIn2HdfsOut1.py"
+saluation
 
 spark-submit --properties-file $2 HdfsIn2HdfsOut1.py
 
-saluation "HdfsIn2HdfsOut2.py"
+saluation
 spark-submit --properties-file $2 HdfsIn2HdfsOut2.py
 
-saluation "HdfsIn2HiveCreateTable.py"
+saluation
 spark-submit --properties-file $2 HdfsIn2HiveCreateTable.py
 
-saluation "HdfsIn2HiveCreateInsertTable.py"
+saluation
 spark-submit --properties-file $2 HdfsIn2HiveCreateInsertTable.py
 
-saluation "HiveInHiveOut.py"
+saluation
 spark-submit --properties-file $2 HiveInHiveOut.py
 
 

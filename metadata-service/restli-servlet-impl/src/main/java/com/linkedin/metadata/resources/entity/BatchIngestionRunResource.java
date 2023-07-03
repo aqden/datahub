@@ -1,11 +1,6 @@
 package com.linkedin.metadata.resources.entity;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datahub.authentication.Authentication;
-import com.datahub.authentication.AuthenticationContext;
-import com.datahub.plugins.auth.authorization.Authorizer;
-import com.datahub.authorization.ResourceSpec;
-import com.google.common.collect.ImmutableList;
 import com.linkedin.common.AuditStamp;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.common.urn.UrnUtils;
@@ -14,7 +9,6 @@ import com.linkedin.events.metadata.ChangeType;
 import com.linkedin.execution.ExecutionRequestResult;
 import com.linkedin.metadata.Constants;
 import com.linkedin.metadata.aspect.VersionedAspect;
-import com.linkedin.metadata.authorization.PoliciesConfig;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.metadata.entity.RollbackRunResult;
 import com.linkedin.metadata.key.ExecutionRequestKey;
@@ -33,8 +27,6 @@ import com.linkedin.metadata.utils.EntityKeyUtils;
 import com.linkedin.metadata.utils.GenericRecordUtils;
 import com.linkedin.mxe.MetadataChangeProposal;
 import com.linkedin.parseq.Task;
-import com.linkedin.restli.common.HttpStatus;
-import com.linkedin.restli.server.RestLiServiceException;
 import com.linkedin.restli.server.annotations.Action;
 import com.linkedin.restli.server.annotations.ActionParam;
 import com.linkedin.restli.server.annotations.Optional;
@@ -44,7 +36,6 @@ import com.linkedin.timeseries.DeleteAspectValuesResult;
 import io.opentelemetry.extension.annotations.WithSpan;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -52,9 +43,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.linkedin.metadata.Constants.*;
-import static com.linkedin.metadata.resources.restli.RestliUtils.*;
 
 
 /**
@@ -87,10 +75,6 @@ public class BatchIngestionRunResource extends CollectionResourceTaskTemplate<St
   @Named("timeseriesAspectService")
   private TimeseriesAspectService _timeseriesAspectService;
 
-  @Inject
-  @Named("authorizerChain")
-  private Authorizer _authorizer;
-
   /**
    * Rolls back an ingestion run
    */
@@ -122,17 +106,7 @@ public class BatchIngestionRunResource extends CollectionResourceTaskTemplate<St
         RollbackResponse response = new RollbackResponse();
         List<AspectRowSummary> aspectRowsToDelete;
         aspectRowsToDelete = _systemMetadataService.findByRunId(runId, doHardDelete, 0, ESUtils.MAX_RESULT_SIZE);
-        Set<String> urns = aspectRowsToDelete.stream().collect(Collectors.groupingBy(AspectRowSummary::getUrn)).keySet();
-        List<java.util.Optional<ResourceSpec>> resourceSpecs = urns.stream()
-            .map(UrnUtils::getUrn)
-            .map(urn -> java.util.Optional.of(new ResourceSpec(urn.getEntityType(), urn.toString())))
-            .collect(Collectors.toList());
-        Authentication auth = AuthenticationContext.getAuthentication();
-        if (Boolean.parseBoolean(System.getenv(REST_API_AUTHORIZATION_ENABLED_ENV))
-            && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.DELETE_ENTITY_PRIVILEGE), resourceSpecs)) {
-          throw new RestLiServiceException(HttpStatus.S_401_UNAUTHORIZED,
-              "User is unauthorized to delete entities.");
-        }
+
         log.info("found {} rows to delete...", stringifyRowCount(aspectRowsToDelete.size()));
         if (dryRun) {
 
@@ -294,8 +268,7 @@ public class BatchIngestionRunResource extends CollectionResourceTaskTemplate<St
         proposal.setAspect(GenericRecordUtils.serializeAspect(requestResult));
         proposal.setChangeType(ChangeType.UPSERT);
 
-        _entityService.ingestProposal(proposal,
-            new AuditStamp().setActor(UrnUtils.getUrn(Constants.SYSTEM_ACTOR)).setTime(System.currentTimeMillis()), false);
+        _entityService.ingestProposal(proposal, new AuditStamp().setActor(UrnUtils.getUrn(Constants.SYSTEM_ACTOR)).setTime(System.currentTimeMillis()));
       }
     } catch (Exception e) {
       log.error(String.format("Not able to update execution result aspect with runId %s and new status %s.", runId, status), e);

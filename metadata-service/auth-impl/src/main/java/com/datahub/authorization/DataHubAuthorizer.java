@@ -1,7 +1,6 @@
 package com.datahub.authorization;
 
 import com.datahub.authentication.Authentication;
-import com.datahub.plugins.auth.authorization.Authorizer;
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.common.urn.UrnUtils;

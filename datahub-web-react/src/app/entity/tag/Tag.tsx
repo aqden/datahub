@@ -18,20 +18,20 @@ const PreviewTagIcon = styled(TagOutlined)`
 export class TagEntity implements Entity<Tag> {
     type: EntityType = EntityType.Tag;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <TagFilled style={{ fontSize, color }} />;
+            return <TagFilled style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <TagFilled style={{ fontSize, color: color || '#B37FEB' }} />;
+            return <TagFilled style={{ fontSize, color: '#B37FEB' }} />;
         }
 
         return (
             <TagOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );
@@ -56,8 +56,7 @@ export class TagEntity implements Entity<Tag> {
     renderPreview = (_: PreviewType, data: Tag) => (
         <DefaultPreviewCard
             description={data.description || ''}
-            name={this.displayName(data)}
-            urn={data.urn}
+            name={data.name}
             url={`/${this.getPathName()}/${urlEncodeUrn(data.urn)}`}
             logoComponent={<PreviewTagIcon />}
             type="Tag"

@@ -1,10 +1,8 @@
 package com.linkedin.metadata.search.cache;
 
 import com.google.common.base.Suppliers;
-import com.linkedin.metadata.config.cache.EntityDocCountCacheConfiguration;
 import com.linkedin.metadata.models.registry.EntityRegistry;
 import com.linkedin.metadata.search.EntitySearchService;
-import com.linkedin.metadata.utils.ConcurrencyUtils;
 import io.opentelemetry.extension.annotations.WithSpan;
 import java.util.List;
 import java.util.Map;
@@ -19,18 +17,17 @@ public class EntityDocCountCache {
   private final EntitySearchService _entitySearchService;
   private final Supplier<Map<String, Long>> entityDocCount;
 
-  public EntityDocCountCache(EntityRegistry entityRegistry, EntitySearchService entitySearchService,
-      EntityDocCountCacheConfiguration config) {
+  public EntityDocCountCache(EntityRegistry entityRegistry, EntitySearchService entitySearchService) {
     _entityRegistry = entityRegistry;
     _entitySearchService = entitySearchService;
-    entityDocCount = Suppliers.memoizeWithExpiration(this::fetchEntityDocCount, config.getTtlSeconds(), TimeUnit.SECONDS);
+    entityDocCount = Suppliers.memoizeWithExpiration(this::fetchEntityDocCount, 1, TimeUnit.MINUTES);
   }
 
   private Map<String, Long> fetchEntityDocCount() {
-    return ConcurrencyUtils
-        .transformAndCollectAsync(_entityRegistry.getEntitySpecs().keySet(),
-            Function.identity(),
-            Collectors.toMap(Function.identity(), _entitySearchService::docCount));
+    return _entityRegistry.getEntitySpecs()
+        .keySet()
+        .stream()
+        .collect(Collectors.toMap(Function.identity(), _entitySearchService::docCount));
   }
 
   @WithSpan

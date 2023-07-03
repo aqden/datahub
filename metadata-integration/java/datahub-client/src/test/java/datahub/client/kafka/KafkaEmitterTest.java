@@ -4,8 +4,6 @@ import static datahub.client.kafka.KafkaEmitter.DEFAULT_MCP_KAFKA_TOPIC;
 import static java.util.Collections.singletonList;
 
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -14,10 +12,10 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.testcontainers.containers.Network;
+import org.testcontainers.lifecycle.Startables;
 import org.testng.Assert;
 
 import com.linkedin.dataset.DatasetProperties;
@@ -39,31 +37,27 @@ public class KafkaEmitterTest {
   private static ZookeeperContainer zookeeperContainer;
   private static KafkaContainer kafkaContainer;
   private static SchemaRegistryContainer schemaRegistryContainer;
-  private static KafkaEmitterConfig config;
-  private static KafkaEmitter emitter;
+  private KafkaEmitterConfig config;
+  private KafkaEmitter emitter;
 
   @SuppressWarnings("resource")
-  @BeforeClass
-  public static void confluentSetup() throws Exception {
+  @Before
+  public void confluentSetup() throws Exception {
     network = Network.newNetwork();
     zookeeperContainer = new ZookeeperContainer().withNetwork(network);
-    kafkaContainer = new KafkaContainer(zookeeperContainer.getInternalUrl())
-            .withNetwork(network)
-            .dependsOn(zookeeperContainer);
-    schemaRegistryContainer = new SchemaRegistryContainer(zookeeperContainer.getInternalUrl(),
-            kafkaContainer.getInternalBootstrapServers())
-            .withNetwork(network)
-            .dependsOn(zookeeperContainer, kafkaContainer);
-    schemaRegistryContainer.start();
+    kafkaContainer = new KafkaContainer(zookeeperContainer.getInternalUrl()).withNetwork(network);
+    schemaRegistryContainer = new SchemaRegistryContainer(zookeeperContainer.getInternalUrl()).withNetwork(network);
+    Startables.deepStart(Stream.of(zookeeperContainer, kafkaContainer, schemaRegistryContainer)).join();
 
-    String bootstrap = createTopics(kafkaContainer.getBootstrapServers());
-    createKafkaEmitter(bootstrap);
+    createKafkaEmitter();
+    createTopics();
     registerSchemaRegistryTypes();
+
   }
 
-  public static void createKafkaEmitter(String bootstrap) throws IOException {
+  public void createKafkaEmitter() throws IOException {
     KafkaEmitterConfig.KafkaEmitterConfigBuilder builder = KafkaEmitterConfig.builder();
-    builder.bootstrap(bootstrap);
+    builder.bootstrap(kafkaContainer.getBootstrapServers());
     builder.schemaRegistryUrl(schemaRegistryContainer.getUrl());
     config = builder.build();
     emitter = new KafkaEmitter(config);
@@ -86,11 +80,8 @@ public class KafkaEmitterTest {
     Assert.assertTrue(response.isSuccess());
   }
 
-  private static AdminClient createAdminClient(String bootstrap) {
-    // Fail fast
-    Properties props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
-    return KafkaAdminClient.create(props);
+  private AdminClient createAdminClient() {
+    return KafkaAdminClient.create(emitter.getKafkaConfgiProperties());
   }
 
   private static void registerSchemaRegistryTypes() throws IOException, RestClientException {
@@ -99,17 +90,11 @@ public class KafkaEmitterTest {
     schemaRegistryClient.register(mcpSchema.getFullName(), mcpSchema);
   }
 
-  private static String createTopics(Stream<String> bootstraps) {
+  private void createTopics() throws InterruptedException, ExecutionException {
+    AdminClient adminClient = createAdminClient();
     short replicationFactor = 1;
     int partitions = 1;
-    return bootstraps.parallel().map(bootstrap -> {
-      try {
-        createAdminClient(bootstrap).createTopics(singletonList(new NewTopic(TOPIC, partitions, replicationFactor))).all().get();
-        return bootstrap;
-      } catch (RuntimeException | InterruptedException | ExecutionException ex) {
-        return null;
-      }
-    }).filter(Objects::nonNull).findFirst().get();
+    adminClient.createTopics(singletonList(new NewTopic(TOPIC, partitions, replicationFactor))).all().get();
   }
 
   @SuppressWarnings("rawtypes")

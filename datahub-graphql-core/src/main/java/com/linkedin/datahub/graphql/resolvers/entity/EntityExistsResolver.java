@@ -1,7 +1,6 @@
 package com.linkedin.datahub.graphql.resolvers.entity;
 
 import com.linkedin.common.urn.Urn;
-import com.linkedin.datahub.graphql.generated.Entity;
 import com.linkedin.metadata.entity.EntityService;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -23,19 +22,15 @@ public class EntityExistsResolver implements DataFetcher<CompletableFuture<Boole
 
   @Override
   public CompletableFuture<Boolean> get(final DataFetchingEnvironment environment) throws Exception {
-    String entityUrnString = bindArgument(environment.getArgument("urn"), String.class);
-    // resolver can be used as its own endpoint or when hydrating an entity
-    if (entityUrnString == null && environment.getSource() != null) {
-      entityUrnString = ((Entity) environment.getSource()).getUrn();
-    }
+    final String entityUrnString = bindArgument(environment.getArgument("urn"), String.class);
     Objects.requireNonNull(entityUrnString, "Entity urn must not be null!");
 
-    final Urn entityUrn = Urn.createFromString(entityUrnString);
+    Urn entityUrn = Urn.createFromString(entityUrnString);
     return CompletableFuture.supplyAsync(() -> {
       try {
         return _entityService.exists(entityUrn);
       } catch (Exception e) {
-        throw new RuntimeException(String.format("Failed to check whether entity %s exists", entityUrn.toString()));
+        throw new RuntimeException(String.format("Failed to check whether entity %s exists", entityUrnString));
       }
     });
   }

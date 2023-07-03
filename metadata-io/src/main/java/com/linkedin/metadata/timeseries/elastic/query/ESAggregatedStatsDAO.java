@@ -342,7 +342,7 @@ public class ESAggregatedStatsDAO {
       @Nullable GroupingBucket[] groupingBuckets) {
 
     // Setup the filter query builder using the input filter provided.
-    final BoolQueryBuilder filterQueryBuilder = ESUtils.buildFilterQuery(filter, true);
+    final BoolQueryBuilder filterQueryBuilder = ESUtils.buildFilterQuery(filter);
     // Create the high-level aggregation builder with the filter.
     final AggregationBuilder filteredAggBuilder = AggregationBuilders.filter(ES_FILTERED_STATS, filterQueryBuilder);
 
@@ -428,8 +428,7 @@ public class ESAggregatedStatsDAO {
             .calendarInterval(getHistogramInterval(curGroupingBucket.getTimeWindowSize()));
       } else if (curGroupingBucket.getType() == GroupingBucketType.STRING_GROUPING_BUCKET) {
         // Process the string grouping bucket using the 'terms' aggregation.
-        // The field can be Keyword, Numeric, ip, boolean, or binary.
-        String fieldName = ESUtils.toKeywordField(curGroupingBucket.getKey(), true);
+        String fieldName = curGroupingBucket.getKey();
         DataSchema.Type fieldType = getGroupingBucketKeyType(aspectSpec, curGroupingBucket);
         curAggregationBuilder = AggregationBuilders.terms(getGroupingBucketAggName(curGroupingBucket))
             .field(fieldName)
@@ -464,10 +463,7 @@ public class ESAggregatedStatsDAO {
     // 3.1 Do a DFS of the aggregation tree and generate the rows.
     rowGenHelper(filterAgg.getAggregations(), 0, groupingBuckets.length, rows, rowAcc,
         ImmutableList.copyOf(groupingBuckets), ImmutableList.copyOf(aggregationSpecs), aspectSpec);
-
-    if (!rowAcc.isEmpty()) {
-      throw new IllegalStateException("Expected stack to be empty.");
-    }
+    assert (rowAcc.isEmpty());
 
     resultTable.setRows(new StringArrayArray(rows));
     return resultTable;

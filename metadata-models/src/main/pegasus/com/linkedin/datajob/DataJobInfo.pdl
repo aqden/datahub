@@ -4,7 +4,6 @@ import com.linkedin.datajob.azkaban.AzkabanJobType
 import com.linkedin.common.CustomProperties
 import com.linkedin.common.ExternalReference
 import com.linkedin.common.DataFlowUrn
-import com.linkedin.common.TimeStamp
 
 /**
  * Information about a Data processing job
@@ -45,30 +44,7 @@ record DataJobInfo includes CustomProperties, ExternalReference {
   flowUrn: optional DataFlowUrn
 
   /**
-   * A timestamp documenting when the asset was created in the source Data Platform (not on DataHub)
+   * Status of the job
    */
-  @Searchable = {
-    "/time": {
-      "fieldName": "createdAt",
-      "fieldType": "DATETIME"
-    }
-  }
-  created: optional TimeStamp
-
-  /**
-   * A timestamp documenting when the asset was last modified in the source Data Platform (not on DataHub)
-   */
-  @Searchable = {
-    "/time": {
-      "fieldName": "lastModifiedAt",
-      "fieldType": "DATETIME"
-    }
-  }
-  lastModified: optional TimeStamp
-
-  /**
-   * Status of the job - Deprecated for Data Process Instance model.
-   */
-  @deprecated = "Use Data Process Instance model, instead"
   status: optional JobStatus
 }

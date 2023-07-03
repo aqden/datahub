@@ -21,6 +21,8 @@ import com.linkedin.mxe.MetadataChangeProposal;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.net.URISyntaxException;
 import java.util.Optional;
@@ -54,6 +56,7 @@ public class UpsertIngestionSourceResolver implements DataFetcher<CompletableFut
         final UpdateIngestionSourceInput input = bindArgument(environment.getArgument("input"), UpdateIngestionSourceInput.class);
 
         final MetadataChangeProposal proposal = new MetadataChangeProposal();
+        String ingestionSourceUrnString;
 
         if (ingestionSourceUrn.isPresent()) {
           // Update existing ingestion source
@@ -64,6 +67,7 @@ public class UpsertIngestionSourceResolver implements DataFetcher<CompletableFut
                 String.format("Malformed urn %s provided.", ingestionSourceUrn.get()),
                 DataHubGraphQLErrorCode.BAD_REQUEST);
           }
+          ingestionSourceUrnString = ingestionSourceUrn.get();
         } else {
           // Create new ingestion source
           // Since we are creating a new Ingestion Source, we need to generate a unique UUID.
@@ -74,10 +78,11 @@ public class UpsertIngestionSourceResolver implements DataFetcher<CompletableFut
           final DataHubIngestionSourceKey key = new DataHubIngestionSourceKey();
           key.setId(uuidStr);
           proposal.setEntityKeyAspect(GenericRecordUtils.serializeAspect(key));
+          ingestionSourceUrnString = String.format("urn:li:dataHubIngestionSource:%s", uuidStr);
         }
 
         // Create the policy info.
-        final DataHubIngestionSourceInfo info = mapIngestionSourceInfo(input);
+        final DataHubIngestionSourceInfo info = mapIngestionSourceInfo(input, ingestionSourceUrnString);
         proposal.setEntityType(Constants.INGESTION_SOURCE_ENTITY_NAME);
         proposal.setAspectName(Constants.INGESTION_INFO_ASPECT_NAME);
         proposal.setAspect(GenericRecordUtils.serializeAspect(info));
@@ -93,20 +98,23 @@ public class UpsertIngestionSourceResolver implements DataFetcher<CompletableFut
     });
   }
 
-  private DataHubIngestionSourceInfo mapIngestionSourceInfo(final UpdateIngestionSourceInput input) {
+  private DataHubIngestionSourceInfo mapIngestionSourceInfo(final UpdateIngestionSourceInput input, final String ingestionSourceUrn) {
     final DataHubIngestionSourceInfo result = new DataHubIngestionSourceInfo();
     result.setType(input.getType());
     result.setName(input.getName());
-    result.setConfig(mapConfig(input.getConfig()));
+    result.setConfig(mapConfig(input.getConfig(), ingestionSourceUrn));
     if (input.getSchedule() != null) {
       result.setSchedule(mapSchedule(input.getSchedule()));
     }
     return result;
   }
 
-  private DataHubIngestionSourceConfig mapConfig(final UpdateIngestionSourceConfigInput input) {
+  private DataHubIngestionSourceConfig mapConfig(final UpdateIngestionSourceConfigInput input, final String ingestionSourceUrn) {
     final DataHubIngestionSourceConfig result = new DataHubIngestionSourceConfig();
     String recipe = input.getRecipe();
+    if (recipe != null) {
+      recipe = optionallySetPipelineName(recipe, ingestionSourceUrn);
+    }
     result.setRecipe(recipe);
     if (input.getVersion() != null) {
       result.setVersion(input.getVersion());
@@ -125,5 +133,20 @@ public class UpsertIngestionSourceResolver implements DataFetcher<CompletableFut
     result.setInterval(input.getInterval());
     result.setTimezone(input.getTimezone());
     return result;
+  }
+
+  private String optionallySetPipelineName(String recipe, String ingestionSourceUrn) {
+    try {
+      JSONObject jsonRecipe = new JSONObject(recipe);
+      boolean hasPipelineName = jsonRecipe.has("pipeline_name") && jsonRecipe.get("pipeline_name") != null && !jsonRecipe.get("pipeline_name").equals("");
+
+      if (!hasPipelineName) {
+        jsonRecipe.put("pipeline_name", ingestionSourceUrn);
+        recipe = jsonRecipe.toString();
+      }
+    } catch (JSONException e) {
+      log.warn("Error parsing ingestion recipe in JSON form", e);
+    }
+    return recipe;
   }
 }

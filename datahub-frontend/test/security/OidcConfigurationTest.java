@@ -19,12 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.junit.jupiter.api.Test;
 import org.pac4j.oidc.client.OidcClient;
+import org.testng.annotations.Test;
 
 import static auth.sso.oidc.OidcConfigs.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.*;
 
 
 public class OidcConfigurationTest {

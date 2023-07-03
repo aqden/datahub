@@ -3,8 +3,6 @@ import { Button, Modal } from 'antd';
 import styled from 'styled-components';
 import { FacetFilterInput } from '../../../../../../types.generated';
 import { EmbeddedListSearch } from './EmbeddedListSearch';
-import { UnionType } from '../../../../../search/utils/constants';
-import { FilterSet } from './types';
 
 const SearchContainer = styled.div`
     height: 500px;
@@ -19,7 +17,7 @@ const modalBodyStyle = {
 
 type Props = {
     emptySearchQuery?: string | null;
-    fixedFilters?: FilterSet;
+    fixedFilter?: FacetFilterInput | null;
     fixedQuery?: string | null;
     placeholderText?: string | null;
     defaultShowFilters?: boolean;
@@ -31,7 +29,7 @@ type Props = {
 
 export const EmbeddedListSearchModal = ({
     emptySearchQuery,
-    fixedFilters,
+    fixedFilter,
     fixedQuery,
     placeholderText,
     defaultShowFilters,
@@ -43,8 +41,6 @@ export const EmbeddedListSearchModal = ({
     // Component state
     const [query, setQuery] = useState<string>('');
     const [page, setPage] = useState(1);
-    const [unionType, setUnionType] = useState(UnionType.AND);
-
     const [filters, setFilters] = useState<Array<FacetFilterInput>>([]);
 
     const onChangeQuery = (q: string) => {
@@ -74,13 +70,11 @@ export const EmbeddedListSearchModal = ({
                     query={query}
                     filters={filters}
                     page={page}
-                    unionType={unionType}
                     onChangeQuery={onChangeQuery}
                     onChangeFilters={onChangeFilters}
                     onChangePage={onChangePage}
-                    onChangeUnionType={setUnionType}
                     emptySearchQuery={emptySearchQuery}
-                    fixedFilters={fixedFilters}
+                    fixedFilter={fixedFilter}
                     fixedQuery={fixedQuery}
                     placeholderText={placeholderText}
                     defaultShowFilters={defaultShowFilters}

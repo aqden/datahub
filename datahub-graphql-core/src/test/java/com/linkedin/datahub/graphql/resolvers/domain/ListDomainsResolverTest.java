@@ -7,22 +7,18 @@ import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.datahub.graphql.generated.ListDomainsInput;
 import com.linkedin.entity.client.EntityClient;
 import com.linkedin.metadata.Constants;
-import com.linkedin.metadata.query.SearchFlags;
-import com.linkedin.metadata.query.filter.SortCriterion;
-import com.linkedin.metadata.query.filter.SortOrder;
 import com.linkedin.metadata.search.SearchEntity;
 import com.linkedin.metadata.search.SearchEntityArray;
 import com.linkedin.metadata.search.SearchResult;
 import com.linkedin.r2.RemoteInvocationException;
 import graphql.schema.DataFetchingEnvironment;
+import java.util.Collections;
 import java.util.concurrent.CompletionException;
 import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 import static com.linkedin.datahub.graphql.TestUtils.*;
-import static com.linkedin.metadata.Constants.*;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertThrows;
+import static org.testng.Assert.*;
 
 
 public class ListDomainsResolverTest {
@@ -41,12 +37,10 @@ public class ListDomainsResolverTest {
     Mockito.when(mockClient.search(
         Mockito.eq(Constants.DOMAIN_ENTITY_NAME),
         Mockito.eq(""),
-        Mockito.eq(null),
-        Mockito.eq(new SortCriterion().setField(DOMAIN_CREATED_TIME_INDEX_FIELD_NAME).setOrder(SortOrder.DESCENDING)),
+        Mockito.eq(Collections.emptyMap()),
         Mockito.eq(0),
         Mockito.eq(20),
-        Mockito.any(Authentication.class),
-        Mockito.eq(new SearchFlags().setFulltext(true))
+        Mockito.any(Authentication.class)
     )).thenReturn(
         new SearchResult()
             .setFrom(0)
@@ -91,8 +85,7 @@ public class ListDomainsResolverTest {
         Mockito.anyMap(),
         Mockito.anyInt(),
         Mockito.anyInt(),
-        Mockito.any(Authentication.class),
-        Mockito.eq(new SearchFlags().setFulltext(true)));
+        Mockito.any(Authentication.class));
   }
 
   @Test
@@ -105,8 +98,7 @@ public class ListDomainsResolverTest {
         Mockito.anyMap(),
         Mockito.anyInt(),
         Mockito.anyInt(),
-        Mockito.any(Authentication.class),
-        Mockito.eq(new SearchFlags().setFulltext(true)));
+        Mockito.any(Authentication.class));
     ListDomainsResolver resolver = new ListDomainsResolver(mockClient);
 
     // Execute resolver

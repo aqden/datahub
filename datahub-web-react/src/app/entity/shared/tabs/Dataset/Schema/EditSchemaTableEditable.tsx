@@ -1,14 +1,13 @@
 // import { Empty } from 'antd';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, Divider, Form, Input, Row, Select, Table, Typography } from 'antd';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import { useBaseEntity } from '../../../EntityContext';
+import { GetDatasetQuery } from '../../../../../../graphql/dataset.generated';
 import { FindMyUrn, FindWhoAmI, GetMyToken } from '../../../../dataset/whoAmI';
 import { WhereAmI } from '../../../../../home/whereAmI';
 import { printErrorMsg, printSuccessMsg } from '../ApiCallUtils';
-import { useGetDatasetSchemaQuery } from '../../../../../../graphql/dataset.generated';
-import { useEntityData } from '../../../EntityContext';
-import { EntityType } from '../../../../../../types.generated';
 
 const { Option } = Select;
 
@@ -16,25 +15,14 @@ export const EditSchemaTableEditable = () => {
     const urlBase = WhereAmI();
     const publishUrl = `${urlBase}custom/update_schema`;
     console.log(`the final url is ${publishUrl}`);
-    // Whether to dynamically load the schema from the backend.
-    const shouldLoadSchema = (entityType, entityData) => {
-        return entityType === EntityType.Dataset && !entityData?.schemaMetadata;
-    };
-
-    const { urn, entityData, entityType } = useEntityData();
-    const { data: rawData } = useGetDatasetSchemaQuery({
-        variables: {
-            urn,
-        },
-        skip: !shouldLoadSchema(entityType, entityData),
-        fetchPolicy: 'cache-first',
-    });
-
+    const queryFields = useBaseEntity<GetDatasetQuery>()?.dataset?.schemaMetadata?.fields;
+    const urn = useBaseEntity<GetDatasetQuery>()?.dataset?.urn;
     const currUser = FindWhoAmI();
     const currUserUrn = FindMyUrn();
     const userToken = GetMyToken(currUserUrn);
+    // console.log(`user is ${currUserUrn} and token is ${userToken}, received at ${Date().toLocaleString()}`);
 
-    const dataSource = rawData?.dataset?.schemaMetadata?.fields?.map((x, ind) => {
+    const dataSource = queryFields?.map((x, ind) => {
         return {
             key: ind,
             fieldName: x?.fieldPath,
@@ -46,27 +34,9 @@ export const EditSchemaTableEditable = () => {
             editKey: ind.toString(),
         };
     });
-
     const formalData = dataSource || [];
     const [form] = Form.useForm();
     const [data, setData] = useState(formalData);
-
-    useEffect(() => {
-        const temp = rawData?.dataset?.schemaMetadata?.fields?.map((x, ind) => {
-            return {
-                key: ind,
-                fieldName: x?.fieldPath,
-                datahubType: x?.type as string,
-                nativeDataType: x?.nativeDataType as string,
-                fieldDescription: x?.description as string,
-                fieldTags: x?.globalTags as string[],
-                fieldGlossaryTerms: x?.glossaryTerms as string[],
-                editKey: ind.toString(),
-            };
-        });
-        setData(temp || []);
-    }, [rawData]);
-
     const [modifiedForm, setModifiedForm] = useState(false);
     const [allrows, updateSelected] = useState({ selected: [] as any });
     const [editingKey, setEditingKey] = useState('');
@@ -338,7 +308,6 @@ export const EditSchemaTableEditable = () => {
         setModifiedForm(false);
     };
     console.log('all rows loaded');
-
     return (
         <Form form={form} component={false}>
             <Row>

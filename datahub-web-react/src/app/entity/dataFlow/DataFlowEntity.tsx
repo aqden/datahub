@@ -7,7 +7,7 @@ import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { useGetDataFlowQuery, useUpdateDataFlowMutation } from '../../../graphql/dataFlow.generated';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
 import { PropertiesTab } from '../shared/tabs/Properties/PropertiesTab';
-import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
+import { SidebarAboutSection } from '../shared/containers/profile/sidebar/SidebarAboutSection';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
 import { GenericEntityProperties } from '../shared/types';
@@ -15,9 +15,6 @@ import { DataFlowJobsTab } from '../shared/tabs/Entity/DataFlowJobsTab';
 import { getDataForEntityType } from '../shared/containers/profile/utils';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
 import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
-import { capitalizeFirstLetterOnly } from '../../shared/textUtil';
-import DataProductSection from '../shared/containers/profile/sidebar/DataProduct/DataProductSection';
-import { getDataProduct } from '../shared/utils';
 
 /**
  * Definition of the DataHub DataFlow entity.
@@ -25,20 +22,20 @@ import { getDataProduct } from '../shared/utils';
 export class DataFlowEntity implements Entity<DataFlow> {
     type: EntityType = EntityType.DataFlow;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <ShareAltOutlined style={{ fontSize, color }} />;
+            return <ShareAltOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <ShareAltOutlined style={{ fontSize, color: color || '#d6246c' }} />;
+            return <ShareAltOutlined style={{ fontSize, color: '#d6246c' }} />;
         }
 
         return (
             <ShareAltOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );
@@ -65,7 +62,7 @@ export class DataFlowEntity implements Entity<DataFlow> {
             useEntityQuery={useGetDataFlowQuery}
             useUpdateQuery={useUpdateDataFlowMutation}
             getOverrideProperties={this.getOverridePropertiesFromEntity}
-            headerDropdownItems={new Set([EntityMenuItems.UPDATE_DEPRECATION])}
+            headerDropdownItems={new Set([EntityMenuItems.COPY_URL, EntityMenuItems.UPDATE_DEPRECATION])}
             tabs={[
                 {
                     name: 'Documentation',
@@ -100,9 +97,6 @@ export class DataFlowEntity implements Entity<DataFlow> {
                 {
                     component: SidebarDomainSection,
                 },
-                {
-                    component: DataProductSection,
-                },
             ]}
         />
     );
@@ -118,43 +112,34 @@ export class DataFlowEntity implements Entity<DataFlow> {
     };
 
     renderPreview = (_: PreviewType, data: DataFlow) => {
-        const genericProperties = this.getGenericEntityProperties(data);
         return (
             <Preview
                 urn={data.urn}
                 name={data.properties?.name || ''}
                 description={data.editableProperties?.description || data.properties?.description}
-                platformName={
-                    data?.platform?.properties?.displayName || capitalizeFirstLetterOnly(data?.platform?.name)
-                }
+                platformName={data.platform.properties?.displayName || data.platform.name}
                 platformLogo={data?.platform?.properties?.logoUrl || ''}
                 owners={data.ownership?.owners}
                 globalTags={data.globalTags}
                 domain={data.domain?.domain}
-                dataProduct={getDataProduct(genericProperties?.dataProduct)}
-                externalUrl={data.properties?.externalUrl}
             />
         );
     };
 
     renderSearch = (result: SearchResult) => {
         const data = result.entity as DataFlow;
-        const genericProperties = this.getGenericEntityProperties(data);
         return (
             <Preview
                 urn={data.urn}
                 name={data.properties?.name || ''}
                 platformInstanceId={data.dataPlatformInstance?.instanceId}
                 description={data.editableProperties?.description || data.properties?.description || ''}
-                platformName={
-                    data?.platform?.properties?.displayName || capitalizeFirstLetterOnly(data?.platform?.name)
-                }
+                platformName={data.platform.properties?.displayName || data.platform.name}
                 platformLogo={data?.platform?.properties?.logoUrl || ''}
                 owners={data.ownership?.owners}
                 globalTags={data.globalTags}
                 insights={result.insights}
                 domain={data.domain?.domain}
-                dataProduct={getDataProduct(genericProperties?.dataProduct)}
                 externalUrl={data.properties?.externalUrl}
                 jobCount={(data as any).childJobs?.total}
                 deprecation={data.deprecation}
@@ -182,7 +167,6 @@ export class DataFlowEntity implements Entity<DataFlow> {
             EntityCapabilityType.DOMAINS,
             EntityCapabilityType.DEPRECATION,
             EntityCapabilityType.SOFT_DELETE,
-            EntityCapabilityType.DATA_PRODUCTS,
         ]);
     };
 }

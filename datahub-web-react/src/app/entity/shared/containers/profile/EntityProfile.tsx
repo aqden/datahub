@@ -1,16 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Divider } from 'antd';
 import { MutationHookOptions, MutationTuple, QueryHookOptions, QueryResult } from '@apollo/client/react/types/types';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import { useHistory } from 'react-router';
 import { EntityType, Exact } from '../../../../../types.generated';
 import { Message } from '../../../../shared/Message';
-import {
-    getEntityPath,
-    getOnboardingStepIdsForEntityType,
-    useRoutedTab,
-    useUpdateGlossaryEntityDataOnChange,
-} from './utils';
+import { getDataForEntityType, getEntityPath, useRoutedTab } from './utils';
 import {
     EntitySidebarSection,
     EntitySubHeaderSection,
@@ -32,17 +27,12 @@ import DynamicTab from '../../tabs/Entity/weaklyTypedAspects/DynamicTab';
 import analytics, { EventType } from '../../../../analytics';
 import { ProfileSidebarResizer } from './sidebar/ProfileSidebarResizer';
 import { EntityMenuItems } from '../../EntityDropdown/EntityDropdown';
-import { useIsSeparateSiblingsMode } from '../../siblingUtils';
+import GlossaryBrowser from '../../../../glossary/GlossaryBrowser/GlossaryBrowser';
+import GlossarySearch from '../../../../glossary/GlossarySearch';
+import { BrowserWrapper, MAX_BROWSER_WIDTH, MIN_BROWSWER_WIDTH } from '../../../../glossary/BusinessGlossaryPage';
+import { combineEntityDataWithSiblings, useIsSeparateSiblingsMode } from '../../siblingUtils';
 import { EntityActionItem } from '../../entity/EntityActions';
 import { ErrorSection } from '../../../../shared/error/ErrorSection';
-import { EntityHead } from '../../../../shared/EntityHead';
-import { OnboardingTour } from '../../../../onboarding/OnboardingTour';
-import useGetDataForProfile from './useGetDataForProfile';
-import NonExistentEntityPage from '../../entity/NonExistentEntityPage';
-import {
-    LINEAGE_GRAPH_INTRO_ID,
-    LINEAGE_GRAPH_TIME_FILTER_ID,
-} from '../../../../onboarding/config/LineageGraphOnboardingConfig';
 
 type Props<T, U> = {
     urn: string;
@@ -66,23 +56,19 @@ type Props<T, U> = {
     getOverrideProperties: (T) => GenericEntityProperties;
     tabs: EntityTab[];
     sidebarSections: EntitySidebarSection[];
+    customNavBar?: React.ReactNode;
     subHeader?: EntitySubHeaderSection;
     headerDropdownItems?: Set<EntityMenuItems>;
     headerActionItems?: Set<EntityActionItem>;
-    hideBrowseBar?: boolean;
+    displayGlossaryBrowser?: boolean;
     isNameEditable?: boolean;
 };
-
-const MAX_SIDEBAR_WIDTH = 800;
-const MIN_SIDEBAR_WIDTH = 200;
-const MAX_COMPACT_WIDTH = 490 - 24 * 2;
 
 const ContentContainer = styled.div`
     display: flex;
     height: auto;
     min-height: 100%;
     flex: 1;
-    min-width: 0;
 `;
 
 const HeaderAndTabs = styled.div`
@@ -118,7 +104,6 @@ const Sidebar = styled.div<{ $width: number }>`
     min-width: ${(props) => props.$width}px;
     padding-left: 20px;
     padding-right: 20px;
-    padding-bottom: 20px;
 `;
 
 const Header = styled.div`
@@ -134,10 +119,6 @@ const TabContent = styled.div`
     overflow: auto;
 `;
 
-const CompactProfile = styled.div`
-    max-width: ${MAX_COMPACT_WIDTH};
-`;
-
 const defaultTabDisplayConfig = {
     visible: (_, _1) => true,
     enabled: (_, _1) => true,
@@ -146,6 +127,9 @@ const defaultTabDisplayConfig = {
 const defaultSidebarSection = {
     visible: (_, _1) => true,
 };
+
+const MAX_SIDEBAR_WIDTH = 800;
+const MIN_SIDEBAR_WIDTH = 200;
 
 /**
  * Container for display of the Entity Page
@@ -158,10 +142,11 @@ export const EntityProfile = <T, U>({
     getOverrideProperties,
     tabs,
     sidebarSections,
+    customNavBar,
     headerDropdownItems,
     headerActionItems,
+    displayGlossaryBrowser,
     isNameEditable,
-    hideBrowseBar,
     subHeader,
 }: Props<T, U>): JSX.Element => {
     const isLineageMode = useIsLineageMode();
@@ -175,17 +160,20 @@ export const EntityProfile = <T, U>({
         display: { ...defaultSidebarSection, ...sidebarSection.display },
     }));
 
-    const [shouldRefetchEmbeddedListSearch, setShouldRefetchEmbeddedListSearch] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(window.innerWidth * 0.25);
-    const entityStepIds: string[] = getOnboardingStepIdsForEntityType(entityType);
-    const lineageGraphStepIds: string[] = [LINEAGE_GRAPH_INTRO_ID, LINEAGE_GRAPH_TIME_FILTER_ID];
-    const stepIds = isLineageMode ? lineageGraphStepIds : entityStepIds;
+    const [browserWidth, setBrowserWith] = useState(window.innerWidth * 0.2);
+    const [shouldUpdateBrowser, setShouldUpdateBrowser] = useState(false);
+
+    function refreshBrowser() {
+        setShouldUpdateBrowser(true);
+        setTimeout(() => setShouldUpdateBrowser(false), 0);
+    }
 
     const routeToTab = useCallback(
         ({
             tabName,
             tabParams,
-            method = 'replace',
+            method = 'push',
         }: {
             tabName: string;
             tabParams?: Record<string, any>;
@@ -204,10 +192,18 @@ export const EntityProfile = <T, U>({
         [history, entityType, urn, entityRegistry, isHideSiblingMode],
     );
 
-    const { entityData, dataPossiblyCombinedWithSiblings, dataNotCombinedWithSiblings, loading, error, refetch } =
-        useGetDataForProfile({ urn, entityType, useEntityQuery, getOverrideProperties });
+    const {
+        loading,
+        error,
+        data: dataNotCombinedWithSiblings,
+        refetch,
+    } = useEntityQuery({
+        variables: { urn },
+    });
 
-    useUpdateGlossaryEntityDataOnChange(entityData, entityType);
+    const dataPossiblyCombinedWithSiblings = isHideSiblingMode
+        ? dataNotCombinedWithSiblings
+        : combineEntityDataWithSiblings(dataNotCombinedWithSiblings);
 
     const maybeUpdateEntity = useUpdateQuery?.({
         onCompleted: () => refetch(),
@@ -216,6 +212,17 @@ export const EntityProfile = <T, U>({
     if (maybeUpdateEntity) {
         [updateEntity] = maybeUpdateEntity;
     }
+
+    const entityData =
+        (dataPossiblyCombinedWithSiblings &&
+            Object.keys(dataPossiblyCombinedWithSiblings).length > 0 &&
+            getDataForEntityType({
+                data: dataPossiblyCombinedWithSiblings[Object.keys(dataPossiblyCombinedWithSiblings)[0]],
+                entityType,
+                getOverrideProperties,
+                isHideSiblingMode,
+            })) ||
+        null;
 
     const lineage = entityData ? entityRegistry.getLineageVizConfig(entityType, entityData) : undefined;
 
@@ -235,19 +242,7 @@ export const EntityProfile = <T, U>({
             },
         })) || [];
 
-    const visibleTabs = [...tabsWithDefaults, ...autoRenderTabs].filter((tab) =>
-        tab.display?.visible(entityData, dataPossiblyCombinedWithSiblings),
-    );
-
-    const enabledAndVisibleTabs = visibleTabs.filter((tab) =>
-        tab.display?.enabled(entityData, dataPossiblyCombinedWithSiblings),
-    );
-
-    const routedTab = useRoutedTab(enabledAndVisibleTabs);
-
-    if (entityData?.exists === false) {
-        return <NonExistentEntityPage />;
-    }
+    const routedTab = useRoutedTab([...tabsWithDefaults, ...autoRenderTabs]);
 
     if (isCompact) {
         return (
@@ -256,22 +251,19 @@ export const EntityProfile = <T, U>({
                     urn,
                     entityType,
                     entityData,
-                    loading,
                     baseEntity: dataPossiblyCombinedWithSiblings,
                     dataNotCombinedWithSiblings,
                     updateEntity,
                     routeToTab,
                     refetch,
                     lineage,
-                    shouldRefetchEmbeddedListSearch,
-                    setShouldRefetchEmbeddedListSearch,
                 }}
             >
-                <>
+                <div>
                     {loading && <Message type="loading" content="Loading..." style={{ marginTop: '10%' }} />}
                     {(error && <ErrorSection />) ||
                         (!loading && (
-                            <CompactProfile>
+                            <>
                                 <EntityHeader
                                     headerDropdownItems={headerDropdownItems}
                                     headerActionItems={headerActionItems}
@@ -279,16 +271,16 @@ export const EntityProfile = <T, U>({
                                 />
                                 <Divider style={{ marginBottom: '0' }} />
                                 <EntitySidebar sidebarSections={sideBarSectionsWithDefaults} />
-                            </CompactProfile>
+                            </>
                         ))}
-                </>
+                </div>
             </EntityContext.Provider>
         );
     }
 
     const isBrowsable = entityRegistry.getBrowseEntityTypes().includes(entityType);
     const isLineageEnabled = entityRegistry.getLineageEntityTypes().includes(entityType);
-    const showBrowseBar = (isBrowsable || isLineageEnabled) && !hideBrowseBar;
+    const showBrowseBar = isBrowsable || isLineageEnabled;
 
     return (
         <EntityContext.Provider
@@ -296,21 +288,17 @@ export const EntityProfile = <T, U>({
                 urn,
                 entityType,
                 entityData,
-                loading,
                 baseEntity: dataPossiblyCombinedWithSiblings,
                 dataNotCombinedWithSiblings,
                 updateEntity,
                 routeToTab,
                 refetch,
                 lineage,
-                shouldRefetchEmbeddedListSearch,
-                setShouldRefetchEmbeddedListSearch,
             }}
         >
             <>
-                <OnboardingTour stepIds={stepIds} />
-                <EntityHead />
-                {showBrowseBar && <EntityProfileNavBar urn={urn} entityType={entityType} />}
+                {customNavBar}
+                {showBrowseBar && !customNavBar && <EntityProfileNavBar urn={urn} entityType={entityType} />}
                 {entityData?.status?.removed === true && (
                     <Alert
                         message="This entity is not discoverable via search or lineage graph. Contact your DataHub admin for more information."
@@ -324,6 +312,23 @@ export const EntityProfile = <T, U>({
                             <LineageExplorer type={entityType} urn={urn} />
                         ) : (
                             <>
+                                {displayGlossaryBrowser && (
+                                    <>
+                                        <BrowserWrapper width={browserWidth}>
+                                            <GlossarySearch />
+                                            <GlossaryBrowser openToEntity refreshBrowser={shouldUpdateBrowser} />
+                                        </BrowserWrapper>
+                                        <ProfileSidebarResizer
+                                            setSidePanelWidth={(width) =>
+                                                setBrowserWith(
+                                                    Math.min(Math.max(width, MIN_BROWSWER_WIDTH), MAX_BROWSER_WIDTH),
+                                                )
+                                            }
+                                            initialSize={browserWidth}
+                                            isSidebarOnLeft
+                                        />
+                                    </>
+                                )}
                                 <HeaderAndTabs>
                                     <HeaderAndTabsFlex>
                                         <Header>
@@ -332,8 +337,12 @@ export const EntityProfile = <T, U>({
                                                 headerActionItems={headerActionItems}
                                                 isNameEditable={isNameEditable}
                                                 subHeader={subHeader}
+                                                refreshBrowser={refreshBrowser}
                                             />
-                                            <EntityTabs tabs={visibleTabs} selectedTab={routedTab} />
+                                            <EntityTabs
+                                                tabs={[...tabsWithDefaults, ...autoRenderTabs]}
+                                                selectedTab={routedTab}
+                                            />
                                         </Header>
                                         <TabContent>
                                             {routedTab && <routedTab.component properties={routedTab.properties} />}

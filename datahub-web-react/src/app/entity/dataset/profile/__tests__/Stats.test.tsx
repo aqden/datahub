@@ -1,19 +1,15 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { MockedProvider } from '@apollo/client/testing';
 import SnapshotStatsView from '../stats/snapshot/SnapshotStatsView';
 import TestPageContainer from '../../../../../utils/test-utils/TestPageContainer';
 import { completeSampleProfile, missingFieldStatsProfile, missingTableStatsProfile } from '../stories/stats';
-import { mocks } from '../../../../../Mocks';
 
 describe('SnapshotStatsView', () => {
     it('renders complete profile', () => {
         const { getByText } = render(
-            <MockedProvider mocks={mocks}>
-                <TestPageContainer>
-                    <SnapshotStatsView profile={completeSampleProfile} />
-                </TestPageContainer>
-            </MockedProvider>,
+            <TestPageContainer>
+                <SnapshotStatsView profile={completeSampleProfile} />
+            </TestPageContainer>,
         );
 
         // Row Count
@@ -57,11 +53,9 @@ describe('SnapshotStatsView', () => {
 
     it('renders profile without field stats', () => {
         const { getByText, queryByText } = render(
-            <MockedProvider mocks={mocks}>
-                <TestPageContainer>
-                    <SnapshotStatsView profile={missingFieldStatsProfile} />
-                </TestPageContainer>
-            </MockedProvider>,
+            <TestPageContainer>
+                <SnapshotStatsView profile={missingFieldStatsProfile} />
+            </TestPageContainer>,
         );
 
         // Row Count
@@ -105,11 +99,9 @@ describe('SnapshotStatsView', () => {
 
     it('renders profile without table stats', () => {
         const { getByText, queryByText } = render(
-            <MockedProvider mocks={mocks}>
-                <TestPageContainer>
-                    <SnapshotStatsView profile={missingTableStatsProfile} />
-                </TestPageContainer>
-            </MockedProvider>,
+            <TestPageContainer>
+                <SnapshotStatsView profile={missingTableStatsProfile} />
+            </TestPageContainer>,
         );
 
         // Row Count

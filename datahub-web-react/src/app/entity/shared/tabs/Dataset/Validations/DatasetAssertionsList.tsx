@@ -8,7 +8,6 @@ import { DatasetAssertionDetails } from './DatasetAssertionDetails';
 import { Assertion, AssertionRunStatus } from '../../../../../../types.generated';
 import { getResultColor, getResultIcon, getResultText } from './assertionUtils';
 import { useDeleteAssertionMutation } from '../../../../../../graphql/assertion.generated';
-import { capitalizeFirstLetterOnly } from '../../../../../shared/textUtil';
 
 const ResultContainer = styled.div`
     display: flex;
@@ -117,11 +116,7 @@ export const DatasetAssertionsList = ({ assertions, onDelete }: Props) => {
             key: '',
             render: (_, record: any) => (
                 <ActionButtonContainer>
-                    <Tooltip
-                        title={
-                            record.platform.properties?.displayName || capitalizeFirstLetterOnly(record.platform.name)
-                        }
-                    >
+                    <Tooltip title={record.platform.properties?.displayName}>
                         <PlatformContainer>
                             {(record.platform.properties?.logoUrl && (
                                 <Image
@@ -130,12 +125,7 @@ export const DatasetAssertionsList = ({ assertions, onDelete }: Props) => {
                                     width={20}
                                     src={record.platform.properties?.logoUrl}
                                 />
-                            )) || (
-                                <Typography.Text>
-                                    {record.platform.properties?.displayName ||
-                                        capitalizeFirstLetterOnly(record.platform.name)}
-                                </Typography.Text>
-                            )}
+                            )) || <Typography.Text>{record.platform.properties?.displayName}</Typography.Text>}
                         </PlatformContainer>
                     </Tooltip>
                     <Button onClick={() => onDeleteAssertion(record.urn)} type="text" shape="circle" danger>

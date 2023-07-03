@@ -4,12 +4,13 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy.engine.reflection import Inspector
 
+from datahub.ingestion.api.source import Source
 from datahub.ingestion.source.sql.sql_common import (
     PipelineContext,
+    SQLAlchemyConfig,
     SQLAlchemySource,
     get_platform_from_sqlalchemy_uri,
 )
-from datahub.ingestion.source.sql.sql_config import SQLAlchemyConfig
 
 
 class _TestSQLAlchemyConfig(SQLAlchemyConfig):
@@ -18,7 +19,9 @@ class _TestSQLAlchemyConfig(SQLAlchemyConfig):
 
 
 class _TestSQLAlchemySource(SQLAlchemySource):
-    pass
+    @classmethod
+    def create(cls, config_dict: dict, ctx: PipelineContext) -> Source:
+        pass
 
 
 def test_generate_foreign_key():

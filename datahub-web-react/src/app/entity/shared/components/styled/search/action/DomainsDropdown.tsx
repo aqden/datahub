@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { useBatchSetDomainMutation } from '../../../../../../../graphql/mutations.generated';
 import { SetDomainModal } from '../../../../containers/profile/sidebar/Domain/SetDomainModal';
 import ActionDropdown from './ActionDropdown';
-import { handleBatchError } from '../../../../utils';
 
 type Props = {
     urns: Array<string>;
@@ -32,12 +31,7 @@ export default function DomainsDropdown({ urns, disabled = false, refetch }: Pro
             })
             .catch((e) => {
                 message.destroy();
-                message.error(
-                    handleBatchError(urns, e, {
-                        content: `Failed to remove assets from Domain: \n ${e.message || ''}`,
-                        duration: 3,
-                    }),
-                );
+                message.error({ content: `Failed to remove assets from Domain: \n ${e.message || ''}`, duration: 3 });
             });
     };
 

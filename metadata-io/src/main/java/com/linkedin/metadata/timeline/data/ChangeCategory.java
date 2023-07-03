@@ -22,9 +22,7 @@ public enum ChangeCategory {
   // Update the deprecation for an entity
   DEPRECATION,
   // Entity Lifecycle events (create, soft delete, hard delete)
-  LIFECYCLE,
-  // Run event
-  RUN;
+  LIFECYCLE;
 
   public static final Map<List<String>, ChangeCategory> COMPOUND_CATEGORIES;
 

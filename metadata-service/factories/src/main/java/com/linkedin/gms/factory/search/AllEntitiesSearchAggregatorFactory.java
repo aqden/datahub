@@ -1,6 +1,5 @@
 package com.linkedin.gms.factory.search;
 
-import com.linkedin.gms.factory.config.ConfigurationProvider;
 import com.linkedin.gms.factory.spring.YamlPropertySourceFactory;
 import com.linkedin.metadata.models.registry.EntityRegistry;
 import com.linkedin.metadata.search.EntitySearchService;
@@ -39,12 +38,11 @@ public class AllEntitiesSearchAggregatorFactory {
   @Bean(name = "allEntitiesSearchAggregator")
   @Primary
   @Nonnull
-  protected AllEntitiesSearchAggregator getInstance(ConfigurationProvider configurationProvider) {
+  protected AllEntitiesSearchAggregator getInstance() {
     return new AllEntitiesSearchAggregator(
         entityRegistry,
         entitySearchService,
         cachingEntitySearchService,
-        searchRanker,
-        configurationProvider.getCache().getHomepage().getEntityCounts());
+        searchRanker);
   }
 }

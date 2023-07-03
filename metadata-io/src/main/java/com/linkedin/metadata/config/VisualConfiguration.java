@@ -12,9 +12,4 @@ public class VisualConfiguration {
    * Asset related configurations
    */
   public AssetsConfiguration assets;
-
-  /**
-   * Queries tab related configurations
-   */
-  public QueriesTabConfig queriesTab;
 }

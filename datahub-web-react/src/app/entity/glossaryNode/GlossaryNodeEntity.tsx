@@ -2,10 +2,11 @@ import { FolderFilled, FolderOutlined } from '@ant-design/icons';
 import React from 'react';
 import { useGetGlossaryNodeQuery } from '../../../graphql/glossaryNode.generated';
 import { EntityType, GlossaryNode, SearchResult } from '../../../types.generated';
+import GlossaryEntitiesPath from '../../glossary/GlossaryEntitiesPath';
 import { Entity, EntityCapabilityType, IconStyleType, PreviewType } from '../Entity';
 import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
-import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
+import { SidebarAboutSection } from '../shared/containers/profile/sidebar/SidebarAboutSection';
 import { getDataForEntityType } from '../shared/containers/profile/utils';
 import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
@@ -15,20 +16,20 @@ import { Preview } from './preview/Preview';
 class GlossaryNodeEntity implements Entity<GlossaryNode> {
     type: EntityType = EntityType.GlossaryNode;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <FolderOutlined style={{ fontSize, color }} />;
+            return <FolderOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <FolderFilled style={{ fontSize, color: color || '#B37FEB' }} />;
+            return <FolderFilled style={{ fontSize, color: '#B37FEB' }} />;
         }
 
         return (
             <FolderOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );
@@ -55,8 +56,8 @@ class GlossaryNodeEntity implements Entity<GlossaryNode> {
                 entityType={EntityType.GlossaryNode}
                 useEntityQuery={useGetGlossaryNodeQuery}
                 getOverrideProperties={this.getOverridePropertiesFromEntity}
+                displayGlossaryBrowser
                 isNameEditable
-                hideBrowseBar
                 tabs={[
                     {
                         name: 'Contents',
@@ -79,10 +80,15 @@ class GlossaryNodeEntity implements Entity<GlossaryNode> {
                     },
                     {
                         component: SidebarOwnerSection,
+                        properties: {
+                            hideOwnerType: true,
+                        },
                     },
                 ]}
+                customNavBar={<GlossaryEntitiesPath />}
                 headerDropdownItems={
                     new Set([
+                        EntityMenuItems.COPY_URL,
                         EntityMenuItems.ADD_TERM_GROUP,
                         EntityMenuItems.ADD_TERM,
                         EntityMenuItems.MOVE,

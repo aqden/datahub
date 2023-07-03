@@ -59,7 +59,7 @@ public class TopPlatformsSource extends EntitySearchAggregationSource {
 
   @Override
   protected int getMaxContent() {
-    return 40;
+    return 20;
   }
 
   @Override

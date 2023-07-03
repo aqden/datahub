@@ -9,7 +9,6 @@ import com.linkedin.datahub.graphql.generated.ListTestsInput;
 import com.linkedin.datahub.graphql.generated.ListTestsResult;
 import com.linkedin.entity.client.EntityClient;
 import com.linkedin.metadata.Constants;
-import com.linkedin.metadata.query.SearchFlags;
 import com.linkedin.metadata.search.SearchEntity;
 import com.linkedin.metadata.search.SearchEntityArray;
 import com.linkedin.metadata.search.SearchResult;
@@ -59,8 +58,7 @@ public class ListTestsResolver implements DataFetcher<CompletableFuture<ListTest
               Collections.emptyMap(),
               start,
               count,
-              context.getAuthentication(),
-              new SearchFlags().setFulltext(true));
+              context.getAuthentication());
 
           // Now that we have entities we can bind this to a result.
           final ListTestsResult result = new ListTestsResult();

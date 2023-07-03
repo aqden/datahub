@@ -22,11 +22,6 @@ const companiesByIndustry = [
         imageSize: "medium",
       },
       {
-        name: "Airtel",
-        imageUrl: "/img/logos/companies/airtel.png",
-        imageSize: "large",
-      },
-      {
         name: "Coursera",
         imageUrl: "/img/logos/companies/coursera.svg",
         imageSize: "small",
@@ -60,21 +55,6 @@ const companiesByIndustry = [
         name: "Zynga",
         imageUrl: "/img/logos/companies/zynga.png",
         imageSize: "default",
-      },
-      {
-        name: "Hurb",
-        imageUrl: "/img/logos/companies/hurb.png",
-        imageSize: "medium",
-      },
-      {
-        name: "Razer",
-        imageUrl: "/img/logos/companies/razer.jpeg",
-        imageSize: "large",
-      },
-      {
-        name: "ClassDojo",
-        imageUrl: "/img/logos/companies/classdojo.png",
-        imageSize: "medium",
       },
     ],
   },
@@ -132,11 +112,6 @@ const companiesByIndustry = [
         imageSize: "medium",
       },
       {
-        name: "VanMoof",
-        imageUrl: "/img/logos/companies/vanmoof.png",
-        imageSize: "small",
-      },
-      {
         name: "Grofers",
         imageUrl: "/img/logos/companies/grofers.png",
         imageSize: "medium",
@@ -171,11 +146,6 @@ const companiesByIndustry = [
   {
     name: "And More",
     companies: [
-      {
-        name: "Wikimedia Foundation",
-        imageUrl: "/img/logos/companies/wikimedia-foundation.png",
-        imageSize: "medium",
-      },
       {
         name: "Cabify",
         imageUrl: "/img/logos/companies/cabify.png",
@@ -229,24 +199,14 @@ const platformLogos = [
     imageUrl: "/img/logos/platforms/athena.svg",
   },
   {
-    name: "Azure AD",
-    imageUrl: "/img/logos/platforms/azure-ad.png",
-  },
-  {
     name: "BigQuery",
     imageUrl: "/img/logos/platforms/bigquery.svg",
-  },
-  {
-    name: "Clickhouse",
-    imageUrl: "/img/logos/platforms/clickhouse.svg",
   },
   {
     name: "CouchBase",
     imageUrl: "/img/logos/platforms/couchbase.svg",
   },
-  { name: "Databricks", imageUrl: "/img/logos/platforms/databricks.png" },
   { name: "DBT", imageUrl: "/img/logos/platforms/dbt.svg" },
-  { name: "Deltalake", imageUrl: "/img/logos/platforms/deltalake.svg" },
   { name: "Druid", imageUrl: "/img/logos/platforms/druid.svg" },
   { name: "Elasticsearch", imageUrl: "/img/logos/platforms/elasticsearch.svg" },
   {
@@ -258,10 +218,6 @@ const platformLogos = [
     imageUrl: "/img/logos/platforms/glue.svg",
   },
   {
-    name: "Great Expectations",
-    imageUrl: "/img/logos/platforms/great-expectations.png",
-  },
-  {
     name: "Hadoop",
     imageUrl: "/img/logos/platforms/hadoop.svg",
   },
@@ -269,11 +225,9 @@ const platformLogos = [
     name: "Hive",
     imageUrl: "/img/logos/platforms/hive.svg",
   },
-  { name: "Iceberg", imageUrl: "/img/logos/platforms/iceberg.png" },
   { name: "Kafka", imageUrl: "/img/logos/platforms/kafka.svg" },
   { name: "Kusto", imageUrl: "/img/logos/platforms/kusto.svg" },
   { name: "Looker", imageUrl: "/img/logos/platforms/looker.svg" },
-  { name: "MariaDB", imageUrl: "/img/logos/platforms/mariadb.png" },
   { name: "Metabase", imageUrl: "/img/logos/platforms/metabase.svg" },
   { name: "Mode", imageUrl: "/img/logos/platforms/mode.png" },
   { name: "MongoDB", imageUrl: "/img/logos/platforms/mongodb.svg" },
@@ -285,15 +239,12 @@ const platformLogos = [
     name: "MySQL",
     imageUrl: "/img/logos/platforms/mysql.svg",
   },
-  { name: "NiFi", imageUrl: "/img/logos/platforms/nifi.svg" },
-  { name: "Okta", imageUrl: "/img/logos/platforms/oracle.svg" },
-  { name: "Oracle", imageUrl: "/img/logos/platforms/okta.png" },
+  { name: "Nifi", imageUrl: "/img/logos/platforms/nifi.svg" },
+  { name: "Oracle", imageUrl: "/img/logos/platforms/oracle.svg" },
   { name: "Pinot", imageUrl: "/img/logos/platforms/pinot.svg" },
   { name: "PostgreSQL", imageUrl: "/img/logos/platforms/postgres.svg" },
   { name: "PowerBI", imageUrl: "/img/logos/platforms/powerbi.png" },
   { name: "Presto", imageUrl: "/img/logos/platforms/presto.svg" },
-  { name: "Protobuf", imageUrl: "/img/logos/platforms/protobuf.png" },
-  { name: "Pulsar", imageUrl: "/img/logos/platforms/pulsar.png" },
   { name: "Redash", imageUrl: "/img/logos/platforms/redash.svg" },
   {
     name: "Redshift",
@@ -303,14 +254,12 @@ const platformLogos = [
     name: "S3",
     imageUrl: "/img/logos/platforms/s3.svg",
   },
-  { name: "Salesforce", imageUrl: "/img/logos/platforms/salesforce.png" },
   {
     name: "SageMaker",
     imageUrl: "/img/logos/platforms/sagemaker.svg",
   },
   { name: "Snowflake", imageUrl: "/img/logos/platforms/snowflake.svg" },
   { name: "Spark", imageUrl: "/img/logos/platforms/spark.svg" },
-  { name: "SQLAlchemy", imageUrl: "/img/logos/platforms/sqlalchemy.png" },
   {
     name: "Superset",
     imageUrl: "/img/logos/platforms/superset.svg",
@@ -322,10 +271,6 @@ const platformLogos = [
   {
     name: "Teradata",
     imageUrl: "/img/logos/platforms/teradata.svg",
-  },
-  {
-    name: "Trino",
-    imageUrl: "/img/logos/platforms/trino.png",
   },
 ];
 

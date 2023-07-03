@@ -1,11 +1,9 @@
 package controllers;
 
-import auth.CookieConfigs;
 import client.AuthServiceClient;
 import com.datahub.authentication.Authentication;
 import com.linkedin.entity.client.EntityClient;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nonnull;
@@ -16,12 +14,10 @@ import org.pac4j.core.engine.CallbackLogic;
 import org.pac4j.core.http.adapter.HttpActionAdapter;
 import org.pac4j.play.CallbackController;
 import org.pac4j.play.PlayWebContext;
-import play.mvc.Http;
 import play.mvc.Result;
 import auth.sso.oidc.OidcCallbackLogic;
 import auth.sso.SsoManager;
 import auth.sso.SsoProvider;
-import play.mvc.Results;
 
 
 /**
@@ -41,32 +37,27 @@ public class SsoCallbackController extends CallbackController {
       @Nonnull SsoManager ssoManager,
       @Nonnull Authentication systemAuthentication,
       @Nonnull EntityClient entityClient,
-      @Nonnull AuthServiceClient authClient,
-      @Nonnull com.typesafe.config.Config configs) {
+      @Nonnull AuthServiceClient authClient) {
     _ssoManager = ssoManager;
     setDefaultUrl("/"); // By default, redirects to Home Page on log in.
-    setSaveInSession(false);
-    setCallbackLogic(new SsoCallbackLogic(ssoManager, systemAuthentication, entityClient, authClient, new CookieConfigs(configs)));
+    setCallbackLogic(new SsoCallbackLogic(ssoManager, systemAuthentication, entityClient, authClient));
   }
 
-  public CompletionStage<Result> handleCallback(String protocol, Http.Request request) {
+  public CompletionStage<Result> handleCallback(String protocol) {
     if (shouldHandleCallback(protocol)) {
       log.debug(String.format("Handling SSO callback. Protocol: %s", protocol));
-      return callback(request).handle((res, e) -> {
+      return callback().handle((res, e) -> {
         if (e != null) {
           log.error("Caught exception while attempting to handle SSO callback! It's likely that SSO integration is mis-configured.", e);
-          return Results.redirect(
+          return redirect(
               String.format("/login?error_msg=%s",
-                  URLEncoder.encode(
-                      "Failed to sign in using Single Sign-On provider. Please try again, or contact your DataHub Administrator.",
-                      StandardCharsets.UTF_8)))
-              .discardingCookie("actor")
-              .withNewSession();
+                  URLEncoder.encode("Failed to sign in using Single Sign-On provider. Please contact your DataHub Administrator, "
+                      + "or refer to server logs for more information.")));
         }
         return res;
       });
     }
-    return CompletableFuture.completedFuture(Results.internalServerError(
+    return CompletableFuture.completedFuture(internalServerError(
         String.format("Failed to perform SSO callback. SSO is not enabled for protocol: %s", protocol)));
   }
 
@@ -79,8 +70,8 @@ public class SsoCallbackController extends CallbackController {
     private final OidcCallbackLogic _oidcCallbackLogic;
 
     SsoCallbackLogic(final SsoManager ssoManager, final Authentication systemAuthentication,
-        final EntityClient entityClient, final AuthServiceClient authClient, final CookieConfigs cookieConfigs) {
-      _oidcCallbackLogic = new OidcCallbackLogic(ssoManager, systemAuthentication, entityClient, authClient, cookieConfigs);
+        final EntityClient entityClient, final AuthServiceClient authClient) {
+      _oidcCallbackLogic = new OidcCallbackLogic(ssoManager, systemAuthentication, entityClient, authClient);
     }
 
     @Override

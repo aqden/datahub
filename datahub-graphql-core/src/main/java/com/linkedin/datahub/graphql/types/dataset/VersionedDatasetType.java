@@ -45,8 +45,7 @@ public class VersionedDatasetType implements com.linkedin.datahub.graphql.types.
       CONTAINER_ASPECT_NAME,
       DOMAINS_ASPECT_NAME,
       SCHEMA_METADATA_ASPECT_NAME,
-      SIBLINGS_ASPECT_NAME,
-      DATA_PRODUCTS_ASPECT_NAME
+      SIBLINGS_ASPECT_NAME
   );
 
   private static final Set<String> FACET_FIELDS = ImmutableSet.of("origin", "platform");

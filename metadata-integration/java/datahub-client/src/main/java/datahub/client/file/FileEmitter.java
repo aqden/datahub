@@ -1,6 +1,5 @@
 package datahub.client.file;
 
-import com.fasterxml.jackson.core.StreamReadConstraints;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -26,16 +25,14 @@ import datahub.event.UpsertAspectRequest;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.linkedin.metadata.Constants.*;
-
-
 @Slf4j
 public class FileEmitter implements Emitter {
 
   private final EventFormatter eventFormatter;
   private final FileEmitterConfig config;
-  private final ObjectMapper objectMapper;
-  private final JacksonDataTemplateCodec dataTemplateCodec;
+  private final ObjectMapper objectMapper = new ObjectMapper()
+      .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  private final JacksonDataTemplateCodec dataTemplateCodec = new JacksonDataTemplateCodec(objectMapper.getFactory());
 
   private final BufferedWriter writer;
   private final Future<MetadataWriteResponse> cachedSuccessFuture;
@@ -49,11 +46,6 @@ public class FileEmitter implements Emitter {
    * @param config
    */
   public FileEmitter(FileEmitterConfig config) {
-    objectMapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    int maxSize = Integer.parseInt(System.getenv().getOrDefault(INGESTION_MAX_SERIALIZED_STRING_LENGTH, MAX_JACKSON_STRING_SIZE));
-    objectMapper.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
-        .maxStringLength(maxSize).build());
-    dataTemplateCodec = new JacksonDataTemplateCodec(objectMapper.getFactory());
 
     this.config = config;
     this.eventFormatter = this.config.getEventFormatter();

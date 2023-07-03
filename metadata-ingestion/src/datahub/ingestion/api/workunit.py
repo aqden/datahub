@@ -1,17 +1,13 @@
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, Type, TypeVar, Union, overload
-
-from deprecated import deprecated
+from typing import Iterable, Union, overload
 
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.api.common import WorkUnit
+from datahub.ingestion.api.source import WorkUnit
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import (
     MetadataChangeEvent,
     MetadataChangeProposal,
 )
-from datahub.metadata.schema_classes import UsageAggregationClass, _Aspect
-
-T_Aspect = TypeVar("T_Aspect", bound=_Aspect)
+from datahub.metadata.schema_classes import UsageAggregationClass
 
 
 @dataclass
@@ -22,25 +18,13 @@ class MetadataWorkUnit(WorkUnit):
     # A workunit creator can determine if this workunit is allowed to fail
     treat_errors_as_warnings: bool = False
 
-    # When this is set to false, this MWU will be ignored by automatic helpers
-    # like auto_status_aspect and auto_stale_entity_removal.
-    is_primary_source: bool = True
-
     @overload
-    def __init__(
-        self, id: str, mce: MetadataChangeEvent, *, is_primary_source: bool = True
-    ):
+    def __init__(self, id: str, mce: MetadataChangeEvent):
         # TODO: Force `mce` to be a keyword-only argument.
         ...
 
     @overload
-    def __init__(
-        self,
-        id: str,
-        *,
-        mcp_raw: MetadataChangeProposal,
-        is_primary_source: bool = True,
-    ):
+    def __init__(self, id: str, *, mcp_raw: MetadataChangeProposal):
         # We force `mcp_raw` to be a keyword-only argument.
         ...
 
@@ -51,7 +35,6 @@ class MetadataWorkUnit(WorkUnit):
         *,
         mcp: MetadataChangeProposalWrapper,
         treat_errors_as_warnings: bool = False,
-        is_primary_source: bool = True,
     ):
         # We force `mcp` to be a keyword-only argument.
         ...
@@ -59,15 +42,13 @@ class MetadataWorkUnit(WorkUnit):
     def __init__(
         self,
         id: str,
-        mce: Optional[MetadataChangeEvent] = None,
-        mcp: Optional[MetadataChangeProposalWrapper] = None,
-        mcp_raw: Optional[MetadataChangeProposal] = None,
+        mce: MetadataChangeEvent = None,
+        mcp: MetadataChangeProposalWrapper = None,
+        mcp_raw: MetadataChangeProposal = None,
         treat_errors_as_warnings: bool = False,
-        is_primary_source: bool = True,
     ):
         super().__init__(id)
         self.treat_errors_as_warnings = treat_errors_as_warnings
-        self.is_primary_source = is_primary_source
 
         if sum(1 if v else 0 for v in [mce, mcp, mcp_raw]) != 1:
             raise ValueError("exactly one of mce, mcp, or mcp_raw must be provided")
@@ -82,34 +63,6 @@ class MetadataWorkUnit(WorkUnit):
 
     def get_metadata(self) -> dict:
         return {"metadata": self.metadata}
-
-    def get_urn(self) -> str:
-        if isinstance(self.metadata, MetadataChangeEvent):
-            return self.metadata.proposedSnapshot.urn
-        else:
-            assert self.metadata.entityUrn
-            return self.metadata.entityUrn
-
-    def get_aspects_of_type(self, aspect_cls: Type[T_Aspect]) -> List[T_Aspect]:
-        aspects: list
-        if isinstance(self.metadata, MetadataChangeEvent):
-            aspects = self.metadata.proposedSnapshot.aspects
-        elif isinstance(self.metadata, MetadataChangeProposalWrapper):
-            aspects = [self.metadata.aspect]
-        elif isinstance(self.metadata, MetadataChangeProposal):
-            aspects = []
-            # Best effort attempt to deserialize MetadataChangeProposalClass
-            if self.metadata.aspectName == aspect_cls.ASPECT_NAME:
-                try:
-                    mcp = MetadataChangeProposalWrapper.try_from_mcpc(self.metadata)
-                    if mcp:
-                        aspects = [mcp.aspect]
-                except Exception:
-                    pass
-        else:
-            raise ValueError(f"Unexpected type {type(self.metadata)}")
-
-        return [a for a in aspects if isinstance(a, aspect_cls)]
 
     def decompose_mce_into_mcps(self) -> Iterable["MetadataWorkUnit"]:
         from datahub.emitter.mcp_builder import mcps_from_mce
@@ -126,7 +79,6 @@ class MetadataWorkUnit(WorkUnit):
         ]
 
 
-@deprecated
 @dataclass
 class UsageStatsWorkUnit(WorkUnit):
     usageStats: UsageAggregationClass

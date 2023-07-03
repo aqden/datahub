@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { useGetSearchResultsForMultipleQuery } from '../../../graphql/search.generated';
 import { EmbeddedListSearchModal } from '../../entity/shared/components/styled/search/EmbeddedListSearchModal';
 import { ANTD_GRAY } from '../../entity/shared/constants';
-import { UnionType } from '../../search/utils/constants';
 import { formatNumber } from '../../shared/formatNumber';
 import { Message } from '../../shared/Message';
 import { useEntityRegistry } from '../../useEntityRegistry';
@@ -72,12 +71,11 @@ export default function IngestedAssets({ id }: Props) {
                 filters: [
                     {
                         field: 'runId',
-                        values: [id],
+                        value: id,
                     },
                 ],
             },
         },
-        fetchPolicy: 'cache-first',
     });
 
     // Parse filter values to get results.
@@ -137,10 +135,7 @@ export default function IngestedAssets({ id }: Props) {
             {showAssetSearch && (
                 <EmbeddedListSearchModal
                     searchBarStyle={{ width: 600, marginRight: 40 }}
-                    fixedFilters={{
-                        unionType: UnionType.AND,
-                        filters: [{ field: 'runId', values: [id] }],
-                    }}
+                    fixedFilter={{ field: 'runId', value: id }}
                     onClose={() => setShowAssetSearch(false)}
                 />
             )}

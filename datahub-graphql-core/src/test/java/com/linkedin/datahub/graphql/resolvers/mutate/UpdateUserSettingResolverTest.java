@@ -1,5 +1,6 @@
 package com.linkedin.datahub.graphql.resolvers.mutate;
 
+import com.linkedin.common.AuditStamp;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.datahub.graphql.generated.UpdateUserSettingInput;
@@ -46,6 +47,9 @@ public class UpdateUserSettingResolverTest {
     proposal.setAspect(GenericRecordUtils.serializeAspect(newSettings));
     proposal.setChangeType(ChangeType.UPSERT);
 
-    verifyIngestProposal(mockService, 1, proposal);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal),
+        Mockito.any(AuditStamp.class)
+    );
   }
 }

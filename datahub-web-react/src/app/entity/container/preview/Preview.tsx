@@ -12,10 +12,8 @@ import {
     GlobalTags,
     Deprecation,
     GlossaryTerms,
-    DataProduct,
 } from '../../../../types.generated';
 import DefaultPreviewCard from '../../../preview/DefaultPreviewCard';
-import { capitalizeFirstLetterOnly } from '../../../shared/textUtil';
 import { useEntityRegistry } from '../../../useEntityRegistry';
 import { IconStyleType } from '../../Entity';
 import { ANTD_GRAY } from '../../shared/constants';
@@ -40,14 +38,13 @@ export const Preview = ({
     container,
     entityCount,
     domain,
-    dataProduct,
     parentContainers,
     externalUrl,
     deprecation,
 }: {
     urn: string;
     name: string;
-    platformName?: string;
+    platformName: string;
     platformLogo?: string | null;
     platformInstanceId?: string;
     description?: string | null;
@@ -60,18 +57,16 @@ export const Preview = ({
     container?: Container | null;
     entityCount?: number;
     domain?: Domain | null;
-    dataProduct?: DataProduct | null;
     deprecation?: Deprecation | null;
     parentContainers?: ParentContainersResult | null;
     externalUrl?: string | null;
 }): JSX.Element => {
     const entityRegistry = useEntityRegistry();
-    const typeName = capitalizeFirstLetterOnly(subTypes?.typeNames?.[0]) || 'Container';
+    const typeName = (subTypes?.typeNames?.length && subTypes?.typeNames[0]) || 'Container';
     return (
         <DefaultPreviewCard
             url={entityRegistry.getEntityUrl(EntityType.Container, urn)}
             name={name || ''}
-            urn={urn}
             platform={platformName}
             platformInstanceId={platformInstanceId}
             description={description || ''}
@@ -84,7 +79,6 @@ export const Preview = ({
             container={container || undefined}
             typeIcon={entityRegistry.getIcon(EntityType.Container, 12, IconStyleType.ACCENT)}
             domain={domain || undefined}
-            dataProduct={dataProduct}
             parentContainers={parentContainers}
             tags={tags || undefined}
             glossaryTerms={glossaryTerms || undefined}

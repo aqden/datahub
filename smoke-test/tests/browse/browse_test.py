@@ -1,7 +1,9 @@
+import json
+import urllib
 import time
 
 import pytest
-import requests_wrapper as requests
+import requests
 from tests.utils import delete_urns_from_file, get_frontend_url, ingest_file_via_rest
 
 
@@ -14,7 +16,7 @@ TEST_DATASET_3_URN = "urn:li:dataset:(urn:li:dataPlatform:kafka,test-browse-3,PR
 def ingest_cleanup_data(request):
     print("ingesting browse test data")
     ingest_file_via_rest("tests/browse/data.json")
-
+    time.sleep(5) # Allow for indexing time
     yield
     print("removing browse test data")
     delete_urns_from_file("tests/browse/data.json")
@@ -51,7 +53,7 @@ def test_get_browse_paths(frontend_session, ingest_cleanup_data):
     # /prod -- There should be one entity
     get_browse_paths_json = {
         "query": get_browse_paths_query,
-        "variables": {"input": { "type": "DATASET", "path": ["prod"], "start": 0, "count": 100 } },
+        "variables": {"input": { "type": "DATASET", "path": ["prod"], "start": 0, "count": 10 } },
     }
 
     response = frontend_session.post(

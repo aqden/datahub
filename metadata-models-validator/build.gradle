@@ -9,7 +9,5 @@ dependencies {
   compile externalDependency.findbugsAnnotations
   compile externalDependency.guava
 
-  implementation externalDependency.slf4jApi
-  runtimeOnly externalDependency.logbackClassic
   compileOnly externalDependency.lombok
 }

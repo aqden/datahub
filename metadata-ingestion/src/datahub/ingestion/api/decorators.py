@@ -15,12 +15,12 @@ def config_class(config_cls: Type) -> Callable[[Type], Type]:
 
     def wrapper(cls: Type) -> Type:
         # add a get_config_class method
-        cls.get_config_class = lambda: config_cls
+        setattr(cls, "get_config_class", lambda: config_cls)
         if not hasattr(cls, "create") or (
-            cls.create.__func__ == Source.create.__func__  # type: ignore
+            getattr(cls, "create").__func__ == getattr(Source, "create").__func__
         ):
             # add the create method only if it has not been overridden from the base Source.create method
-            cls.create = classmethod(default_create)
+            setattr(cls, "create", classmethod(default_create))
 
         return cls
 
@@ -33,9 +33,13 @@ def platform_name(
     """Adds a get_platform_name method to the decorated class"""
 
     def wrapper(cls: Type) -> Type:
-        cls.get_platform_name = lambda: platform_name
-        cls.get_platform_id = lambda: id or platform_name.lower().replace(" ", "-")
-        cls.get_platform_doc_order = lambda: doc_order or None
+        setattr(cls, "get_platform_name", lambda: platform_name)
+        setattr(
+            cls,
+            "get_platform_id",
+            lambda: id or platform_name.lower().replace(" ", "-"),
+        )
+        setattr(cls, "get_platform_doc_order", lambda: doc_order or None)
 
         return cls
 
@@ -72,7 +76,7 @@ def support_status(
     """Adds a get_support_status method to the decorated class"""
 
     def wrapper(cls: Type) -> Type:
-        cls.get_support_status = lambda: support_status
+        setattr(cls, "get_support_status", lambda: support_status)
         return cls
 
     return wrapper
@@ -94,8 +98,8 @@ def capability(
 
     def wrapper(cls: Type) -> Type:
         if not hasattr(cls, "__capabilities"):
-            cls.__capabilities = {}
-            cls.get_capabilities = lambda: cls.__capabilities.values()
+            setattr(cls, "__capabilities", {})
+            setattr(cls, "get_capabilities", lambda: cls.__capabilities.values())
 
         cls.__capabilities[capability_name] = CapabilitySetting(
             capability=capability_name, description=description, supported=supported

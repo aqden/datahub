@@ -1,8 +1,8 @@
 import logging
 import os
 import time
-from typing import Dict, Iterable, List
-from urllib.parse import urlparse
+from datetime import datetime
+from typing import Callable, Iterable, List
 
 from deltalake import DeltaTable
 
@@ -11,7 +11,7 @@ from datahub.emitter.mce_builder import (
     make_dataset_urn_with_platform_instance,
 )
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.api.common import PipelineContext
+from datahub.ingestion.api.common import PipelineContext, WorkUnit
 from datahub.ingestion.api.decorators import (
     SourceCapability,
     SupportStatus,
@@ -21,23 +21,21 @@ from datahub.ingestion.api.decorators import (
     support_status,
 )
 from datahub.ingestion.api.source import Source, SourceReport
-from datahub.ingestion.api.source_helpers import auto_workunit_reporter
 from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.ingestion.source.aws.s3_boto_utils import get_s3_tags
+from datahub.ingestion.source.aws.s3_boto_utils import get_s3_tags, list_folders_path
 from datahub.ingestion.source.aws.s3_util import (
     get_bucket_name,
     get_key_prefix,
     strip_s3_prefix,
 )
-from datahub.ingestion.source.data_lake_common.data_lake_utils import ContainerWUCreator
 from datahub.ingestion.source.delta_lake.config import DeltaLakeSourceConfig
 from datahub.ingestion.source.delta_lake.delta_lake_utils import (
     get_file_count,
     read_delta_table,
 )
 from datahub.ingestion.source.delta_lake.report import DeltaLakeSourceReport
+from datahub.ingestion.source.s3.data_lake_utils import ContainerWUCreator
 from datahub.ingestion.source.schema_inference.csv_tsv import tableschema_type_map
-from datahub.metadata.com.linkedin.pegasus2avro.common import Status
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
 from datahub.metadata.com.linkedin.pegasus2avro.schema import (
@@ -46,6 +44,7 @@ from datahub.metadata.com.linkedin.pegasus2avro.schema import (
     SchemaMetadata,
 )
 from datahub.metadata.schema_classes import (
+    ChangeTypeClass,
     DatasetPropertiesClass,
     NullTypeClass,
     OperationClass,
@@ -97,25 +96,17 @@ class DeltaLakeSource(Source):
     report: DeltaLakeSourceReport
     profiling_times_taken: List[float]
     container_WU_creator: ContainerWUCreator
-    storage_options: Dict[str, str]
 
     def __init__(self, config: DeltaLakeSourceConfig, ctx: PipelineContext):
         super().__init__(ctx)
         self.source_config = config
         self.report = DeltaLakeSourceReport()
-        if self.source_config.is_s3:
-            if (
-                self.source_config.s3 is None
-                or self.source_config.s3.aws_config is None
-            ):
-                raise ValueError("AWS Config must be provided for S3 base path.")
-            self.s3_client = self.source_config.s3.aws_config.get_s3_client()
-
         # self.profiling_times_taken = []
         config_report = {
             config_option: config.dict().get(config_option)
             for config_option in config_options_to_report
         }
+        config_report = config_report
 
         telemetry.telemetry_instance.ping(
             "delta_lake_config",
@@ -128,6 +119,7 @@ class DeltaLakeSource(Source):
         return cls(config, ctx)
 
     def get_fields(self, delta_table: DeltaTable) -> List[SchemaField]:
+
         fields: List[SchemaField] = []
 
         for raw_field in delta_table.schema().fields:
@@ -155,11 +147,12 @@ class DeltaLakeSource(Source):
         for hist in delta_table.history(
             limit=self.source_config.version_history_lookback
         ):
+
             # History schema picked up from https://docs.delta.io/latest/delta-utility.html#retrieve-delta-table-history
             reported_time: int = int(time.time() * 1000)
             last_updated_timestamp: int = hist["timestamp"]
             statement_type = OPERATION_STATEMENT_TYPES.get(
-                hist.get("operation", "UNKNOWN"), OperationTypeClass.CUSTOM
+                hist.get("operation"), OperationTypeClass.CUSTOM
             )
             custom_type = (
                 hist.get("operation")
@@ -168,10 +161,10 @@ class DeltaLakeSource(Source):
             )
 
             operation_custom_properties = dict()
-            for key, val in sorted(hist.items()):
+            for key, val in hist.items():
                 if val is not None:
                     if isinstance(val, dict):
-                        for k, v in sorted(val.items()):
+                        for k, v in val.items():
                             if v is not None:
                                 operation_custom_properties[f"{key}_{k}"] = str(v)
                     else:
@@ -186,10 +179,19 @@ class DeltaLakeSource(Source):
                 customProperties=operation_custom_properties,
             )
 
-            yield MetadataChangeProposalWrapper(
+            mcp = MetadataChangeProposalWrapper(
+                entityType="dataset",
+                aspectName="operation",
+                changeType=ChangeTypeClass.UPSERT,
                 entityUrn=dataset_urn,
                 aspect=operation_aspect,
-            ).as_workunit()
+            )
+            operational_wu = MetadataWorkUnit(
+                id=f"{datetime.fromtimestamp(last_updated_timestamp / 1000).isoformat()}-operation-aspect-{dataset_urn}",
+                mcp=mcp,
+            )
+            self.report.report_workunit(operational_wu)
+            yield operational_wu
 
     def ingest_table(
         self, delta_table: DeltaTable, path: str
@@ -222,7 +224,7 @@ class DeltaLakeSource(Source):
         )
         dataset_snapshot = DatasetSnapshot(
             urn=dataset_urn,
-            aspects=[Status(removed=False)],
+            aspects=[],
         )
 
         customProperties = {
@@ -233,8 +235,6 @@ class DeltaLakeSource(Source):
             "version": str(delta_table.version()),
             "location": self.source_config.complete_path,
         }
-        if not self.source_config.require_files:
-            del customProperties["number_of_files"]  # always 0
 
         dataset_properties = DatasetPropertiesClass(
             description=delta_table.metadata().description,
@@ -276,81 +276,61 @@ class DeltaLakeSource(Source):
             if s3_tags is not None:
                 dataset_snapshot.aspects.append(s3_tags)
         mce = MetadataChangeEvent(proposedSnapshot=dataset_snapshot)
-        yield MetadataWorkUnit(id=str(delta_table.metadata().id), mce=mce)
+        wu = MetadataWorkUnit(id=delta_table.metadata().id, mce=mce)
+        self.report.report_workunit(wu)
+        yield wu
 
-        yield from self.container_WU_creator.create_container_hierarchy(
-            browse_path, dataset_urn
+        container_wus = self.container_WU_creator.create_container_hierarchy(
+            browse_path, self.source_config.is_s3, dataset_urn
         )
+        for wu in container_wus:
+            self.report.report_workunit(wu)
+            yield wu
 
         yield from self._create_operation_aspect_wu(delta_table, dataset_urn)
 
-    def get_storage_options(self) -> Dict[str, str]:
-        if (
-            self.source_config.is_s3
-            and self.source_config.s3 is not None
-            and self.source_config.s3.aws_config is not None
-        ):
-            aws_config = self.source_config.s3.aws_config
-            creds = aws_config.get_credentials()
-            opts = {
-                "AWS_ACCESS_KEY_ID": creds.get("aws_access_key_id") or "",
-                "AWS_SECRET_ACCESS_KEY": creds.get("aws_secret_access_key") or "",
-                "AWS_SESSION_TOKEN": creds.get("aws_session_token") or "",
-                # Allow http connections, this is required for minio
-                "AWS_STORAGE_ALLOW_HTTP": "true",
-            }
-            if aws_config.aws_region:
-                opts["AWS_REGION"] = aws_config.aws_region
-            if aws_config.aws_endpoint_url:
-                opts["AWS_ENDPOINT_URL"] = aws_config.aws_endpoint_url
-            return opts
-        else:
-            return {}
-
-    def process_folder(self, path: str) -> Iterable[MetadataWorkUnit]:
+    def process_folder(
+        self, path: str, get_folders: Callable[[str], Iterable[str]]
+    ) -> Iterable[MetadataWorkUnit]:
         logger.debug(f"Processing folder: {path}")
-        delta_table = read_delta_table(path, self.storage_options, self.source_config)
+        delta_table = read_delta_table(path, self.source_config)
         if delta_table:
             logger.debug(f"Delta table found at: {path}")
-            for wu in self.ingest_table(delta_table, path.rstrip("/")):
+            for wu in self.ingest_table(delta_table, path):
                 yield wu
         else:
-            for folder in self.get_folders(path):
-                yield from self.process_folder(folder)
-
-    def get_folders(self, path: str) -> Iterable[str]:
-        if self.source_config.is_s3:
-            return self.s3_get_folders(path)
-        else:
-            return self.local_get_folders(path)
+            for folder in get_folders(path):
+                yield from self.process_folder(path + "/" + folder, get_folders)
 
     def s3_get_folders(self, path: str) -> Iterable[str]:
-        parse_result = urlparse(path)
-        for page in self.s3_client.get_paginator("list_objects_v2").paginate(
-            Bucket=parse_result.netloc, Prefix=parse_result.path[1:], Delimiter="/"
-        ):
-            for o in page.get("CommonPrefixes", []):
-                yield f"{parse_result.scheme}://{parse_result.netloc}/{o.get('Prefix')}"
+        if self.source_config.s3 is not None:
+            yield from list_folders_path(path, self.source_config.s3.aws_config)
 
     def local_get_folders(self, path: str) -> Iterable[str]:
         if not os.path.isdir(path):
-            raise FileNotFoundError(
-                f"{path} does not exist or is not a directory. Please check base_path configuration."
+            raise Exception(
+                f"{path} does not exist. Please check base_path configuration."
             )
-        for folder in os.listdir(path):
-            yield os.path.join(path, folder)
+        for _, folders, _ in os.walk(path):
+            for folder in folders:
+                yield folder
+            break
+        return
 
-    def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        return auto_workunit_reporter(self.report, self.get_workunits_internal())
-
-    def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
+    def get_workunits(self) -> Iterable[WorkUnit]:
         self.container_WU_creator = ContainerWUCreator(
             self.source_config.platform,
             self.source_config.platform_instance,
             self.source_config.env,
         )
-        self.storage_options = self.get_storage_options()
-        yield from self.process_folder(self.source_config.complete_path)
+        get_folders = (
+            self.s3_get_folders if self.source_config.is_s3 else self.local_get_folders
+        )
+        for wu in self.process_folder(self.source_config.complete_path, get_folders):
+            yield wu
 
     def get_report(self) -> SourceReport:
         return self.report
+
+    def close(self):
+        pass

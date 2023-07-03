@@ -50,7 +50,6 @@ export default function TableStats({
     ) {
         return null;
     }
-    const sortedUsers = users?.slice().sort((a, b) => (b?.count || 0) - (a?.count || 0));
     return (
         <StatSection>
             <Typography.Title level={5}>Table Stats</Typography.Title>
@@ -78,7 +77,7 @@ export default function TableStats({
                         </Typography.Text>
                     </InfoItem>
                 )}
-                {sortedUsers && sortedUsers.length > 0 && (
+                {users && users.length > 0 && (
                     <InfoItem title="Top Users">
                         <div style={{ paddingTop: 8 }}>
                             <ExpandedActorGroup
@@ -86,7 +85,7 @@ export default function TableStats({
                                     justifyContent: 'left',
                                 }}
                                 actors={
-                                    sortedUsers
+                                    users
                                         .filter((user) => user && user?.user !== undefined && user?.user !== null)
                                         .map((user) => user?.user as CorpUser) || []
                                 }

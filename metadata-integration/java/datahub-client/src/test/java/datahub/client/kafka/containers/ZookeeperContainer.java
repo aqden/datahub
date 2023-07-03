@@ -1,7 +1,6 @@
 package datahub.client.kafka.containers;
 
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy;
 import org.testcontainers.utility.TestcontainersConfiguration;
 
 import java.io.IOException;
@@ -31,7 +30,6 @@ public class ZookeeperContainer extends GenericContainer<ZookeeperContainer> {
 
         addExposedPort(ZOOKEEPER_INTERNAL_PORT);
         withNetworkAliases(networkAlias);
-        waitingFor(new HostPortWaitStrategy());
     }
 
     public String getInternalUrl() {

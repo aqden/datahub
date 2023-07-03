@@ -1,7 +1,7 @@
 import { EntityType, SchemaField } from '../../../../../../../types.generated';
 import EntityRegistry from '../../../../../EntityRegistry';
 
-function matchesTagsOrTermsOrDescription(field: SchemaField, filterText: string, entityRegistry: EntityRegistry) {
+function matchesTagsOrTerms(field: SchemaField, filterText: string, entityRegistry: EntityRegistry) {
     return (
         field.globalTags?.tags?.find((tagAssociation) =>
             entityRegistry.getDisplayName(EntityType.Tag, tagAssociation.tag).toLocaleLowerCase().includes(filterText),
@@ -11,21 +11,20 @@ function matchesTagsOrTermsOrDescription(field: SchemaField, filterText: string,
                 .getDisplayName(EntityType.GlossaryTerm, termAssociation.term)
                 .toLocaleLowerCase()
                 .includes(filterText),
-        ) ||
-        field.description?.toLocaleLowerCase().includes(filterText)
+        )
     );
 }
 
-// returns list of fieldPaths for fields that have Terms or Tags or Descriptions matching the filterText
+// returns list of fieldPaths for fields that have Terms or Tags matching the filterText
 function getFilteredFieldPathsByMetadata(editableSchemaMetadata: any, entityRegistry, filterText) {
     return (
         editableSchemaMetadata?.editableSchemaFieldInfo
-            .filter((fieldInfo) => matchesTagsOrTermsOrDescription(fieldInfo, filterText, entityRegistry))
+            .filter((fieldInfo) => matchesTagsOrTerms(fieldInfo, filterText, entityRegistry))
             .map((fieldInfo) => fieldInfo.fieldPath) || []
     );
 }
 
-function matchesEditableTagsOrTermsOrDescription(field: SchemaField, filteredFieldPathsByEditableMetadata: any) {
+function matchesEditableTagsOrTerms(field: SchemaField, filteredFieldPathsByEditableMetadata: any) {
     return filteredFieldPathsByEditableMetadata.includes(field.fieldPath);
 }
 
@@ -48,15 +47,14 @@ export function filterSchemaRows(
         entityRegistry,
         formattedFilterText,
     );
-
     const finalFieldPaths = new Set();
     const expandedRowsFromFilter = new Set();
 
     rows.forEach((row) => {
         if (
             matchesFieldName(row.fieldPath, formattedFilterText) ||
-            matchesEditableTagsOrTermsOrDescription(row, filteredFieldPathsByEditableMetadata) ||
-            matchesTagsOrTermsOrDescription(row, formattedFilterText, entityRegistry) // non-editable tags, terms and description
+            matchesEditableTagsOrTerms(row, filteredFieldPathsByEditableMetadata) ||
+            matchesTagsOrTerms(row, formattedFilterText, entityRegistry) // non-editable tags and terms
         ) {
             finalFieldPaths.add(row.fieldPath);
         }
@@ -64,8 +62,8 @@ export function filterSchemaRows(
         const fieldName = splitFieldPath.slice(-1)[0];
         if (
             matchesFieldName(fieldName, formattedFilterText) ||
-            matchesEditableTagsOrTermsOrDescription(row, filteredFieldPathsByEditableMetadata) ||
-            matchesTagsOrTermsOrDescription(row, formattedFilterText, entityRegistry) // non-editable tags, terms and description
+            matchesEditableTagsOrTerms(row, filteredFieldPathsByEditableMetadata) ||
+            matchesTagsOrTerms(row, formattedFilterText, entityRegistry)
         ) {
             // if we match specifically on this field (not just its parent), add and expand all parents
             splitFieldPath.reduce((previous, current) => {

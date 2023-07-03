@@ -3,17 +3,10 @@ import styled from 'styled-components';
 import { Typography } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 
-import {
-    DataProduct,
-    Deprecation,
-    Domain,
-    EntityType,
-    GlobalTags,
-    Owner,
-    SearchInsight,
-} from '../../../../types.generated';
+import { Deprecation, Domain, EntityType, GlobalTags, Owner, SearchInsight } from '../../../../types.generated';
 import DefaultPreviewCard from '../../../preview/DefaultPreviewCard';
 import { useEntityRegistry } from '../../../useEntityRegistry';
+import { capitalizeFirstLetter } from '../../../shared/textUtil';
 import { IconStyleType } from '../../Entity';
 import { ANTD_GRAY } from '../../shared/constants';
 import { toRelativeTimeString } from '../../../shared/time/timeUtils';
@@ -31,7 +24,6 @@ export const Preview = ({
     platformInstanceId,
     owners,
     domain,
-    dataProduct,
     deprecation,
     globalTags,
     snippet,
@@ -47,7 +39,6 @@ export const Preview = ({
     platformInstanceId?: string;
     owners?: Array<Owner> | null;
     domain?: Domain | null;
-    dataProduct?: DataProduct | null;
     deprecation?: Deprecation | null;
     globalTags?: GlobalTags | null;
     snippet?: React.ReactNode | null;
@@ -56,21 +47,20 @@ export const Preview = ({
     externalUrl?: string | null;
 }): JSX.Element => {
     const entityRegistry = useEntityRegistry();
+    const capitalizedPlatform = capitalizeFirstLetter(platformName);
     return (
         <DefaultPreviewCard
             url={entityRegistry.getEntityUrl(EntityType.DataJob, urn)}
             name={name}
-            urn={urn}
             description={description || ''}
             type="Data Task"
             typeIcon={entityRegistry.getIcon(EntityType.DataJob, 14, IconStyleType.ACCENT)}
-            platform={platformName}
+            platform={capitalizedPlatform}
             logoUrl={platformLogo || ''}
             platformInstanceId={platformInstanceId}
             owners={owners}
             tags={globalTags || undefined}
             domain={domain}
-            dataProduct={dataProduct}
             snippet={snippet}
             deprecation={deprecation}
             dataTestID="datajob-item-preview"

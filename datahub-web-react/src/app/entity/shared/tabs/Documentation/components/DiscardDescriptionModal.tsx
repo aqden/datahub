@@ -11,7 +11,7 @@ export const DiscardDescriptionModal = ({ cancelModalVisible, onDiscard, onCance
     return (
         <>
             <Modal
-                title="Exit Editor"
+                title="Discard Changes"
                 visible={cancelModalVisible}
                 destroyOnClose
                 onCancel={onCancel}
@@ -19,10 +19,10 @@ export const DiscardDescriptionModal = ({ cancelModalVisible, onDiscard, onCance
                     <Button type="text" onClick={onCancel}>
                         Cancel
                     </Button>,
-                    <Button onClick={onDiscard}>Yes</Button>,
+                    <Button onClick={onDiscard}>Discard</Button>,
                 ]}
             >
-                <p>Are you sure you want to close the documentation editor? Any unsaved changes will be lost.</p>
+                <p>Changes will not be saved. Do you want to proceed?</p>
             </Modal>
         </>
     );

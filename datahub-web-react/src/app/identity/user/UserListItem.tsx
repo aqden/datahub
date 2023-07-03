@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import { Dropdown, List, Menu, Tag, Tooltip, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import { DeleteOutlined, MoreOutlined, UnlockOutlined } from '@ant-design/icons';
@@ -10,7 +10,6 @@ import { ANTD_GRAY, REDESIGN_COLORS } from '../../entity/shared/constants';
 import ViewResetTokenModal from './ViewResetTokenModal';
 import useDeleteEntity from '../../entity/shared/EntityDropdown/useDeleteEntity';
 import SelectRole from './SelectRole';
-import { USERS_ASSIGN_ROLE_ID } from '../../onboarding/config/UsersOnboardingConfig';
 
 type Props = {
     user: CorpUser;
@@ -60,7 +59,7 @@ export default function UserListItem({ user, canManageUserCredentials, selectRol
     const userRole = userRelationships && userRelationships.length > 0 && (userRelationships[0]?.entity as DataHubRole);
     const userRoleUrn = userRole && userRole.urn;
 
-    const { onDeleteEntity } = useDeleteEntity(user.urn, EntityType.CorpUser, user, onDelete, false, true);
+    const { onDeleteEntity } = useDeleteEntity(user.urn, EntityType.CorpUser, user, onDelete);
 
     const getUserStatusToolTip = (userStatus: CorpUserStatus) => {
         switch (userStatus) {
@@ -110,7 +109,7 @@ export default function UserListItem({ user, canManageUserCredentials, selectRol
                     </UserHeaderContainer>
                 </Link>
             </UserItemContainer>
-            <ButtonGroup id={USERS_ASSIGN_ROLE_ID}>
+            <ButtonGroup>
                 <SelectRole
                     user={user}
                     userRoleUrn={userRoleUrn || ''}

@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 
 import click
+from click.exceptions import UsageError
 from requests import Response
 from termcolor import colored
 
@@ -127,7 +128,7 @@ def get_timeline(
 @click.option("--raw", type=bool, is_flag=True, help="Show the raw diff")
 @click.pass_context
 @upgrade.check_upgrade
-@telemetry.with_telemetry()
+@telemetry.with_telemetry
 def timeline(
     ctx: Any,
     urn: str,
@@ -154,7 +155,7 @@ def timeline(
 
     if urn is None:
         if not ctx.args:
-            raise click.UsageError("Nothing for me to get. Maybe provide an urn?")
+            raise UsageError("Nothing for me to get. Maybe provide an urn?")
         urn = ctx.args[0]
         logger.debug(f"Using urn from args {urn}")
 

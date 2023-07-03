@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'antd';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 
 import { EntityTab } from '../../../types';
 import { useBaseEntity, useEntityData, useRouteToTab } from '../../../EntityContext';
@@ -25,25 +25,27 @@ const Tab = styled(Tabs.TabPane)`
 `;
 
 export const EntityTabs = <T,>({ tabs, selectedTab }: Props) => {
-    const { entityData, loading } = useEntityData();
+    const { entityData } = useEntityData();
     const routeToTab = useRouteToTab();
     const baseEntity = useBaseEntity<T>();
 
-    const enabledTabs = tabs.filter((tab) => tab.display?.enabled(entityData, baseEntity));
-
     useEffect(() => {
-        if (!loading && !selectedTab && enabledTabs[0]) {
-            routeToTab({ tabName: enabledTabs[0].name, method: 'replace' });
+        if (!selectedTab) {
+            if (tabs[0]) {
+                routeToTab({ tabName: tabs[0].name, method: 'replace' });
+            }
         }
-    }, [loading, enabledTabs, selectedTab, routeToTab]);
+    }, [tabs, selectedTab, routeToTab]);
+
+    const visibleTabs = tabs.filter((tab) => tab.display?.visible(entityData, baseEntity));
 
     return (
         <UnborderedTabs
-            activeKey={selectedTab?.name || ''}
+            activeKey={selectedTab?.name}
             size="large"
             onTabClick={(tab: string) => routeToTab({ tabName: tab })}
         >
-            {tabs.map((tab) => {
+            {visibleTabs.map((tab) => {
                 if (!tab.display?.enabled(entityData, baseEntity)) {
                     return <Tab tab={tab.name} key={tab.name} disabled />;
                 }

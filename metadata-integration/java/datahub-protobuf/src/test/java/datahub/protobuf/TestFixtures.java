@@ -63,10 +63,6 @@ public class TestFixtures {
         return new ProtobufGraph(getTestProtobufFileSet(protoPackage, filename));
     }
 
-    public static ProtobufGraph getTestProtobufGraph(String protoPackage, String filename, String messageName) throws IOException {
-        return new ProtobufGraph(getTestProtobufFileSet(protoPackage, filename), messageName);
-    }
-
     public static Object extractAspect(MetadataChangeProposalWrapper<? extends RecordTemplate> mcp, String aspect) {
         return mcp.getAspect().data().get(aspect);
     }

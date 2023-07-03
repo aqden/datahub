@@ -19,7 +19,6 @@ public final class TelemetryUtils {
 
     private static String _clientId;
 
-
     public static String getClientId(EntityService entityService) {
         if (_clientId == null) {
             createClientIdIfNotPresent(entityService);
@@ -38,6 +37,7 @@ public final class TelemetryUtils {
         clientIdStamp.setTime(System.currentTimeMillis());
         entityService.ingestAspectIfNotPresent(UrnUtils.getUrn(CLIENT_ID_URN), CLIENT_ID_ASPECT, clientId, clientIdStamp, null);
     }
+
     private TelemetryUtils() {
         throw new UnsupportedOperationException();
     }

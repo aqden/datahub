@@ -1,5 +1,4 @@
 import json
-import pathlib
 from unittest.mock import patch
 
 from freezegun import freeze_time
@@ -25,7 +24,7 @@ JSON_RESPONSE_MAP = {
 
 RESPONSE_ERROR_LIST = ["https://app.mode.com/api/acryl/spaces/75737b70402e/reports"]
 
-test_resources_dir = pathlib.Path(__file__).parent
+test_resources_dir = None
 
 
 class MockResponse:
@@ -72,6 +71,9 @@ def test_mode_ingest_success(pytestconfig, tmp_path):
         "datahub.ingestion.source.mode.requests.session",
         side_effect=mocked_requests_sucess,
     ):
+        global test_resources_dir
+        test_resources_dir = pytestconfig.rootpath / "tests/integration/mode"
+
         pipeline = Pipeline.create(
             {
                 "run_id": "mode-test",
@@ -105,10 +107,12 @@ def test_mode_ingest_success(pytestconfig, tmp_path):
 
 @freeze_time(FROZEN_TIME)
 def test_mode_ingest_failure(pytestconfig, tmp_path):
+
     with patch(
         "datahub.ingestion.source.mode.requests.session",
         side_effect=mocked_requests_failure,
     ):
+
         global test_resources_dir
         test_resources_dir = pytestconfig.rootpath / "tests/integration/mode"
 

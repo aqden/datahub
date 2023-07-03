@@ -1,6 +1,6 @@
 package com.linkedin.metadata.models;
 
-import com.datahub.test.TestBrowsePaths;
+import com.datahub.test.BrowsePaths;
 import com.datahub.test.SearchFeatures;
 import com.datahub.test.Snapshot;
 import com.datahub.test.TestEntityInfo;
@@ -44,13 +44,9 @@ public class EntitySpecBuilderTest {
 
   @Test
   public void testBuildAspectSpecValidationDuplicateSearchableFields() {
-    AspectSpec aspectSpec = new EntitySpecBuilder()
-        .buildAspectSpec(new DuplicateSearchableFields().schema(), RecordTemplate.class);
-
-    aspectSpec.getSearchableFieldSpecs().forEach(searchableFieldSpec -> {
-        String name = searchableFieldSpec.getSearchableAnnotation().getFieldName();
-        assertTrue("textField".equals(name) || "textField2".equals(name));
-    });
+    assertThrows(ModelValidationException.class, () ->
+        new EntitySpecBuilder().buildAspectSpec(new DuplicateSearchableFields().schema(), RecordTemplate.class)
+    );
   }
 
   @Test
@@ -89,9 +85,9 @@ public class EntitySpecBuilderTest {
 
     // Assert on Aspect Specs
     final Map<String, AspectSpec> aspectSpecMap = testEntitySpec.getAspectSpecMap();
-    assertEquals(5, aspectSpecMap.size());
+    assertEquals(4, aspectSpecMap.size());
     assertTrue(aspectSpecMap.containsKey("testEntityKey"));
-    assertTrue(aspectSpecMap.containsKey("testBrowsePaths"));
+    assertTrue(aspectSpecMap.containsKey("browsePaths"));
     assertTrue(aspectSpecMap.containsKey("testEntityInfo"));
     assertTrue(aspectSpecMap.containsKey("searchFeatures"));
 
@@ -99,7 +95,7 @@ public class EntitySpecBuilderTest {
     validateTestEntityKey(aspectSpecMap.get("testEntityKey"));
 
     // Assert on BrowsePaths Aspect
-    validateBrowsePaths(aspectSpecMap.get("testBrowsePaths"));
+    validateBrowsePaths(aspectSpecMap.get("browsePaths"));
 
     // Assert on TestEntityInfo Aspect
     validateTestEntityInfo(aspectSpecMap.get("testEntityInfo"));
@@ -113,7 +109,7 @@ public class EntitySpecBuilderTest {
     assertEquals(new TestEntityKey().schema().getFullName(), keyAspectSpec.getPegasusSchema().getFullName());
 
     // Assert on Searchable Fields
-    assertEquals(2, keyAspectSpec.getSearchableFieldSpecs().size()); // keyPart1, keyPart3
+    assertEquals(2, keyAspectSpec.getSearchableFieldSpecs().size());
     assertEquals("keyPart1", keyAspectSpec.getSearchableFieldSpecMap().get(new PathSpec("keyPart1").toString())
         .getSearchableAnnotation().getFieldName());
     assertEquals(SearchableAnnotation.FieldType.TEXT, keyAspectSpec.getSearchableFieldSpecMap().get(new PathSpec("keyPart1").toString())
@@ -130,8 +126,8 @@ public class EntitySpecBuilderTest {
 
 
   private void validateBrowsePaths(final AspectSpec browsePathAspectSpec) {
-    assertEquals("testBrowsePaths", browsePathAspectSpec.getName());
-    assertEquals(new TestBrowsePaths().schema().getFullName(), browsePathAspectSpec.getPegasusSchema().getFullName());
+    assertEquals("browsePaths", browsePathAspectSpec.getName());
+    assertEquals(new BrowsePaths().schema().getFullName(), browsePathAspectSpec.getPegasusSchema().getFullName());
     assertEquals(1, browsePathAspectSpec.getSearchableFieldSpecs().size());
     assertEquals(SearchableAnnotation.FieldType.BROWSE_PATH, browsePathAspectSpec.getSearchableFieldSpecs().get(0)
         .getSearchableAnnotation().getFieldType());
@@ -180,11 +176,6 @@ public class EntitySpecBuilderTest {
     assertEquals(SearchableAnnotation.FieldType.OBJECT, testEntityInfo.getSearchableFieldSpecMap().get(
             new PathSpec("esObjectField").toString())
         .getSearchableAnnotation().getFieldType());
-    assertEquals("foreignKey", testEntityInfo.getSearchableFieldSpecMap().get(
-            new PathSpec("foreignKey").toString()).getSearchableAnnotation().getFieldName());
-    assertEquals(true, testEntityInfo.getSearchableFieldSpecMap().get(
-            new PathSpec("foreignKey").toString()).getSearchableAnnotation().isQueryByDefault());
-
 
     // Assert on Relationship Fields
     assertEquals(4, testEntityInfo.getRelationshipFieldSpecs().size());

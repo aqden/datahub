@@ -9,6 +9,7 @@ from datahub.metadata.com.linkedin.pegasus2avro.dataset import (
     Upstream,
     UpstreamLineage,
 )
+from datahub.metadata.schema_classes import ChangeTypeClass
 
 
 def datasetUrn(tbl):
@@ -74,7 +75,10 @@ fieldLineages = UpstreamLineage(
 )
 
 lineageMcp = MetadataChangeProposalWrapper(
+    entityType="dataset",
+    changeType=ChangeTypeClass.UPSERT,
     entityUrn=datasetUrn("bar"),
+    aspectName="upstreamLineage",
     aspect=fieldLineages,
 )
 

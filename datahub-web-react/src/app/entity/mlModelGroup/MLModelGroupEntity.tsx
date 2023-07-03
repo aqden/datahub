@@ -8,13 +8,12 @@ import { GenericEntityProperties } from '../shared/types';
 import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
 import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
-import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
+import { SidebarAboutSection } from '../shared/containers/profile/sidebar/SidebarAboutSection';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import { useGetMlModelGroupQuery } from '../../../graphql/mlModelGroup.generated';
 import ModelGroupModels from './profile/ModelGroupModels';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
 import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
-import DataProductSection from '../shared/containers/profile/sidebar/DataProduct/DataProductSection';
 
 /**
  * Definition of the DataHub MlModelGroup entity.
@@ -22,20 +21,20 @@ import DataProductSection from '../shared/containers/profile/sidebar/DataProduct
 export class MLModelGroupEntity implements Entity<MlModelGroup> {
     type: EntityType = EntityType.MlmodelGroup;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <CodeSandboxOutlined style={{ fontSize, color }} />;
+            return <CodeSandboxOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <CodeSandboxOutlined style={{ fontSize, color: color || '#9633b9' }} />;
+            return <CodeSandboxOutlined style={{ fontSize, color: '#9633b9' }} />;
         }
 
         return (
             <CodeSandboxOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );
@@ -66,7 +65,7 @@ export class MLModelGroupEntity implements Entity<MlModelGroup> {
             entityType={EntityType.MlmodelGroup}
             useEntityQuery={useGetMlModelGroupQuery}
             getOverrideProperties={this.getOverridePropertiesFromEntity}
-            headerDropdownItems={new Set([EntityMenuItems.UPDATE_DEPRECATION])}
+            headerDropdownItems={new Set([EntityMenuItems.COPY_URL, EntityMenuItems.UPDATE_DEPRECATION])}
             tabs={[
                 {
                     name: 'Models',
@@ -96,9 +95,6 @@ export class MLModelGroupEntity implements Entity<MlModelGroup> {
                 },
                 {
                     component: SidebarDomainSection,
-                },
-                {
-                    component: DataProductSection,
                 },
             ]}
         />
@@ -143,7 +139,6 @@ export class MLModelGroupEntity implements Entity<MlModelGroup> {
             EntityCapabilityType.DOMAINS,
             EntityCapabilityType.DEPRECATION,
             EntityCapabilityType.SOFT_DELETE,
-            EntityCapabilityType.DATA_PRODUCTS,
         ]);
     };
 }

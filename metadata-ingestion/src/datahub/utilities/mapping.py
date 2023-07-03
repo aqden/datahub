@@ -1,4 +1,3 @@
-import contextlib
 import logging
 import re
 from typing import Any, Dict, List, Match, Optional, Union
@@ -11,29 +10,6 @@ from datahub.metadata.schema_classes import (
     OwnershipSourceClass,
     OwnershipTypeClass,
 )
-
-logger = logging.getLogger(__name__)
-
-
-def _get_best_match(the_match: Match, group_name: str) -> str:
-    with contextlib.suppress(IndexError):
-        return the_match.group(group_name)
-
-    with contextlib.suppress(IndexError):
-        return the_match.group(1)
-
-    return the_match.group(0)
-
-
-_match_regexp = re.compile(r"{{\s*\$match\s*}}", flags=re.MULTILINE)
-
-
-def _insert_match_value(original_value: str, match_value: str) -> str:
-    """
-    If the original value is something like "foo{{ $match }}bar", then we insert the match value
-    e.g. "foo<match_value>bar". Otherwise, it will leave the original value unchanged.
-    """
-    return _match_regexp.sub(match_value, original_value)
 
 
 class Constants:
@@ -52,8 +28,6 @@ class Constants:
     GROUP_OWNER = "group"
     OPERAND_DATATYPE_SUPPORTED = [int, bool, str, float]
     TAG_PARTITION_KEY = "PARTITION_KEY"
-    TAG_DIST_KEY = "DIST_KEY"
-    TAG_SORT_KEY = "SORT_KEY"
     SEPARATOR = "separator"
 
 
@@ -86,13 +60,14 @@ class OperationProcessor:
     """
 
     operation_defs: Dict[str, Dict] = {}
+    logger = logging.getLogger(__name__)
     tag_prefix: str = ""
 
     def __init__(
         self,
         operation_defs: Dict[str, Dict],
         tag_prefix: str = "",
-        owner_source_type: Optional[str] = None,
+        owner_source_type: str = None,
         strip_owner_email_id: bool = False,
     ):
         self.operation_defs = operation_defs
@@ -153,7 +128,7 @@ class OperationProcessor:
 
             aspect_map = self.convert_to_aspects(operations_map)
         except Exception as e:
-            logger.error(f"Error while processing operation defs over raw_props: {e}")
+            self.logger.error("Error while processing operation defs over raw_props", e)
         return aspect_map
 
     def convert_to_aspects(
@@ -196,12 +171,30 @@ class OperationProcessor:
         operation_config: Dict,
         match: Match,
     ) -> Optional[Union[str, Dict, List[str]]]:
+        def _get_best_match(the_match: Match, group_name: str) -> str:
+            result = the_match.group(0)
+            try:
+                result = the_match.group(group_name)
+                return result
+            except IndexError:
+                pass
+            try:
+                result = the_match.group(1)
+                return result
+            except IndexError:
+                pass
+            return result
+
+        match_regexp = r"{{\s*\$match\s*}}"
+
         if (
             operation_type == Constants.ADD_TAG_OPERATION
             and operation_config[Constants.TAG]
         ):
             tag = operation_config[Constants.TAG]
-            tag = _insert_match_value(tag, _get_best_match(match, "tag"))
+            tag_id = _get_best_match(match, "tag")
+            if isinstance(tag_id, str):
+                tag = re.sub(match_regexp, tag_id, tag, 0, re.MULTILINE)
 
             if self.tag_prefix:
                 tag = self.tag_prefix + tag
@@ -233,7 +226,9 @@ class OperationProcessor:
             and operation_config[Constants.TERM]
         ):
             term = operation_config[Constants.TERM]
-            term = _insert_match_value(term, _get_best_match(match, "term"))
+            captured_term_id = _get_best_match(match, "term")
+            if isinstance(captured_term_id, str):
+                term = re.sub(match_regexp, captured_term_id, term, 0, re.MULTILINE)
             return mce_builder.make_term_urn(term)
         elif operation_type == Constants.ADD_TERMS_OPERATION:
             separator = operation_config.get(Constants.SEPARATOR, ",")

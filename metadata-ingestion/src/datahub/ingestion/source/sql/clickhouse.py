@@ -31,12 +31,12 @@ from datahub.ingestion.api.decorators import (
 )
 from datahub.ingestion.api.workunit import MetadataWorkUnit
 from datahub.ingestion.source.sql.sql_common import (
+    BasicSQLAlchemyConfig,
     SQLAlchemySource,
     SqlWorkUnit,
     logger,
     register_custom_type,
 )
-from datahub.ingestion.source.sql.sql_config import BasicSQLAlchemyConfig
 from datahub.metadata.com.linkedin.pegasus2avro.dataset import UpstreamLineage
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
@@ -48,6 +48,7 @@ from datahub.metadata.com.linkedin.pegasus2avro.schema import (
     UnionTypeClass,
 )
 from datahub.metadata.schema_classes import (
+    ChangeTypeClass,
     DatasetLineageTypeClass,
     DatasetPropertiesClass,
     DatasetSnapshotClass,
@@ -72,9 +73,6 @@ base.ischema_names["Int128"] = INTEGER
 base.ischema_names["Int256"] = INTEGER
 base.ischema_names["UInt128"] = INTEGER
 base.ischema_names["UInt256"] = INTEGER
-# This is needed for clickhouse-sqlalchemy 0.2.3
-base.ischema_names["DateTime"] = DATETIME
-base.ischema_names["DateTime64"] = DATETIME
 
 register_custom_type(custom_types.common.Array, ArrayTypeClass)
 register_custom_type(custom_types.ip.IPv4, NumberTypeClass)
@@ -122,9 +120,9 @@ class ClickHouseConfig(
 ):
     # defaults
     host_port = Field(default="localhost:8123", description="ClickHouse host URL.")
-    scheme = Field(default="clickhouse", description="", hidden_from_docs=True)
+    scheme = Field(default="clickhouse", description="", exclude=True)
     password: pydantic.SecretStr = Field(
-        default=pydantic.SecretStr(""), description="password"
+        default=pydantic.SecretStr(""), exclude=True, description="password"
     )
 
     secure: Optional[bool] = Field(default=None, description="")
@@ -359,8 +357,8 @@ class ClickHouseSource(SQLAlchemySource):
         config = ClickHouseConfig.parse_obj(config_dict)
         return cls(config, ctx)
 
-    def get_workunits_internal(self) -> Iterable[Union[MetadataWorkUnit, SqlWorkUnit]]:
-        for wu in super().get_workunits_internal():
+    def get_workunits(self) -> Iterable[Union[MetadataWorkUnit, SqlWorkUnit]]:
+        for wu in super().get_workunits():
             if (
                 self.config.include_table_lineage
                 and isinstance(wu, SqlWorkUnit)
@@ -375,7 +373,13 @@ class ClickHouseSource(SQLAlchemySource):
                 )
 
                 if lineage_mcp is not None:
-                    yield lineage_mcp.as_workunit()
+                    lineage_wu = MetadataWorkUnit(
+                        id=f"{self.platform}-{lineage_mcp.entityUrn}-{lineage_mcp.aspectName}",
+                        mcp=lineage_mcp,
+                    )
+                    self.report.report_workunit(lineage_wu)
+
+                    yield lineage_wu
 
                 if lineage_properties_aspect:
                     aspects = dataset_snapshot.aspects
@@ -451,6 +455,7 @@ class ClickHouseSource(SQLAlchemySource):
 
         try:
             for db_row in engine.execute(text(query)):
+
                 if not self.config.schema_pattern.allowed(
                     db_row["target_schema"]
                 ) or not self.config.table_pattern.allowed(db_row["target_table"]):
@@ -494,6 +499,7 @@ class ClickHouseSource(SQLAlchemySource):
 
                 # Merging downstreams if dataset already exists and has downstreams
                 if target.dataset.path in self._lineage_map:
+
                     self._lineage_map[
                         target.dataset.path
                     ].upstreams = self._lineage_map[
@@ -516,6 +522,7 @@ class ClickHouseSource(SQLAlchemySource):
             )
 
     def _populate_lineage(self) -> None:
+
         # only dictionaries with clickhouse as a source are supported
         table_lineage_query = textwrap.dedent(
             """\
@@ -644,7 +651,10 @@ class ClickHouseSource(SQLAlchemySource):
             return None, properties
 
         mcp = MetadataChangeProposalWrapper(
+            entityType="dataset",
+            changeType=ChangeTypeClass.UPSERT,
             entityUrn=dataset_urn,
+            aspectName="upstreamLineage",
             aspect=UpstreamLineage(upstreams=upstream_lineage),
         )
 

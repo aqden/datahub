@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
 import { UserOutlined } from '@ant-design/icons';
 import { Select } from 'antd';
-import { useApolloClient } from '@apollo/client';
 import styled from 'styled-components';
 import { CorpUser, DataHubRole } from '../../../types.generated';
 import AssignRoleConfirmation from './AssignRoleConfirmation';
 import { mapRoleIcon } from './UserUtils';
-import { ANTD_GRAY } from '../../entity/shared/constants';
-import { clearRoleListCache } from '../../permissions/roles/cacheUtils';
-
-const NO_ROLE_TEXT = 'No Role';
-const NO_ROLE_URN = 'urn:li:dataHubRole:NoRole';
 
 type Props = {
     user: CorpUser;
@@ -19,9 +13,8 @@ type Props = {
     refetch?: () => void;
 };
 
-const RoleSelect = styled(Select)<{ color?: string }>`
+const RoleSelect = styled(Select)`
     min-width: 105px;
-    ${(props) => (props.color ? ` color: ${props.color};` : '')}
 `;
 
 const RoleIcon = styled.span`
@@ -30,45 +23,31 @@ const RoleIcon = styled.span`
 `;
 
 export default function SelectRole({ user, userRoleUrn, selectRoleOptions, refetch }: Props) {
-    const client = useApolloClient();
+    const [isViewingAssignRole, setIsViewingAssignRole] = useState(false);
+    const [roleToAssign, setRoleToAssign] = useState<DataHubRole>();
+
     const rolesMap: Map<string, DataHubRole> = new Map();
     selectRoleOptions.forEach((role) => {
         rolesMap.set(role.urn, role);
     });
-    const allSelectRoleOptions = [{ urn: NO_ROLE_URN, name: NO_ROLE_TEXT }, ...selectRoleOptions];
-    const selectOptions = allSelectRoleOptions.map((role) => {
-        return (
-            <Select.Option key={role.urn} value={role.urn}>
-                <RoleIcon>{mapRoleIcon(role.name)}</RoleIcon>
-                {role.name}
-            </Select.Option>
-        );
-    });
 
-    const defaultRoleUrn = userRoleUrn || NO_ROLE_URN;
-    const [currentRoleUrn, setCurrentRoleUrn] = useState<string>(defaultRoleUrn);
-    const [isViewingAssignRole, setIsViewingAssignRole] = useState(false);
+    const selectOptions = () =>
+        selectRoleOptions.map((role) => {
+            return (
+                <Select.Option value={role.urn}>
+                    <RoleIcon>{mapRoleIcon(role.name)}</RoleIcon>
+                    {role.name}
+                </Select.Option>
+            );
+        });
 
     const onSelectRole = (roleUrn: string) => {
-        setCurrentRoleUrn(roleUrn);
+        const roleFromMap: DataHubRole = rolesMap.get(roleUrn) as DataHubRole;
+        setRoleToAssign(roleFromMap);
         setIsViewingAssignRole(true);
     };
 
-    const onCancel = () => {
-        setCurrentRoleUrn(defaultRoleUrn);
-        setIsViewingAssignRole(false);
-    };
-
-    const onConfirm = () => {
-        setIsViewingAssignRole(false);
-        setTimeout(() => {
-            refetch?.();
-            clearRoleListCache(client); // Update roles.
-        }, 3000);
-    };
-
-    // wait for available roles to load
-    if (!selectRoleOptions.length) return null;
+    const noRoleText = 'No Role';
 
     return (
         <>
@@ -76,22 +55,26 @@ export default function SelectRole({ user, userRoleUrn, selectRoleOptions, refet
                 placeholder={
                     <>
                         <UserOutlined style={{ marginRight: 6, fontSize: 12 }} />
-                        {NO_ROLE_TEXT}
+                        {noRoleText}
                     </>
                 }
-                value={currentRoleUrn}
+                value={userRoleUrn || undefined}
                 onChange={(e) => onSelectRole(e as string)}
-                color={currentRoleUrn === NO_ROLE_URN ? ANTD_GRAY[6] : undefined}
             >
-                {selectOptions}
+                {selectOptions()}
             </RoleSelect>
             <AssignRoleConfirmation
                 visible={isViewingAssignRole}
-                roleToAssign={rolesMap.get(currentRoleUrn)}
+                roleToAssign={roleToAssign}
                 userUrn={user.urn}
                 username={user.username}
-                onClose={onCancel}
-                onConfirm={onConfirm}
+                onClose={() => setIsViewingAssignRole(false)}
+                onConfirm={() => {
+                    setIsViewingAssignRole(false);
+                    setTimeout(function () {
+                        refetch?.();
+                    }, 3000);
+                }}
             />
         </>
     );

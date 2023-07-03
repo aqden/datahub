@@ -1,19 +1,21 @@
 from typing import Iterable
 
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.api.common import PipelineContext
+from datahub.ingestion.api import workunit
+from datahub.ingestion.api.common import PipelineContext, WorkUnit
 from datahub.ingestion.api.source import Source, SourceReport
-from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.metadata.schema_classes import StatusClass
+from datahub.metadata.schema_classes import ChangeTypeClass, StatusClass
 from datahub.utilities.urns.dataset_urn import DatasetUrn
 
 
 class FakeSource(Source):
-    def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
+    def get_workunits(self) -> Iterable[WorkUnit]:
         return [
-            MetadataWorkUnit(
+            workunit.MetadataWorkUnit(
                 id="test-workunit",
                 mcp=MetadataChangeProposalWrapper(
+                    entityType="dataset",
+                    changeType=ChangeTypeClass.UPSERT,
                     entityUrn=str(
                         DatasetUrn.create_from_ids(
                             platform_id="elasticsearch",
@@ -21,6 +23,7 @@ class FakeSource(Source):
                             env="PROD",
                         )
                     ),
+                    aspectName="status",
                     aspect=StatusClass(removed=False),
                 ),
             )

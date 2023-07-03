@@ -239,10 +239,7 @@ class AvroToMceSchemaConverter:
 
     class SchemaFieldEmissionContextManager:
         """Context Manager for MCE SchemaFiled emission
-        - handles prefix name stack management and AVRO record-field generation for non-complex types.
-        - actual_schema contains the underlying no-null type's schema if the schema is a union
-          This way we can use the type/description of the non-null type if needed.
-        """
+        - handles prefix name stack management and AVRO record-field generation for non-complex types."""
 
         def __init__(
             self,
@@ -250,13 +247,11 @@ class AvroToMceSchemaConverter:
             actual_schema: avro.schema.Schema,
             converter: "AvroToMceSchemaConverter",
             description: Optional[str] = None,
-            default_value: Optional[str] = None,
         ):
             self._schema = schema
             self._actual_schema = actual_schema
             self._converter = converter
             self._description = description
-            self._default_value = default_value
 
         def __enter__(self):
             type_annotation = self._converter._get_type_annotation(self._actual_schema)
@@ -294,11 +289,8 @@ class AvroToMceSchemaConverter:
                     )
 
                 description = self._description
-                if not description and actual_schema.props.get("doc"):
-                    description = actual_schema.props.get("doc")
-
-                if self._default_value is not None:
-                    description = f"{description if description else ''}\nField default value: {self._default_value}"
+                if description is None:
+                    description = schema.props.get("doc", None)
 
                 native_data_type = self._converter._prefix_name_stack[-1]
                 if isinstance(schema, (avro.schema.Field, avro.schema.UnionSchema)):
@@ -322,8 +314,6 @@ class AvroToMceSchemaConverter:
                     description = (
                         f"<span style=\"color:red\">DEPRECATED: {merged_props['deprecated']}</span>\n"
                         + description
-                        if description
-                        else ""
                     )
                     tags = GlobalTagsClass(
                         tags=[TagAssociationClass(tag="urn:li:tag:Deprecated")]
@@ -417,12 +407,13 @@ class AvroToMceSchemaConverter:
         last_field_schema = self._fields_stack[-1]
         # Generate the custom-description for the field.
         description = last_field_schema.doc if last_field_schema.doc else None
+        if last_field_schema.has_default and last_field_schema.default is not None:
+            description = (
+                f"{description}\nField default value: {last_field_schema.default}"
+            )
+
         with AvroToMceSchemaConverter.SchemaFieldEmissionContextManager(
-            last_field_schema,
-            last_field_schema,
-            self,
-            description,
-            last_field_schema.default,
+            last_field_schema, last_field_schema, self, description
         ) as f_emit:
             yield from f_emit.emit()
 
@@ -516,28 +507,22 @@ class AvroToMceSchemaConverter:
 
 
 def avro_schema_to_mce_fields(
-    avro_schema_string: str,
-    is_key_schema: bool = False,
-    default_nullable: bool = False,
-    swallow_exceptions: bool = True,
+    avro_schema_string: str, is_key_schema: bool = False, default_nullable: bool = False
 ) -> List[SchemaField]:
     """
     Converts an avro schema into schema fields compatible with MCE.
     :param avro_schema_string: String representation of the AVRO schema.
     :param is_key_schema: True if it is a key-schema. Default is False (value-schema).
-    :param swallow_exceptions: True if the caller wants exceptions to be suppressed
     :return: The list of MCE compatible SchemaFields.
     """
-
+    schema_fields: List[SchemaField] = []
     try:
-        return list(
+        schema_fields = list(
             AvroToMceSchemaConverter.to_mce_fields(
                 avro_schema_string, is_key_schema, default_nullable
             )
         )
     except Exception:
-        if swallow_exceptions:
-            logger.exception(f"Failed to parse {avro_schema_string} into mce fields.")
-            return []
-        else:
-            raise
+        logger.exception(f"Failed to parse {avro_schema_string} to mce_fields.")
+
+    return schema_fields

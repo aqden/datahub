@@ -7,7 +7,7 @@ fi
 
 OTEL_AGENT=""
 if [[ $ENABLE_OTEL == true ]]; then
-  OTEL_AGENT="-javaagent:opentelemetry-javaagent.jar "
+  OTEL_AGENT="-javaagent:opentelemetry-javaagent-all.jar "
 fi
 
 PROMETHEUS_AGENT=""

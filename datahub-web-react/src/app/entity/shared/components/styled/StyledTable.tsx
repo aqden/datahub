@@ -1,11 +1,8 @@
-import { Table } from 'antd';
 import styled from 'styled-components';
+import { Table } from 'antd';
 import { ANTD_GRAY } from '../../constants';
 
 export const StyledTable = styled(Table)`
-    overflow: inherit;
-    height: inherit;
-
     &&& .ant-table-cell {
         background-color: #fff;
     }

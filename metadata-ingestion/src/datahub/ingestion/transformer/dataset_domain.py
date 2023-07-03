@@ -68,7 +68,7 @@ class AddDatasetDomain(DatasetDomainTransformer):
         return domain_class
 
     @staticmethod
-    def _merge_with_server_domains(
+    def get_domains_to_set(
         graph: DataHubGraph, urn: str, mce_domain: Optional[DomainsClass]
     ) -> Optional[DomainsClass]:
         if not mce_domain or not mce_domain.domains:
@@ -93,6 +93,7 @@ class AddDatasetDomain(DatasetDomainTransformer):
     def transform_aspect(
         self, entity_urn: str, aspect_name: str, aspect: Optional[Aspect]
     ) -> Optional[Aspect]:
+
         in_domain_aspect: DomainsClass = cast(DomainsClass, aspect)
         domain_aspect = DomainsClass(domains=[])
         # Check if we have received existing aspect
@@ -107,10 +108,15 @@ class AddDatasetDomain(DatasetDomainTransformer):
             assert self.ctx.graph
             patch_domain_aspect: Optional[
                 DomainsClass
-            ] = AddDatasetDomain._merge_with_server_domains(
+            ] = AddDatasetDomain.get_domains_to_set(
                 self.ctx.graph, entity_urn, domain_aspect
             )
-            return cast(Optional[Aspect], patch_domain_aspect)
+            # This will pass the mypy lint
+            domain_aspect = (
+                patch_domain_aspect
+                if patch_domain_aspect is not None
+                else domain_aspect
+            )
 
         return cast(Optional[Aspect], domain_aspect)
 
@@ -155,7 +161,6 @@ class PatternAddDatasetDomain(AddDatasetDomain):
         generic_config = AddDatasetDomainSemanticsConfig(
             get_domains_to_add=resolve_domain,
             semantics=config.semantics,
-            replace_existing=config.replace_existing,
         )
         super().__init__(generic_config, ctx)
 

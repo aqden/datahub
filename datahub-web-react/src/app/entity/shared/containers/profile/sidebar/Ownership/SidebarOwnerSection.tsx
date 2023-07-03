@@ -1,19 +1,13 @@
 import { Typography, Button } from 'antd';
 import React, { useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { ExpandedOwner } from '../../../../components/styled/ExpandedOwner/ExpandedOwner';
+import { ExpandedOwner } from '../../../../components/styled/ExpandedOwner';
 import { EMPTY_MESSAGES } from '../../../../constants';
 import { useEntityData, useMutationUrn, useRefetch } from '../../../../EntityContext';
 import { SidebarHeader } from '../SidebarHeader';
 import { EditOwnersModal } from './EditOwnersModal';
-import { ENTITY_PROFILE_OWNERS_ID } from '../../../../../../onboarding/config/EntityProfileOnboardingConfig';
 
-interface Props {
-    properties?: any;
-    readOnly?: boolean;
-}
-
-export const SidebarOwnerSection = ({ properties, readOnly }: Props) => {
+export const SidebarOwnerSection = ({ properties }: { properties?: any }) => {
     const { entityType, entityData } = useEntityData();
     const mutationUrn = useMutationUrn();
 
@@ -22,7 +16,7 @@ export const SidebarOwnerSection = ({ properties, readOnly }: Props) => {
     const ownersEmpty = !entityData?.ownership?.owners?.length;
 
     return (
-        <div id={ENTITY_PROFILE_OWNERS_ID}>
+        <div>
             <SidebarHeader title="Owners" />
             <div>
                 {entityData?.ownership?.owners?.map((owner) => (
@@ -31,8 +25,6 @@ export const SidebarOwnerSection = ({ properties, readOnly }: Props) => {
                         entityUrn={owner.associatedUrn || mutationUrn}
                         owner={owner}
                         refetch={refetch}
-                        readOnly={readOnly}
-                        fontSize={12}
                     />
                 ))}
                 {ownersEmpty && (
@@ -40,11 +32,10 @@ export const SidebarOwnerSection = ({ properties, readOnly }: Props) => {
                         {EMPTY_MESSAGES.owners.title}. {EMPTY_MESSAGES.owners.description}
                     </Typography.Paragraph>
                 )}
-                {!readOnly && (
-                    <Button type={ownersEmpty ? 'default' : 'text'} onClick={() => setShowAddModal(true)}>
-                        <PlusOutlined /> Add Owners
-                    </Button>
-                )}
+
+                <Button type={ownersEmpty ? 'default' : 'text'} onClick={() => setShowAddModal(true)}>
+                    <PlusOutlined /> Add Owners
+                </Button>
             </div>
             {showAddModal && (
                 <EditOwnersModal

@@ -9,16 +9,13 @@ import { useGetMlFeatureTableQuery } from '../../../graphql/mlFeatureTable.gener
 import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
 import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
-import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
+import { SidebarAboutSection } from '../shared/containers/profile/sidebar/SidebarAboutSection';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import MlFeatureTableFeatures from './profile/features/MlFeatureTableFeatures';
 import Sources from './profile/Sources';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
 import { PropertiesTab } from '../shared/tabs/Properties/PropertiesTab';
 import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
-import { capitalizeFirstLetterOnly } from '../../shared/textUtil';
-import DataProductSection from '../shared/containers/profile/sidebar/DataProduct/DataProductSection';
-import { getDataProduct } from '../shared/utils';
 
 /**
  * Definition of the DataHub MLFeatureTable entity.
@@ -26,20 +23,20 @@ import { getDataProduct } from '../shared/utils';
 export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
     type: EntityType = EntityType.MlfeatureTable;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <DotChartOutlined style={{ fontSize, color }} />;
+            return <DotChartOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <DotChartOutlined style={{ fontSize, color: color || '#9633b9' }} />;
+            return <DotChartOutlined style={{ fontSize, color: '#9633b9' }} />;
         }
 
         return (
             <DotChartOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );
@@ -70,7 +67,7 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
             entityType={EntityType.MlfeatureTable}
             useEntityQuery={useGetMlFeatureTableQuery}
             getOverrideProperties={this.getOverridePropertiesFromEntity}
-            headerDropdownItems={new Set([EntityMenuItems.UPDATE_DEPRECATION])}
+            headerDropdownItems={new Set([EntityMenuItems.COPY_URL, EntityMenuItems.UPDATE_DEPRECATION])}
             tabs={[
                 {
                     name: 'Features',
@@ -109,15 +106,11 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
                 {
                     component: SidebarDomainSection,
                 },
-                {
-                    component: DataProductSection,
-                },
             ]}
         />
     );
 
     renderPreview = (_: PreviewType, data: MlFeatureTable) => {
-        const genericProperties = this.getGenericEntityProperties(data);
         return (
             <Preview
                 urn={data.urn}
@@ -125,15 +118,13 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
                 description={data.description}
                 owners={data.ownership?.owners}
                 logoUrl={data.platform?.properties?.logoUrl}
-                platformName={data.platform?.properties?.displayName || capitalizeFirstLetterOnly(data.platform?.name)}
-                dataProduct={getDataProduct(genericProperties?.dataProduct)}
+                platformName={data.platform?.displayName}
             />
         );
     };
 
     renderSearch = (result: SearchResult) => {
         const data = result.entity as MlFeatureTable;
-        const genericProperties = this.getGenericEntityProperties(data);
         return (
             <Preview
                 urn={data.urn}
@@ -141,9 +132,8 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
                 description={data.description || ''}
                 owners={data.ownership?.owners}
                 logoUrl={data.platform?.properties?.logoUrl}
-                platformName={data.platform?.properties?.displayName || capitalizeFirstLetterOnly(data.platform?.name)}
+                platformName={data.platform?.displayName}
                 platformInstanceId={data.dataPlatformInstance?.instanceId}
-                dataProduct={getDataProduct(genericProperties?.dataProduct)}
             />
         );
     };
@@ -178,7 +168,6 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
             EntityCapabilityType.DOMAINS,
             EntityCapabilityType.DEPRECATION,
             EntityCapabilityType.SOFT_DELETE,
-            EntityCapabilityType.DATA_PRODUCTS,
         ]);
     };
 }

@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { DatabaseFilled, DatabaseOutlined } from '@ant-design/icons';
+import { Typography } from 'antd';
 import { Dataset, DatasetProperties, EntityType, OwnershipType, SearchResult } from '../../../types.generated';
 import { Entity, EntityCapabilityType, IconStyleType, PreviewType } from '../Entity';
 import { Preview } from './preview/Preview';
+import { FIELDS_TO_HIGHLIGHT } from './search/highlights';
 import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { GetDatasetQuery, useGetDatasetQuery, useUpdateDatasetMutation } from '../../../graphql/dataset.generated';
 import { GenericEntityProperties } from '../shared/types';
@@ -10,17 +12,18 @@ import { PropertiesTab } from '../shared/tabs/Properties/PropertiesTab';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
 import { SchemaTab } from '../shared/tabs/Dataset/Schema/SchemaTab';
 import QueriesTab from '../shared/tabs/Dataset/Queries/QueriesTab';
-import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
+import { SidebarAboutSection } from '../shared/containers/profile/sidebar/SidebarAboutSection';
 import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import StatsTab from '../shared/tabs/Dataset/Stats/StatsTab';
 import { LineageTab } from '../shared/tabs/Lineage/LineageTab';
-import { capitalizeFirstLetterOnly } from '../../shared/textUtil';
+import { capitalizeFirstLetter } from '../../shared/textUtil';
 import { EditSchemaTab } from '../shared/tabs/Dataset/Schema/EditSchemaTab';
 import { AdminTab } from '../shared/tabs/Dataset/Schema/AdminTab';
 import { EditPropertiesTab } from '../shared/tabs/Dataset/PropertiesEdit/EditPropertiesTab';
 import ViewDefinitionTab from '../shared/tabs/Dataset/View/ViewDefinitionTab';
 import { SidebarViewDefinitionSection } from '../shared/containers/profile/sidebar/Dataset/View/SidebarViewDefinitionSection';
+import { SidebarRecommendationsSection } from '../shared/containers/profile/sidebar/Recommendations/SidebarRecommendationsSection';
 import { getDataForEntityType } from '../shared/containers/profile/utils';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
 import { CheckOwnership } from './whoAmI';
@@ -30,11 +33,8 @@ import { OperationsTab } from './profile/OperationsTab';
 import { EntityMenuItems } from '../shared/EntityDropdown/EntityDropdown';
 import { SidebarSiblingsSection } from '../shared/containers/profile/sidebar/SidebarSiblingsSection';
 import { DatasetStatsSummarySubHeader } from './profile/stats/stats/DatasetStatsSummarySubHeader';
-import { DatasetSearchSnippet } from './DatasetSearchSnippet';
-import { EmbedTab } from '../shared/tabs/Embed/EmbedTab';
-import EmbeddedProfile from '../shared/embed/EmbeddedProfile';
-import DataProductSection from '../shared/containers/profile/sidebar/DataProduct/DataProductSection';
-import { getDataProduct } from '../shared/utils';
+import { TagSummary } from './shared/TagSummary';
+import { TermSummary } from './shared/TermSummary';
 import { ChangeEventsTab } from '../shared/tabs/Dataset/Schema/ChangeEventsTab';
 
 const SUBTYPES = {
@@ -47,13 +47,13 @@ const SUBTYPES = {
 export class DatasetEntity implements Entity<Dataset> {
     type: EntityType = EntityType.Dataset;
 
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <DatabaseOutlined style={{ fontSize, color }} />;
+            return <DatabaseOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <DatabaseFilled style={{ fontSize, color: color || '#B37FEB' }} />;
+            return <DatabaseFilled style={{ fontSize, color: '#B37FEB' }} />;
         }
 
         if (styleType === IconStyleType.SVG) {
@@ -66,7 +66,7 @@ export class DatasetEntity implements Entity<Dataset> {
             <DatabaseOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );
@@ -93,7 +93,7 @@ export class DatasetEntity implements Entity<Dataset> {
             useEntityQuery={useGetDatasetQuery}
             useUpdateQuery={useUpdateDatasetMutation}
             getOverrideProperties={this.getOverridePropertiesFromEntity}
-            headerDropdownItems={new Set([EntityMenuItems.UPDATE_DEPRECATION])}
+            headerDropdownItems={new Set([EntityMenuItems.COPY_URL, EntityMenuItems.UPDATE_DEPRECATION])}
             subHeader={{
                 component: DatasetStatsSummarySubHeader,
             }}
@@ -107,9 +107,7 @@ export class DatasetEntity implements Entity<Dataset> {
                     component: ViewDefinitionTab,
                     display: {
                         visible: (_, dataset: GetDatasetQuery) =>
-                            dataset?.dataset?.subTypes?.typeNames
-                                ?.map((t) => t.toLocaleLowerCase())
-                                .includes(SUBTYPES.VIEW.toLocaleLowerCase()) || false,
+                            (dataset?.dataset?.subTypes?.typeNames?.includes(SUBTYPES.VIEW) && true) || false,
                         enabled: (_, dataset: GetDatasetQuery) =>
                             (dataset?.dataset?.viewProperties?.logic && true) || false,
                     },
@@ -119,27 +117,29 @@ export class DatasetEntity implements Entity<Dataset> {
                     component: DocumentationTab,
                 },
                 {
-                    name: 'Preview',
-                    component: EmbedTab,
-                    display: {
-                        visible: (_, dataset: GetDatasetQuery) => !!dataset?.dataset?.embed?.renderUrl,
-                        enabled: (_, dataset: GetDatasetQuery) => !!dataset?.dataset?.embed?.renderUrl,
-                    },
+                    name: 'Properties',
+                    component: PropertiesTab,
                 },
                 {
                     name: 'Lineage',
                     component: LineageTab,
-                },
-                {
-                    name: 'Properties',
-                    component: PropertiesTab,
+                    display: {
+                        visible: (_, _1) => true,
+                        enabled: (_, dataset: GetDatasetQuery) => {
+                            return (
+                                (dataset?.dataset?.upstream?.total || 0) > 0 ||
+                                (dataset?.dataset?.downstream?.total || 0) > 0
+                            );
+                        },
+                    },
                 },
                 {
                     name: 'Queries',
                     component: QueriesTab,
                     display: {
                         visible: (_, _1) => true,
-                        enabled: (_, _2) => true,
+                        enabled: (_, dataset: GetDatasetQuery) =>
+                            (dataset?.dataset?.usageStats?.buckets?.length || 0) > 0,
                     },
                 },
                 {
@@ -269,12 +269,8 @@ export class DatasetEntity implements Entity<Dataset> {
                     component: SidebarDomainSection,
                 },
                 {
-                    component: DataProductSection,
+                    component: SidebarRecommendationsSection,
                 },
-                // TODO: Add back once entity-level recommendations are complete.
-                // {
-                //    component: SidebarRecommendationsSection,
-                // },
             ]}
         />
     );
@@ -284,18 +280,17 @@ export class DatasetEntity implements Entity<Dataset> {
         const subTypes = dataset?.subTypes;
         const extendedProperties: DatasetProperties | undefined | null = dataset?.properties && {
             ...dataset?.properties,
-            qualifiedName: dataset?.properties?.qualifiedName || this.displayName(dataset),
+            qualifiedName: dataset?.properties?.qualifiedName || dataset?.name,
         };
         return {
-            name: dataset && this.displayName(dataset),
+            name: dataset?.properties?.name || dataset?.name,
             externalUrl: dataset?.properties?.externalUrl,
-            entityTypeOverride: subTypes ? capitalizeFirstLetterOnly(subTypes.typeNames?.[0]) : '',
+            entityTypeOverride: subTypes ? capitalizeFirstLetter(subTypes.typeNames?.[0]) : '',
             properties: extendedProperties,
         };
     };
 
     renderPreview = (_: PreviewType, data: Dataset) => {
-        const genericProperties = this.getGenericEntityProperties(data);
         return (
             <Preview
                 urn={data.urn}
@@ -303,18 +298,14 @@ export class DatasetEntity implements Entity<Dataset> {
                 origin={data.origin}
                 subtype={data.subTypes?.typeNames?.[0]}
                 description={data.editableProperties?.description || data.properties?.description}
-                platformName={
-                    data?.platform?.properties?.displayName || capitalizeFirstLetterOnly(data?.platform?.name)
-                }
+                platformName={data.platform.properties?.displayName || data.platform.name}
                 platformLogo={data.platform.properties?.logoUrl}
                 platformInstanceId={data.dataPlatformInstance?.instanceId}
                 owners={data.ownership?.owners}
                 globalTags={data.globalTags}
                 glossaryTerms={data.glossaryTerms}
                 domain={data.domain?.domain}
-                dataProduct={getDataProduct(genericProperties?.dataProduct)}
                 container={data.container}
-                externalUrl={data.properties?.externalUrl}
             />
         );
     };
@@ -323,37 +314,52 @@ export class DatasetEntity implements Entity<Dataset> {
         const data = result.entity as Dataset;
         const genericProperties = this.getGenericEntityProperties(data);
 
+        let snippet: React.ReactNode;
+
+        if (result.matchedFields.length > 0) {
+            if (result.matchedFields[0].value.includes('urn:li:tag')) {
+                snippet = <TagSummary urn={result.matchedFields[0].value} />;
+            } else if (result.matchedFields[0].value.includes('urn:li:glossaryTerm')) {
+                snippet = <TermSummary urn={result.matchedFields[0].value} />;
+            } else {
+                snippet = <b>{result.matchedFields[0].value}</b>;
+            }
+        }
+
         return (
             <Preview
                 urn={data.urn}
                 name={data.properties?.name || data.name}
                 origin={data.origin}
                 description={data.editableProperties?.description || data.properties?.description}
-                platformName={
-                    data?.platform?.properties?.displayName || capitalizeFirstLetterOnly(data?.platform?.name)
-                }
+                platformName={data.platform.properties?.displayName || data.platform.name}
                 platformLogo={data.platform.properties?.logoUrl}
                 platformInstanceId={data.dataPlatformInstance?.instanceId}
                 platformNames={genericProperties?.siblingPlatforms?.map(
-                    (platform) => platform.properties?.displayName || capitalizeFirstLetterOnly(platform.name),
+                    (platform) => platform.properties?.displayName || platform.name,
                 )}
                 platformLogos={genericProperties?.siblingPlatforms?.map((platform) => platform.properties?.logoUrl)}
                 owners={data.ownership?.owners}
                 globalTags={data.globalTags}
                 domain={data.domain?.domain}
-                dataProduct={getDataProduct(genericProperties?.dataProduct)}
                 deprecation={data.deprecation}
                 glossaryTerms={data.glossaryTerms}
                 subtype={data.subTypes?.typeNames?.[0]}
                 container={data.container}
                 parentContainers={data.parentContainers}
-                snippet={<DatasetSearchSnippet matchedFields={result.matchedFields} />}
+                snippet={
+                    // Add match highlights only if all the matched fields are in the FIELDS_TO_HIGHLIGHT
+                    result.matchedFields.length > 0 &&
+                    result.matchedFields.every((field) => FIELDS_TO_HIGHLIGHT.has(field.name)) && (
+                        <Typography.Text>
+                            Matches {FIELDS_TO_HIGHLIGHT.get(result.matchedFields[0].name)} {snippet}
+                        </Typography.Text>
+                    )
+                }
                 insights={result.insights}
                 externalUrl={data.properties?.externalUrl}
                 statsSummary={data.statsSummary}
                 rowCount={(data as any).lastProfile?.length && (data as any).lastProfile[0].rowCount}
-                columnCount={(data as any).lastProfile?.length && (data as any).lastProfile[0].columnCount}
-                sizeInBytes={(data as any).lastProfile?.length && (data as any).lastProfile[0].sizeInBytes}
                 lastUpdatedMs={
                     (data as any).lastOperation?.length && (data as any).lastOperation[0].lastUpdatedTimestamp
                 }
@@ -397,16 +403,6 @@ export class DatasetEntity implements Entity<Dataset> {
             EntityCapabilityType.DOMAINS,
             EntityCapabilityType.DEPRECATION,
             EntityCapabilityType.SOFT_DELETE,
-            EntityCapabilityType.DATA_PRODUCTS,
         ]);
     };
-
-    renderEmbeddedProfile = (urn: string) => (
-        <EmbeddedProfile
-            urn={urn}
-            entityType={EntityType.Dataset}
-            useEntityQuery={useGetDatasetQuery}
-            getOverrideProperties={this.getOverridePropertiesFromEntity}
-        />
-    );
 }

@@ -2,15 +2,9 @@ package io.datahubproject.openapi.platform.entities;
 
 import com.datahub.authentication.Authentication;
 import com.datahub.authentication.AuthenticationContext;
-import com.datahub.authorization.AuthorizerChain;
-import com.datahub.authorization.ConjunctivePrivilegeGroup;
-import com.datahub.authorization.DisjunctivePrivilegeGroup;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
-import com.linkedin.metadata.authorization.PoliciesConfig;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.util.Pair;
-import io.datahubproject.openapi.exception.UnauthorizedException;
 import io.datahubproject.openapi.generated.MetadataChangeProposal;
 import io.datahubproject.openapi.util.MappingUtil;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,9 +12,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequiredArgsConstructor
+@AllArgsConstructor
 @RequestMapping("/platform/entities/v1")
 @Slf4j
 @Tag(name = "Platform Entities", description = "Platform level APIs intended for lower level access to entities")
@@ -42,10 +35,6 @@ public class PlatformEntitiesController {
 
   private final EntityService _entityService;
   private final ObjectMapper _objectMapper;
-  private final AuthorizerChain _authorizerChain;
-
-  @Value("${authorization.restApiAuthorization:false}")
-  private Boolean restApiAuthorizationEnabled;
 
   @InitBinder
   public void initBinder(WebDataBinder binder) {
@@ -60,20 +49,8 @@ public class PlatformEntitiesController {
     Authentication authentication = AuthenticationContext.getAuthentication();
     String actorUrnStr = authentication.getActor().toUrnStr();
 
-    List<com.linkedin.mxe.MetadataChangeProposal> proposals = metadataChangeProposals.stream()
-        .map(proposal -> MappingUtil.mapToServiceProposal(proposal, _objectMapper))
-        .collect(Collectors.toList());
-    DisjunctivePrivilegeGroup
-        orGroup = new DisjunctivePrivilegeGroup(ImmutableList.of(new ConjunctivePrivilegeGroup(
-        ImmutableList.of(PoliciesConfig.EDIT_ENTITY_PRIVILEGE.getType())
-    )));
-
-    if (restApiAuthorizationEnabled && !MappingUtil.authorizeProposals(proposals, _entityService, _authorizerChain, actorUrnStr, orGroup)) {
-      throw new UnauthorizedException(actorUrnStr + " is unauthorized to edit entities.");
-    }
-
-    List<Pair<String, Boolean>> responses = proposals.stream()
-        .map(proposal -> MappingUtil.ingestProposal(proposal, actorUrnStr, _entityService))
+    List<Pair<String, Boolean>> responses = metadataChangeProposals.stream()
+        .map(proposal -> MappingUtil.ingestProposal(proposal, actorUrnStr, _entityService, _objectMapper))
         .collect(Collectors.toList());
     if (responses.stream().anyMatch(Pair::getSecond)) {
       return ResponseEntity.status(HttpStatus.CREATED)

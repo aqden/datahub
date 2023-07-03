@@ -14,7 +14,6 @@ import com.linkedin.metadata.Constants;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.metadata.models.AspectSpec;
 import com.linkedin.metadata.models.registry.EntityRegistry;
-import com.linkedin.metadata.query.SearchFlags;
 import com.linkedin.metadata.search.EntitySearchService;
 import com.linkedin.metadata.search.SearchEntity;
 import com.linkedin.metadata.search.SearchEntityArray;
@@ -40,8 +39,7 @@ public class RestoreGlossaryIndicesTest {
     termInfoAspects.put(Constants.GLOSSARY_TERM_INFO_ASPECT_NAME, new EnvelopedAspect().setValue(new Aspect(new GlossaryTermInfo().setName("test").data())));
     Map<Urn, EntityResponse> termInfoResponses = new HashMap<>();
     termInfoResponses.put(glossaryTermUrn, new EntityResponse().setUrn(glossaryTermUrn).setAspects(new EnvelopedAspectMap(termInfoAspects)));
-    Mockito.when(mockSearchService.search(Constants.GLOSSARY_TERM_ENTITY_NAME, "", null, null, 0, 1000,
-                    new SearchFlags().setFulltext(false).setSkipAggregates(true).setSkipHighlighting(true)))
+    Mockito.when(mockSearchService.search(Constants.GLOSSARY_TERM_ENTITY_NAME, "", null, null, 0, 1000))
         .thenReturn(new SearchResult().setNumEntities(1).setEntities(new SearchEntityArray(ImmutableList.of(new SearchEntity().setEntity(glossaryTermUrn)))));
     Mockito.when(mockService.getEntitiesV2(
             Constants.GLOSSARY_TERM_ENTITY_NAME,
@@ -55,8 +53,7 @@ public class RestoreGlossaryIndicesTest {
     nodeInfoAspects.put(Constants.GLOSSARY_NODE_INFO_ASPECT_NAME, new EnvelopedAspect().setValue(new Aspect(new GlossaryNodeInfo().setName("test").data())));
     Map<Urn, EntityResponse> nodeInfoResponses = new HashMap<>();
     nodeInfoResponses.put(glossaryNodeUrn, new EntityResponse().setUrn(glossaryNodeUrn).setAspects(new EnvelopedAspectMap(nodeInfoAspects)));
-    Mockito.when(mockSearchService.search(Constants.GLOSSARY_NODE_ENTITY_NAME, "", null, null, 0, 1000,
-                    new SearchFlags().setFulltext(false).setSkipAggregates(true).setSkipHighlighting(true)))
+    Mockito.when(mockSearchService.search(Constants.GLOSSARY_NODE_ENTITY_NAME, "", null, null, 0, 1000))
         .thenReturn(new SearchResult().setNumEntities(1).setEntities(new SearchEntityArray(ImmutableList.of(new SearchEntity().setEntity(glossaryNodeUrn)))));
     Mockito.when(mockService.getEntitiesV2(
             Constants.GLOSSARY_NODE_ENTITY_NAME,
@@ -107,8 +104,7 @@ public class RestoreGlossaryIndicesTest {
     Mockito.verify(mockRegistry, Mockito.times(1)).getEntitySpec(Constants.GLOSSARY_NODE_ENTITY_NAME);
     Mockito.verify(mockService, Mockito.times(2)).ingestProposal(
         Mockito.any(MetadataChangeProposal.class),
-        Mockito.any(AuditStamp.class),
-        Mockito.eq(false)
+        Mockito.any(AuditStamp.class)
         );
     Mockito.verify(mockService, Mockito.times(1)).produceMetadataChangeLog(
         Mockito.eq(glossaryTermUrn),
@@ -168,8 +164,7 @@ public class RestoreGlossaryIndicesTest {
     Mockito.verify(mockRegistry, Mockito.times(1)).getEntitySpec(Constants.GLOSSARY_NODE_ENTITY_NAME);
     Mockito.verify(mockService, Mockito.times(2)).ingestProposal(
         Mockito.any(MetadataChangeProposal.class),
-        Mockito.any(AuditStamp.class),
-        Mockito.eq(false)
+        Mockito.any(AuditStamp.class)
         );
     Mockito.verify(mockService, Mockito.times(1)).produceMetadataChangeLog(
         Mockito.eq(glossaryTermUrn),
@@ -221,16 +216,11 @@ public class RestoreGlossaryIndicesTest {
 
     Mockito.verify(mockRegistry, Mockito.times(0)).getEntitySpec(Constants.GLOSSARY_TERM_ENTITY_NAME);
     Mockito.verify(mockRegistry, Mockito.times(0)).getEntitySpec(Constants.GLOSSARY_NODE_ENTITY_NAME);
-    Mockito.verify(mockSearchService, Mockito.times(0)).search(Constants.GLOSSARY_TERM_ENTITY_NAME,
-            "", null, null, 0, 1000, new SearchFlags().setFulltext(false)
-                    .setSkipAggregates(true).setSkipHighlighting(true));
-    Mockito.verify(mockSearchService, Mockito.times(0)).search(Constants.GLOSSARY_NODE_ENTITY_NAME,
-            "", null, null, 0, 1000, new SearchFlags().setFulltext(false)
-                    .setSkipAggregates(true).setSkipHighlighting(true));
+    Mockito.verify(mockSearchService, Mockito.times(0)).search(Constants.GLOSSARY_TERM_ENTITY_NAME, "", null, null, 0, 1000);
+    Mockito.verify(mockSearchService, Mockito.times(0)).search(Constants.GLOSSARY_NODE_ENTITY_NAME, "", null, null, 0, 1000);
     Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
         Mockito.any(MetadataChangeProposal.class),
-        Mockito.any(AuditStamp.class),
-        Mockito.anyBoolean()
+        Mockito.any(AuditStamp.class)
     );
     Mockito.verify(mockService, Mockito.times(0)).produceMetadataChangeLog(
         Mockito.eq(glossaryTermUrn),

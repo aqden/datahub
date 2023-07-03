@@ -20,10 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.maven.artifact.versioning.ComparableVersion;
+import org.apache.parquet.SemanticVersion;
 
 import static com.linkedin.datahub.graphql.types.timeline.utils.TimelineUtils.*;
 
@@ -33,29 +32,27 @@ import static com.linkedin.datahub.graphql.types.timeline.utils.TimelineUtils.*;
 @Slf4j
 public class SchemaBlameMapper {
 
-  public static GetSchemaBlameResult map(@Nonnull final List<ChangeTransaction> changeTransactions,
-      @Nullable final String versionCutoff) {
-    final GetSchemaBlameResult result = new GetSchemaBlameResult();
+  public static GetSchemaBlameResult map(List<ChangeTransaction> changeTransactions, @Nullable String versionCutoff) {
+    GetSchemaBlameResult result = new GetSchemaBlameResult();
     if (changeTransactions.isEmpty()) {
       log.debug("Change transactions are empty");
       return result;
     }
 
-    final Map<String, SchemaFieldBlame> schemaBlameMap = new HashMap<>();
+    Map<String, SchemaFieldBlame> schemaBlameMap = new HashMap<>();
 
-    final String latestSemanticVersionString =
+    String latestSemanticVersionString =
         truncateSemanticVersion(changeTransactions.get(changeTransactions.size() - 1).getSemVer());
 
-    final String semanticVersionFilterString = versionCutoff == null ? latestSemanticVersionString : versionCutoff;
-    final Optional<ComparableVersion> semanticVersionFilterOptional =
-        createSemanticVersion(semanticVersionFilterString);
-    if (semanticVersionFilterOptional.isEmpty()) {
+    String semanticVersionFilterString = versionCutoff == null ? latestSemanticVersionString : versionCutoff;
+    Optional<SemanticVersion> semanticVersionFilterOptional = createSemanticVersion(semanticVersionFilterString);
+    if (!semanticVersionFilterOptional.isPresent()) {
       return result;
     }
 
-    final ComparableVersion semanticVersionFilter = semanticVersionFilterOptional.get();
+    SemanticVersion semanticVersionFilter = semanticVersionFilterOptional.get();
 
-    final List<ChangeTransaction> reversedChangeTransactions = changeTransactions.stream()
+    List<ChangeTransaction> reversedChangeTransactions = changeTransactions.stream()
         .map(TimelineUtils::semanticVersionChangeTransactionPair)
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -65,13 +62,9 @@ public class SchemaBlameMapper {
         .map(Pair::getSecond)
         .collect(Collectors.toList());
 
-    if (reversedChangeTransactions.isEmpty()) {
-      return result;
-    }
-
-    final String selectedSemanticVersion = truncateSemanticVersion(reversedChangeTransactions.get(0).getSemVer());
-    final long selectedSemanticVersionTimestamp = reversedChangeTransactions.get(0).getTimestamp();
-    final String selectedVersionStamp = reversedChangeTransactions.get(0).getVersionStamp();
+    String selectedSemanticVersion = truncateSemanticVersion(reversedChangeTransactions.get(0).getSemVer());
+    long selectedSemanticVersionTimestamp = reversedChangeTransactions.get(0).getTimestamp();
+    String selectedVersionStamp = reversedChangeTransactions.get(0).getVersionStamp();
     result.setVersion(
         new SemanticVersionStruct(selectedSemanticVersion, selectedSemanticVersionTimestamp, selectedVersionStamp));
 
@@ -81,12 +74,12 @@ public class SchemaBlameMapper {
           continue;
         }
 
-        final String schemaUrn = changeEvent.getModifier();
+        String schemaUrn = changeEvent.getModifier();
         if (schemaUrn == null || schemaBlameMap.containsKey(schemaUrn)) {
           continue;
         }
 
-        final SchemaFieldBlame schemaFieldBlame = new SchemaFieldBlame();
+        SchemaFieldBlame schemaFieldBlame = new SchemaFieldBlame();
 
         SchemaFieldKey schemaFieldKey;
         try {
@@ -97,10 +90,10 @@ public class SchemaBlameMapper {
           continue;
         }
 
-        final String fieldPath = schemaFieldKey.getFieldPath();
+        String fieldPath = schemaFieldKey.getFieldPath();
         schemaFieldBlame.setFieldPath(fieldPath);
 
-        final SchemaFieldChange schemaFieldChange =
+        SchemaFieldChange schemaFieldChange =
             getLastSchemaFieldChange(changeEvent, changeTransaction.getTimestamp(), changeTransaction.getSemVer(),
                 changeTransaction.getVersionStamp());
         schemaFieldBlame.setSchemaFieldChange(schemaFieldChange);

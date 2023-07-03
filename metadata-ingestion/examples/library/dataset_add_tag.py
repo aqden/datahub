@@ -8,7 +8,11 @@ from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
 
 # Imports for metadata model classes
-from datahub.metadata.schema_classes import GlobalTagsClass, TagAssociationClass
+from datahub.metadata.schema_classes import (
+    ChangeTypeClass,
+    GlobalTagsClass,
+    TagAssociationClass,
+)
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -20,8 +24,9 @@ graph = DataHubGraph(DatahubClientConfig(server=gms_endpoint))
 
 dataset_urn = make_dataset_urn(platform="hive", name="realestate_db.sales", env="PROD")
 
-current_tags: Optional[GlobalTagsClass] = graph.get_aspect(
+current_tags: Optional[GlobalTagsClass] = graph.get_aspect_v2(
     entity_urn=dataset_urn,
+    aspect="globalTags",
     aspect_type=GlobalTagsClass,
 )
 
@@ -41,7 +46,10 @@ else:
 
 if need_write:
     event: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+        entityType="dataset",
+        changeType=ChangeTypeClass.UPSERT,
         entityUrn=dataset_urn,
+        aspectName="globalTags",
         aspect=current_tags,
     )
     graph.emit(event)

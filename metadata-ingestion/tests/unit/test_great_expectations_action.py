@@ -11,9 +11,6 @@ from great_expectations.core.expectation_validation_result import (
 from great_expectations.core.id_dict import IDDict
 from great_expectations.core.run_identifier import RunIdentifier
 from great_expectations.data_context import DataContext
-from great_expectations.data_context.data_context.file_data_context import (
-    FileDataContext,
-)
 from great_expectations.data_context.types.resource_identifiers import (
     ExpectationSuiteIdentifier,
     ValidationResultIdentifier,
@@ -49,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def ge_data_context(tmp_path: str) -> DataContext:
-    return FileDataContext.create(tmp_path)
+    return DataContext.create(tmp_path)
 
 
 @pytest.fixture(scope="function")
@@ -152,6 +149,7 @@ def test_DataHubValidationAction_basic(
     ge_validation_result_suite: ExpectationSuiteValidationResult,
     ge_validation_result_suite_id: ValidationResultIdentifier,
 ) -> None:
+
     server_url = "http://localhost:9999"
 
     datahub_action = DataHubValidationAction(
@@ -254,6 +252,7 @@ def test_DataHubValidationAction_graceful_failure(
     ge_validation_result_suite: ExpectationSuiteValidationResult,
     ge_validation_result_suite_id: ValidationResultIdentifier,
 ) -> None:
+
     server_url = "http://localhost:9999"
 
     datahub_action = DataHubValidationAction(
@@ -273,6 +272,7 @@ def test_DataHubValidationAction_not_supported(
     ge_validation_result_suite: ExpectationSuiteValidationResult,
     ge_validation_result_suite_id: ValidationResultIdentifier,
 ) -> None:
+
     server_url = "http://localhost:99199"
 
     datahub_action = DataHubValidationAction(

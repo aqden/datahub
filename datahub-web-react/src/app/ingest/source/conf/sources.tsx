@@ -49,7 +49,7 @@ export const SOURCE_TEMPLATE_CONFIGS: Array<SourceConfig> = [
     {
         type: 'custom',
         placeholderRecipe: DEFAULT_PLACEHOLDER_RECIPE,
-        displayName: 'Other',
+        displayName: 'Custom',
         docsUrl: 'https://datahubproject.io/docs/metadata-ingestion/',
         logoComponent: <FormOutlined style={{ color: ANTD_GRAY[8], fontSize: 28 }} />,
     },

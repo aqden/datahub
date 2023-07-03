@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Button, Dropdown, Menu } from 'antd';
 import { FormOutlined, MoreOutlined } from '@ant-design/icons';
-import styled from 'styled-components/macro';
-import { EntityType, AndFilterInput } from '../../../../../../types.generated';
+import styled from 'styled-components';
+import { EntityType, FacetFilterInput, SearchAcrossEntitiesInput } from '../../../../../../types.generated';
+import { SearchResultsInterface } from './types';
 import DownloadAsCsvButton from './DownloadAsCsvButton';
 import DownloadAsCsvModal from './DownloadAsCsvModal';
-import { DownloadSearchResultsInput, DownloadSearchResults } from '../../../../../search/utils/types';
 
 const MenuIcon = styled(MoreOutlined)`
     font-size: 20px;
@@ -23,23 +23,21 @@ const MenuItem = styled(Menu.Item)`
 `;
 
 type Props = {
+    callSearchOnVariables: (variables: {
+        input: SearchAcrossEntitiesInput;
+    }) => Promise<SearchResultsInterface | null | undefined>;
     entityFilters: EntityType[];
-    filters: AndFilterInput[];
+    filters: FacetFilterInput[];
     query: string;
-    viewUrn?: string;
-    totalResults?: number;
-    downloadSearchResults: (input: DownloadSearchResultsInput) => Promise<DownloadSearchResults | null | undefined>;
     setShowSelectMode?: (showSelectMode: boolean) => any;
 };
 
 // currently only contains Download As Csv but will be extended to contain other actions as well
 export default function SearchExtendedMenu({
-    downloadSearchResults,
+    callSearchOnVariables,
     entityFilters,
     filters,
     query,
-    viewUrn,
-    totalResults,
     setShowSelectMode,
 }: Props) {
     const [isDownloadingCsv, setIsDownloadingCsv] = useState(false);
@@ -67,15 +65,13 @@ export default function SearchExtendedMenu({
     return (
         <>
             <DownloadAsCsvModal
-                downloadSearchResults={downloadSearchResults}
+                callSearchOnVariables={callSearchOnVariables}
                 entityFilters={entityFilters}
                 filters={filters}
                 query={query}
-                viewUrn={viewUrn}
                 setIsDownloadingCsv={setIsDownloadingCsv}
                 showDownloadAsCsvModal={showDownloadAsCsvModal}
                 setShowDownloadAsCsvModal={setShowDownloadAsCsvModal}
-                totalResults={totalResults}
             />
             <Dropdown overlay={menu} trigger={['click']}>
                 <MenuIcon />

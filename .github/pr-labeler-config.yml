@@ -1,22 +1,14 @@
 ingestion:
-  - "metadata-ingestion/**/*"
-  - "metadata-ingestion-modules/**/*"
-  - "metadata-integration/**/*"
+- 'metadata-ingestion/**/*'
 
 devops:
-  - "docker/**/*"
-  - ".github/**/*"
-  - "perf-test/**/*"
-  - "metadata-service/**/*"
+- 'docker/**/*'
+- '.github/**/*'
 
 product:
-  - "datahub-web-react/**/*"
-  - "datahub-frontend/**/*"
-  - "datahub-graphql-core/**/*"
-  - "metadata-io/**/*"
+- 'datahub-web-react/**/*'
+- 'datahub-frontend/**/*'
+- 'datahub-graphql-core/**/*'
 
 docs:
-  - "docs/**/*"
-
-smoke_test:
-  - "smoke-test/**/*"
+- 'docs/**/*'

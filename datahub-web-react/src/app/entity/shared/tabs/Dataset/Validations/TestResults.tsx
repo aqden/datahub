@@ -22,7 +22,7 @@ export const TestResults = ({ passing, failing }: Props) => {
                     total: totalTests,
                 }}
             />
-            {totalTests > 0 && (
+            {filteredFailing.length > 0 && (
                 <TestResultsList title="Test Results" results={[...filteredFailing, ...filteredPassing]} />
             )}
         </>

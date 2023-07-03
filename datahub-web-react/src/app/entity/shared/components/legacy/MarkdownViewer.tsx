@@ -48,7 +48,7 @@ const MarkdownViewContainer = styled.div<{
         props.showall
             ? ''
             : `
-        ${props.limit && `max-height: ${props.limit}px;`}
+        max-height: ${props.limit}px;
         ${
             props.over &&
             `
@@ -63,7 +63,7 @@ const MarkdownViewContainer = styled.div<{
         `}
 `;
 
-export const MarkdownView = styled(MDEditor.Markdown)`
+const MarkdownView = styled(MDEditor.Markdown)`
     display: block;
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -79,10 +79,9 @@ export type Props = {
     isCompact?: boolean;
     editable?: boolean;
     onEditClicked?: () => void;
-    ignoreLimit?: boolean;
 };
 
-export default function MarkdownViewer({ source, limit = 150, editable, onEditClicked, ignoreLimit }: Props) {
+export default function MarkdownViewer({ source, limit = 150, editable, onEditClicked }: Props) {
     const [height, setHeight] = useState(0);
     const [showAll, setShowAll] = useState(false);
     const ref = useRef(null);
@@ -102,12 +101,12 @@ export default function MarkdownViewer({ source, limit = 150, editable, onEditCl
         <MarkdownContainer editable={editable ? 'true' : undefined}>
             <MarkdownViewContainer
                 showall={height >= limit && showAll ? 'true' : undefined}
-                limit={ignoreLimit ? undefined : `${limit}`}
-                over={height >= limit && !ignoreLimit ? 'true' : undefined}
+                limit={`${limit}`}
+                over={height >= limit ? 'true' : undefined}
             >
                 <MarkdownView ref={ref} source={source} />
             </MarkdownViewContainer>
-            {height >= limit && !ignoreLimit && (
+            {height >= limit && (
                 <CustomButton type="link" onClick={() => setShowAll(!showAll)}>
                     {showAll ? 'show less' : 'show more'}
                 </CustomButton>

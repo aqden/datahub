@@ -1,24 +1,24 @@
 saluation () {
    echo "--------------------------------------------------------"
-   echo "Starting execution $1"
+   echo "Starting exectuion"
    echo "--------------------------------------------------------"
 
 }
 
 
-saluation "test.spark.lineage.HdfsIn2HdfsOut1"
+saluation
 $1/bin/spark-submit --properties-file $2 --class test.spark.lineage.HdfsIn2HdfsOut1 build/libs/test-spark-lineage.jar 
 
-saluation "test.spark.lineage.HdfsIn2HdfsOut2"
+saluation
 $1/bin/spark-submit --properties-file $2 --class test.spark.lineage.HdfsIn2HdfsOut2 build/libs/test-spark-lineage.jar 
 
-saluation "test.spark.lineage.HdfsIn2HiveCreateTable"
+saluation
 $1/bin/spark-submit --properties-file $2 --class test.spark.lineage.HdfsIn2HiveCreateTable build/libs/test-spark-lineage.jar 
 
-saluation "test.spark.lineage.HdfsIn2HiveCreateInsertTable"
+saluation
 $1/bin/spark-submit --properties-file $2 --class test.spark.lineage.HdfsIn2HiveCreateInsertTable build/libs/test-spark-lineage.jar 
 
-saluation "test.spark.lineage.HiveInHiveOut"
+saluation
 $1/bin/spark-submit --properties-file $2 --class test.spark.lineage.HiveInHiveOut build/libs/test-spark-lineage.jar 
 
 

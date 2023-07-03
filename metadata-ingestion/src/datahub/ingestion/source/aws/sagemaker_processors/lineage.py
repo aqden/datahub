@@ -134,6 +134,7 @@ class LineageProcessor:
 
         # check the incoming edges for model URIs and images
         for edge in incoming_edges:
+
             source_node = self.nodes.get(edge["SourceArn"])
 
             if source_node is None:
@@ -150,6 +151,7 @@ class LineageProcessor:
 
         # check the outgoing edges for endpoints resulting from the deployment
         for edge in outgoing_edges:
+
             destination_node = self.nodes[edge["DestinationArn"]]
 
             if destination_node is None:
@@ -163,6 +165,7 @@ class LineageProcessor:
                 and source_uri is not None
                 and source_type == "ARN"
             ):
+
                 model_endpoints.add(source_uri)
 
         for model_uri in model_uris:
@@ -188,6 +191,7 @@ class LineageProcessor:
         group_incoming_edges = self.get_incoming_edges(model_group_node_arn)
 
         for edge in group_incoming_edges:
+
             # if edge is a model package, then look for models in its source edges
             if edge["SourceType"] == "Model":
                 model_package_incoming_edges = self.get_incoming_edges(
@@ -196,6 +200,7 @@ class LineageProcessor:
 
                 # check incoming edges for models under the model package
                 for model_package_edge in model_package_incoming_edges:
+
                     source_node = self.nodes.get(model_package_edge["SourceArn"])
 
                     if source_node is None:
@@ -208,6 +213,7 @@ class LineageProcessor:
                         model_package_edge["SourceType"] == "Model"
                         and source_uri is not None
                     ):
+
                         self.lineage_info.model_uri_to_groups[source_uri].add(
                             model_group_arn
                         )
@@ -217,6 +223,7 @@ class LineageProcessor:
                         model_package_edge["SourceType"] == "Image"
                         and source_uri is not None
                     ):
+
                         self.lineage_info.model_image_to_groups[source_uri].add(
                             model_group_arn
                         )
@@ -234,6 +241,7 @@ class LineageProcessor:
             self.nodes[context["ContextArn"]] = {**context, "node_type": "context"}
 
         for node_arn, node in self.nodes.items():
+
             # get model-endpoint lineage
             if (
                 node["node_type"] == "action"

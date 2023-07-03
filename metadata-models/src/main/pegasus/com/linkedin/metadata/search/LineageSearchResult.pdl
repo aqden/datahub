@@ -1,12 +1,11 @@
 namespace com.linkedin.metadata.search
 
 import com.linkedin.common.Urn
-import com.linkedin.metadata.query.AnyResult
 
 /**
  * The model for the result of a lineage search query
  */
-record LineageSearchResult includes AnyResult {
+record LineageSearchResult {
 
   /**
    * A list of entities returned from the search results

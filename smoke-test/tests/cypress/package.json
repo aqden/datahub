@@ -4,8 +4,6 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "cypress": "12.5.1",
-    "cypress-timestamps": "^1.2.0",
-    "dayjs": "^1.11.7"
+    "cypress": "^9.5.1"
   }
 }

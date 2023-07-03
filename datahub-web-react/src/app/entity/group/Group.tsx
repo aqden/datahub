@@ -13,20 +13,20 @@ export class GroupEntity implements Entity<CorpGroup> {
     type: EntityType = EntityType.CorpGroup;
 
     // TODO: update icons for UserGroup
-    icon = (fontSize: number, styleType: IconStyleType, color?: string) => {
+    icon = (fontSize: number, styleType: IconStyleType) => {
         if (styleType === IconStyleType.TAB_VIEW) {
-            return <TeamOutlined style={{ fontSize, color }} />;
+            return <TeamOutlined style={{ fontSize }} />;
         }
 
         if (styleType === IconStyleType.HIGHLIGHT) {
-            return <TeamOutlined style={{ fontSize, color }} />;
+            return <TeamOutlined style={{ fontSize }} />;
         }
 
         return (
             <TeamOutlined
                 style={{
                     fontSize,
-                    color: color || '#BFBFBF',
+                    color: '#BFBFBF',
                 }}
             />
         );

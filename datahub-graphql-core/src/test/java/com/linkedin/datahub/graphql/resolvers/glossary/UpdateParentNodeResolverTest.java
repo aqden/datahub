@@ -7,7 +7,6 @@ import com.linkedin.common.urn.Urn;
 import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.datahub.graphql.generated.UpdateParentNodeInput;
 import com.linkedin.datahub.graphql.resolvers.mutate.UpdateParentNodeResolver;
-import com.linkedin.entity.client.EntityClient;
 import com.linkedin.events.metadata.ChangeType;
 import com.linkedin.glossary.GlossaryNodeInfo;
 import com.linkedin.glossary.GlossaryTermInfo;
@@ -21,7 +20,7 @@ import org.testng.annotations.Test;
 
 import java.net.URISyntaxException;
 
-import static com.linkedin.datahub.graphql.TestUtils.*;
+import static com.linkedin.datahub.graphql.TestUtils.getMockAllowContext;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -64,23 +63,24 @@ public class UpdateParentNodeResolverTest {
   @Test
   public void testGetSuccess() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(TERM_URN))).thenReturn(true);
     Mockito.when(mockService.exists(GlossaryNodeUrn.createFromString(PARENT_NODE_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT);
 
-    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService, mockClient);
+    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService);
     final MetadataChangeProposal proposal = setupTests(mockEnv, mockService);
 
     assertTrue(resolver.get(mockEnv).get());
-    verifyIngestProposal(mockService, 1, proposal);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal),
+        Mockito.any()
+    );
   }
 
   @Test
   public void testGetSuccessForNode() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(NODE_URN))).thenReturn(true);
     Mockito.when(mockService.exists(GlossaryNodeUrn.createFromString(PARENT_NODE_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
@@ -108,57 +108,63 @@ public class UpdateParentNodeResolverTest {
     proposal.setAspect(GenericRecordUtils.serializeAspect(info));
     proposal.setChangeType(ChangeType.UPSERT);
 
-    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService, mockClient);
+    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService);
 
     assertTrue(resolver.get(mockEnv).get());
-    verifyIngestProposal(mockService, 1, proposal);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal),
+        Mockito.any()
+    );
   }
 
   @Test
   public void testGetFailureEntityDoesNotExist() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(TERM_URN))).thenReturn(false);
     Mockito.when(mockService.exists(GlossaryNodeUrn.createFromString(PARENT_NODE_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT);
 
-    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService, mockClient);
+    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService);
     setupTests(mockEnv, mockService);
 
     assertThrows(IllegalArgumentException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any());
   }
 
   @Test
   public void testGetFailureNodeDoesNotExist() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(TERM_URN))).thenReturn(true);
     Mockito.when(mockService.exists(GlossaryNodeUrn.createFromString(PARENT_NODE_URN))).thenReturn(false);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT);
 
-    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService, mockClient);
+    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService);
     setupTests(mockEnv, mockService);
 
     assertThrows(IllegalArgumentException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any());
   }
 
   @Test
   public void testGetFailureParentIsNotNode() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(TERM_URN))).thenReturn(true);
     Mockito.when(mockService.exists(GlossaryNodeUrn.createFromString(PARENT_NODE_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INVALID_INPUT);
 
-    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService, mockClient);
+    UpdateParentNodeResolver resolver = new UpdateParentNodeResolver(mockService);
     setupTests(mockEnv, mockService);
 
     assertThrows(URISyntaxException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any());
   }
 }

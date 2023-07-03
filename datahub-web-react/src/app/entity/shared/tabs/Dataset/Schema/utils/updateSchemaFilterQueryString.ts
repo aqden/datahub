@@ -13,7 +13,7 @@ export default function useUpdateSchemaFilterQueryString(filterText: string) {
     const stringifiedParams = QueryString.stringify(newParams, { arrayFormat: 'comma' });
 
     useEffect(() => {
-        history.replace({
+        history.push({
             pathname: location.pathname,
             search: stringifiedParams,
         });

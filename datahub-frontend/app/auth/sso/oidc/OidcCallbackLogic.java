@@ -1,6 +1,5 @@
 package auth.sso.oidc;
 
-import auth.CookieConfigs;
 import client.AuthServiceClient;
 import com.datahub.authentication.Authentication;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -58,16 +57,13 @@ import org.pac4j.core.engine.DefaultCallbackLogic;
 import org.pac4j.core.http.adapter.HttpActionAdapter;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.profile.ProfileManager;
-import org.pac4j.core.profile.UserProfile;
 import org.pac4j.play.PlayWebContext;
 import play.mvc.Result;
 import auth.sso.SsoManager;
 
-import static auth.AuthUtils.createActorCookie;
-import static auth.AuthUtils.createSessionMap;
-import static com.linkedin.metadata.Constants.CORP_USER_ENTITY_NAME;
-import static com.linkedin.metadata.Constants.GROUP_MEMBERSHIP_ASPECT_NAME;
-import static play.mvc.Results.internalServerError;
+import static com.linkedin.metadata.Constants.*;
+import static play.mvc.Results.*;
+import static auth.AuthUtils.*;
 
 
 /**
@@ -86,15 +82,13 @@ public class OidcCallbackLogic extends DefaultCallbackLogic<Result, PlayWebConte
   private final EntityClient _entityClient;
   private final Authentication _systemAuthentication;
   private final AuthServiceClient _authClient;
-  private final CookieConfigs _cookieConfigs;
 
   public OidcCallbackLogic(final SsoManager ssoManager, final Authentication systemAuthentication,
-      final EntityClient entityClient, final AuthServiceClient authClient, final CookieConfigs cookieConfigs) {
+      final EntityClient entityClient, final AuthServiceClient authClient) {
     _ssoManager = ssoManager;
     _systemAuthentication = systemAuthentication;
     _entityClient = entityClient;
     _authClient = authClient;
-    _cookieConfigs = cookieConfigs;
   }
 
   @Override
@@ -112,18 +106,19 @@ public class OidcCallbackLogic extends DefaultCallbackLogic<Result, PlayWebConte
 
     // By this point, we know that OIDC is the enabled provider.
     final OidcConfigs oidcConfigs = (OidcConfigs) _ssoManager.getSsoProvider().configs();
-    return handleOidcCallback(oidcConfigs, result, context, getProfileManager(context));
+    return handleOidcCallback(oidcConfigs, result, context, getProfileManager(context, config));
   }
 
   private Result handleOidcCallback(final OidcConfigs oidcConfigs, final Result result, final PlayWebContext context,
-      final ProfileManager<UserProfile> profileManager) {
+      final ProfileManager<CommonProfile> profileManager) {
 
     log.debug("Beginning OIDC Callback Handling...");
 
     if (profileManager.isAuthenticated()) {
+
       // If authenticated, the user should have a profile.
-      final CommonProfile profile = (CommonProfile) profileManager.get(true).get();
-      log.debug(String.format("Found authenticated user with profile %s", profile.getAttributes().toString()));
+      final CommonProfile profile = profileManager.get(true).get();
+      log.debug(String.format("Checking the attributes of the profile: %s", profile.getAttributes().toString()));
 
       // Extract the User name required to log into DataHub.
       final String userName = extractUserNameOrThrow(oidcConfigs, profile);
@@ -188,16 +183,9 @@ public class OidcCallbackLogic extends DefaultCallbackLogic<Result, PlayWebConte
 
       // Successfully logged in - Generate GMS login token
       final String accessToken = _authClient.generateSessionTokenForUser(corpUserUrn.getId());
-      return result
-              .withSession(createSessionMap(corpUserUrn.toString(), accessToken))
-              .withCookies(
-                  createActorCookie(
-                      corpUserUrn.toString(),
-                      _cookieConfigs.getTtlInHours(),
-                      _cookieConfigs.getAuthCookieSameSite(),
-                      _cookieConfigs.getAuthCookieSecure()
-                  )
-              );
+      context.getJavaSession().put(ACCESS_TOKEN, accessToken);
+      context.getJavaSession().put(ACTOR, corpUserUrn.toString());
+      return result.withCookies(createActorCookie(corpUserUrn.toString(), oidcConfigs.getSessionTtlInHours()));
     }
     return internalServerError(
         "Failed to authenticate current user. Cannot find valid identity provider profile in session.");
@@ -447,7 +435,7 @@ public class OidcCallbackLogic extends DefaultCallbackLogic<Result, PlayWebConte
     } catch (RemoteInvocationException e) {
       // Failing provisioning is something worth throwing about.
       throw new RuntimeException(String.format("Failed to provision groups with urns %s.",
-          corpGroups.stream().map(CorpGroupSnapshot::getUrn).collect(Collectors.toList())), e);
+              corpGroups.stream().map(CorpGroupSnapshot::getUrn).collect(Collectors.toList())), e);
     }
   }
 

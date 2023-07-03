@@ -15,10 +15,10 @@ from datahub.configuration.common import (
     ConfigModel,
     ConfigurationError,
 )
-from datahub.configuration.source_common import DatasetSourceConfigMixin
+from datahub.configuration.source_common import DatasetSourceConfigBase
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.emitter.mcp_builder import add_domain_to_entity_wu
-from datahub.ingestion.api.common import PipelineContext
+from datahub.ingestion.api.common import PipelineContext, WorkUnit
 from datahub.ingestion.api.decorators import (
     SourceCapability,
     SupportStatus,
@@ -29,11 +29,11 @@ from datahub.ingestion.api.decorators import (
 )
 from datahub.ingestion.api.source import Source, SourceReport
 from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.ingestion.source.common.subtypes import DatasetSubTypes
 from datahub.metadata.schema_classes import (
     AuditStampClass,
     BooleanTypeClass,
     BytesTypeClass,
+    ChangeTypeClass,
     DataPlatformInstanceClass,
     DatasetProfileClass,
     DatasetPropertiesClass,
@@ -62,7 +62,6 @@ logger = logging.getLogger(__name__)
 class SalesforceAuthType(Enum):
     USERNAME_PASSWORD = "USERNAME_PASSWORD"
     DIRECT_ACCESS_TOKEN = "DIRECT_ACCESS_TOKEN"
-    JSON_WEB_TOKEN = "JSON_WEB_TOKEN"
 
 
 class SalesforceProfilingConfig(ConfigModel):
@@ -74,7 +73,7 @@ class SalesforceProfilingConfig(ConfigModel):
     # TODO - support field level profiling
 
 
-class SalesforceConfig(DatasetSourceConfigMixin):
+class SalesforceConfig(DatasetSourceConfigBase):
     platform = "salesforce"
 
     auth: SalesforceAuthType = SalesforceAuthType.USERNAME_PASSWORD
@@ -82,12 +81,6 @@ class SalesforceConfig(DatasetSourceConfigMixin):
     # Username, Password Auth
     username: Optional[str] = Field(description="Salesforce username")
     password: Optional[str] = Field(description="Password for Salesforce user")
-    consumer_key: Optional[str] = Field(
-        description="Consumer key for Salesforce JSON web token access"
-    )
-    private_key: Optional[str] = Field(
-        description="Private key as a string for Salesforce JSON web token access"
-    )
     security_token: Optional[str] = Field(
         description="Security token for Salesforce username"
     )
@@ -96,10 +89,6 @@ class SalesforceConfig(DatasetSourceConfigMixin):
     # Direct - Instance URL, Access Token Auth
     instance_url: Optional[str] = Field(
         description="Salesforce instance url. e.g. https://MyDomainName.my.salesforce.com"
-    )
-    # Flag to indicate whether the instance is production or sandbox
-    is_sandbox: bool = Field(
-        default=False, description="Connect to Sandbox instance of your Salesforce"
     )
     access_token: Optional[str] = Field(description="Access token for instance url")
 
@@ -187,6 +176,7 @@ FIELD_TYPE_MAPPING = {
     supported=False,
 )
 class SalesforceSource(Source):
+
     base_url: str
     config: SalesforceConfig
     report: SalesforceSourceReport
@@ -216,7 +206,6 @@ class SalesforceSource(Source):
                     instance_url=self.config.instance_url,
                     session_id=self.config.access_token,
                     session=self.session,
-                    domain="test" if self.config.is_sandbox else None,
                 )
             elif self.config.auth is SalesforceAuthType.USERNAME_PASSWORD:
                 logger.debug("Username/Password Provided in Config")
@@ -235,27 +224,6 @@ class SalesforceSource(Source):
                     password=self.config.password,
                     security_token=self.config.security_token,
                     session=self.session,
-                    domain="test" if self.config.is_sandbox else None,
-                )
-
-            elif self.config.auth is SalesforceAuthType.JSON_WEB_TOKEN:
-                logger.debug("Json Web Token provided in the config")
-                assert (
-                    self.config.username is not None
-                ), "Config username is required for JSON_WEB_TOKEN auth"
-                assert (
-                    self.config.consumer_key is not None
-                ), "Config consumer_key is required for JSON_WEB_TOKEN auth"
-                assert (
-                    self.config.private_key is not None
-                ), "Config private_key is required for JSON_WEB_TOKEN auth"
-
-                self.sf = Salesforce(
-                    username=self.config.username,
-                    consumer_key=self.config.consumer_key,
-                    privatekey=self.config.private_key,
-                    session=self.session,
-                    domain="test" if self.config.is_sandbox else None,
                 )
 
         except Exception as e:
@@ -281,15 +249,15 @@ class SalesforceSource(Source):
                 )
             )
 
-    def get_workunits(self) -> Iterable[MetadataWorkUnit]:
+    def get_workunits(self) -> Iterable[WorkUnit]:
+
         sObjects = self.get_salesforce_objects()
 
         for sObject in sObjects:
             yield from self.get_salesforce_object_workunits(sObject)
 
-    def get_salesforce_object_workunits(
-        self, sObject: dict
-    ) -> Iterable[MetadataWorkUnit]:
+    def get_salesforce_object_workunits(self, sObject: dict) -> Iterable[WorkUnit]:
+
         sObjectName = sObject["QualifiedApiName"]
 
         if not self.config.object_pattern.allowed(sObjectName):
@@ -349,6 +317,7 @@ class SalesforceSource(Source):
         return customObject
 
     def get_salesforce_objects(self) -> List:
+
         # Using Describe Global REST API returns many more objects than required.
         # Response does not have the attribute ("customizable") that can be used
         # to filter out entities not on ObjectManager UI. Hence SOQL on EntityDefinition
@@ -370,7 +339,7 @@ class SalesforceSource(Source):
 
     def get_domain_workunit(
         self, dataset_name: str, datasetUrn: str
-    ) -> Iterable[MetadataWorkUnit]:
+    ) -> Iterable[WorkUnit]:
         domain_urn: Optional[str] = None
 
         for domain, pattern in self.config.domain.items():
@@ -379,40 +348,37 @@ class SalesforceSource(Source):
 
         if domain_urn:
             yield from add_domain_to_entity_wu(
-                domain_urn=domain_urn, entity_urn=datasetUrn
+                domain_urn=domain_urn, entity_type="dataset", entity_urn=datasetUrn
             )
 
-    def get_platform_instance_workunit(self, datasetUrn: str) -> MetadataWorkUnit:
+    def get_platform_instance_workunit(self, datasetUrn: str) -> WorkUnit:
         dataPlatformInstance = DataPlatformInstanceClass(
             builder.make_data_platform_urn(self.platform),
             instance=builder.make_dataplatform_instance_urn(
                 self.platform, self.config.platform_instance  # type:ignore
             ),
         )
-
-        return MetadataChangeProposalWrapper(
-            entityUrn=datasetUrn, aspect=dataPlatformInstance
-        ).as_workunit()
+        return self.wrap_aspect_as_workunit(
+            "dataset", datasetUrn, "dataPlatformInstance", dataPlatformInstance
+        )
 
     def get_operation_workunit(
         self, customObject: dict, datasetUrn: str
-    ) -> Iterable[MetadataWorkUnit]:
-        reported_time: int = int(time.time() * 1000)
+    ) -> Iterable[WorkUnit]:
 
         if customObject.get("CreatedBy") and customObject.get("CreatedDate"):
             timestamp = self.get_time_from_salesforce_timestamp(
                 customObject["CreatedDate"]
             )
             operation = OperationClass(
-                timestampMillis=reported_time,
+                timestampMillis=timestamp,
                 operationType=OperationTypeClass.CREATE,
                 lastUpdatedTimestamp=timestamp,
                 actor=builder.make_user_urn(customObject["CreatedBy"]["Username"]),
             )
-
-            yield MetadataChangeProposalWrapper(
-                entityUrn=datasetUrn, aspect=operation
-            ).as_workunit()
+            yield self.wrap_aspect_as_workunit(
+                "dataset", datasetUrn, "operation", operation
+            )
 
             # Note - Object Level LastModified captures changes at table level metadata e.g. table
             # description and does NOT capture field level metadata e.g. new field added, existing
@@ -425,16 +391,16 @@ class SalesforceSource(Source):
                     customObject["LastModifiedDate"]
                 )
                 operation = OperationClass(
-                    timestampMillis=reported_time,
+                    timestampMillis=timestamp,
                     operationType=OperationTypeClass.ALTER,
                     lastUpdatedTimestamp=timestamp,
                     actor=builder.make_user_urn(
                         customObject["LastModifiedBy"]["Username"]
                     ),
                 )
-                yield MetadataChangeProposalWrapper(
-                    entityUrn=datasetUrn, aspect=operation
-                ).as_workunit()
+                yield self.wrap_aspect_as_workunit(
+                    "dataset", datasetUrn, "operation", operation
+                )
 
     def get_time_from_salesforce_timestamp(self, date: str) -> int:
         return round(
@@ -443,7 +409,7 @@ class SalesforceSource(Source):
 
     def get_properties_workunit(
         self, sObject: dict, customObject: Dict[str, str], datasetUrn: str
-    ) -> MetadataWorkUnit:
+    ) -> WorkUnit:
         propertyLabels = {
             # from EntityDefinition
             "DurableId": "Durable Id",
@@ -476,26 +442,27 @@ class SalesforceSource(Source):
             description=customObject.get("Description"),
             customProperties=sObjectProperties,
         )
-        return MetadataChangeProposalWrapper(
-            entityUrn=datasetUrn, aspect=datasetProperties
-        ).as_workunit()
+        return self.wrap_aspect_as_workunit(
+            "dataset", datasetUrn, "datasetProperties", datasetProperties
+        )
 
-    def get_subtypes_workunit(
-        self, sObjectName: str, datasetUrn: str
-    ) -> MetadataWorkUnit:
-        subtypes: List[str] = []
+    def get_subtypes_workunit(self, sObjectName: str, datasetUrn: str) -> WorkUnit:
+        subtypes = []
         if sObjectName.endswith("__c"):
-            subtypes.append(DatasetSubTypes.SALESFORCE_CUSTOM_OBJECT)
+            subtypes.append("Custom Object")
         else:
-            subtypes.append(DatasetSubTypes.SALESFORCE_STANDARD_OBJECT)
+            subtypes.append("Standard Object")
 
-        return MetadataChangeProposalWrapper(
-            entityUrn=datasetUrn, aspect=SubTypesClass(typeNames=subtypes)
-        ).as_workunit()
+        return self.wrap_aspect_as_workunit(
+            entityName="dataset",
+            entityUrn=datasetUrn,
+            aspectName="subTypes",
+            aspect=SubTypesClass(typeNames=subtypes),
+        )
 
     def get_profile_workunit(
         self, sObjectName: str, datasetUrn: str
-    ) -> Iterable[MetadataWorkUnit]:
+    ) -> Iterable[WorkUnit]:
         # Here approximate record counts as returned by recordCount API are used as rowCount
         # In future, count() SOQL query may be used instead, if required, might be more expensive
         sObject_records_count_url = (
@@ -518,9 +485,9 @@ class SalesforceSource(Source):
                 rowCount=entry["count"],
                 columnCount=self.fieldCounts[sObjectName],
             )
-            yield MetadataChangeProposalWrapper(
-                entityUrn=datasetUrn, aspect=datasetProfile
-            ).as_workunit()
+            yield self.wrap_aspect_as_workunit(
+                "dataset", datasetUrn, "datasetProfile", datasetProfile
+            )
 
     # Here field description is created from label, description and inlineHelpText
     def _get_field_description(self, field: dict, customField: dict) -> str:
@@ -620,7 +587,8 @@ class SalesforceSource(Source):
 
     def get_schema_metadata_workunit(
         self, sObjectName: str, sObject: dict, customObject: dict, datasetUrn: str
-    ) -> Iterable[MetadataWorkUnit]:
+    ) -> Iterable[WorkUnit]:
+
         sObject_fields_query_url = (
             self.base_url
             + "tooling/query?q=SELECT "
@@ -671,6 +639,7 @@ class SalesforceSource(Source):
         foreignKeys: List[ForeignKeyConstraintClass] = []
 
         for field in sObject_fields_response["records"]:
+
             customField = customFields.get(field["DeveloperName"], {})
 
             fieldName = field["QualifiedApiName"]
@@ -714,9 +683,9 @@ class SalesforceSource(Source):
             )
         self.fieldCounts[sObjectName] = len(fields)
 
-        yield MetadataChangeProposalWrapper(
-            entityUrn=datasetUrn, aspect=schemaMetadata
-        ).as_workunit()
+        yield self.wrap_aspect_as_workunit(
+            "dataset", datasetUrn, "schemaMetadata", schemaMetadata
+        )
 
     def get_foreign_keys_from_field(
         self, fieldName: str, field: dict, datasetUrn: str
@@ -740,11 +709,27 @@ class SalesforceSource(Source):
                 sourceFields=[builder.make_schema_field_urn(datasetUrn, fieldName)],
             )
 
+    def wrap_aspect_as_workunit(
+        self, entityName: str, entityUrn: str, aspectName: str, aspect: builder.Aspect
+    ) -> WorkUnit:
+        wu = MetadataWorkUnit(
+            id=f"{aspectName}-for-{entityUrn}",
+            mcp=MetadataChangeProposalWrapper(
+                entityType=entityName,
+                entityUrn=entityUrn,
+                aspectName=aspectName,
+                aspect=aspect,
+                changeType=ChangeTypeClass.UPSERT,
+            ),
+        )
+        self.report.report_workunit(wu)
+        return wu
+
     def get_report(self) -> SourceReport:
         return self.report
 
 
-def get_tags(params: Optional[List[str]] = None) -> GlobalTagsClass:
+def get_tags(params: List[str] = None) -> GlobalTagsClass:
     if params is None:
         params = []
     tags = [TagAssociationClass(tag=builder.make_tag_urn(tag)) for tag in params if tag]

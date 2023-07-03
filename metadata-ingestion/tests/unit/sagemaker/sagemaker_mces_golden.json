@@ -77,7 +77,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/sagemaker"
+                "/sagemaker/test-2"
               ]
             }
           },
@@ -193,7 +193,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/sagemaker"
+                "/sagemaker/test-1"
               ]
             }
           },
@@ -290,7 +290,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/sagemaker"
+                "/sagemaker/test"
               ]
             }
           },
@@ -904,7 +904,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/auto_ml"
+                "/auto_ml/an-auto-ml-job"
               ]
             }
           },
@@ -986,7 +986,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/compilation"
+                "/compilation/a-compilation-job"
               ]
             }
           },
@@ -1069,7 +1069,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/edge_packaging"
+                "/edge_packaging/an-edge-packaging-job"
               ]
             }
           },
@@ -1149,7 +1149,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/hyper_parameter_tuning"
+                "/hyper_parameter_tuning/a-hyper-parameter-tuning-job"
               ]
             }
           },
@@ -1229,7 +1229,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/labeling"
+                "/labeling/a-labeling-job"
               ]
             }
           },
@@ -1318,7 +1318,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/processing"
+                "/processing/a-processing-job"
               ]
             }
           },
@@ -1425,7 +1425,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/training"
+                "/training/a-training-job"
               ]
             }
           },
@@ -1517,7 +1517,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/transform"
+                "/transform/a-transform-job"
               ]
             }
           },
@@ -1641,7 +1641,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/sagemaker"
+                "/sagemaker/a-model-package-group"
               ]
             }
           }
@@ -1720,7 +1720,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/sagemaker/a-model-package-group"
+                "/sagemaker/a-model-package-group/the-first-model"
               ]
             }
           }
@@ -1802,7 +1802,7 @@
           {
             "com.linkedin.pegasus2avro.common.BrowsePaths": {
               "paths": [
-                "/sagemaker/a-model-package-group"
+                "/sagemaker/a-model-package-group/the-second-model"
               ]
             }
           }

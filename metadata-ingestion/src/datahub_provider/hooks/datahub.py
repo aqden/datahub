@@ -1,7 +1,15 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from airflow.exceptions import AirflowException
-from airflow.hooks.base import BaseHook
+
+try:
+    from airflow.hooks.base import BaseHook
+
+    AIRFLOW_1 = False
+except ModuleNotFoundError:
+    from airflow.hooks.base_hook import BaseHook
+
+    AIRFLOW_1 = True
 
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import (
     MetadataChangeEvent,
@@ -9,11 +17,14 @@ from datahub.metadata.com.linkedin.pegasus2avro.mxe import (
 )
 
 if TYPE_CHECKING:
-    from airflow.models.connection import Connection
-
     from datahub.emitter.kafka_emitter import DatahubKafkaEmitter
     from datahub.emitter.rest_emitter import DatahubRestEmitter
     from datahub.ingestion.sink.datahub_kafka import KafkaSinkConfig
+
+
+_default_hook_args = []
+if AIRFLOW_1:
+    _default_hook_args = [None]
 
 
 class DatahubRestHook(BaseHook):
@@ -35,7 +46,7 @@ class DatahubRestHook(BaseHook):
     hook_name = "DataHub REST Server"
 
     def __init__(self, datahub_rest_conn_id: str = default_conn_name) -> None:
-        super().__init__()
+        super().__init__(*_default_hook_args)
         self.datahub_rest_conn_id = datahub_rest_conn_id
 
     @staticmethod
@@ -53,20 +64,12 @@ class DatahubRestHook(BaseHook):
         }
 
     def _get_config(self) -> Tuple[str, Optional[str], Optional[int]]:
-        conn: "Connection" = self.get_connection(self.datahub_rest_conn_id)
-
+        conn = self.get_connection(self.datahub_rest_conn_id)
         host = conn.host
-        if not host:
+        if host is None:
             raise AirflowException("host parameter is required")
-        if conn.port:
-            if ":" in host:
-                raise AirflowException(
-                    "host parameter should not contain a port number if the port is specified separately"
-                )
-            host = f"{host}:{conn.port}"
-        password = conn.password
         timeout_sec = conn.extra_dejson.get("timeout_sec")
-        return (host, password, timeout_sec)
+        return (host, conn.password, timeout_sec)
 
     def make_emitter(self) -> "DatahubRestEmitter":
         import datahub.emitter.rest_emitter
@@ -105,7 +108,7 @@ class DatahubKafkaHook(BaseHook):
     hook_name = "DataHub Kafka Sink"
 
     def __init__(self, datahub_kafka_conn_id: str = default_conn_name) -> None:
-        super().__init__()
+        super().__init__(*_default_hook_args)
         self.datahub_kafka_conn_id = datahub_kafka_conn_id
 
     @staticmethod
@@ -188,7 +191,7 @@ class DatahubGenericHook(BaseHook):
     """
 
     def __init__(self, datahub_conn_id: str) -> None:
-        super().__init__()
+        super().__init__(*_default_hook_args)
         self.datahub_conn_id = datahub_conn_id
 
     def get_underlying_hook(self) -> Union[DatahubRestHook, DatahubKafkaHook]:

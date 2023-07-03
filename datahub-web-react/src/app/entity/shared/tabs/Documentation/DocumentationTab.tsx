@@ -4,7 +4,9 @@ import { useLocation } from 'react-router-dom';
 
 import styled from 'styled-components';
 import { Button, Divider, Typography } from 'antd';
-import { EditOutlined, ExpandAltOutlined } from '@ant-design/icons';
+import { EditOutlined } from '@ant-design/icons';
+import MDEditor from '@uiw/react-md-editor';
+import DOMPurify from 'dompurify';
 
 import TabToolbar from '../../components/styled/TabToolbar';
 import { AddLinkModal } from '../../components/styled/AddLinkModal';
@@ -14,13 +16,12 @@ import { LinkList } from './components/LinkList';
 
 import { useEntityData, useRefetch, useRouteToTab } from '../../EntityContext';
 import { EDITED_DESCRIPTIONS_CACHE_NAME } from '../../utils';
-import { Editor } from './components/editor/Editor';
-import { DescriptionPreviewModal } from './components/DescriptionPreviewModal';
 
 const DocumentationContainer = styled.div`
-    margin: 0 32px;
+    margin: 0 auto;
     padding: 40px 0;
     max-width: calc(100% - 10px);
+    margin: 0 32px;
 `;
 
 interface Props {
@@ -32,30 +33,27 @@ export const DocumentationTab = ({ properties }: { properties?: Props }) => {
     const { urn, entityData } = useEntityData();
     const refetch = useRefetch();
     const description = entityData?.editableProperties?.description || entityData?.properties?.description || '';
+    const sanitizedDescription = DOMPurify.sanitize(description);
     const links = entityData?.institutionalMemory?.elements || [];
     const localStorageDictionary = localStorage.getItem(EDITED_DESCRIPTIONS_CACHE_NAME);
 
     const routeToTab = useRouteToTab();
     const isEditing = queryString.parse(useLocation().search, { parseBooleans: true }).editing;
-    const showModal = queryString.parse(useLocation().search, { parseBooleans: true }).modal;
 
     useEffect(() => {
         const editedDescriptions = (localStorageDictionary && JSON.parse(localStorageDictionary)) || {};
         if (editedDescriptions.hasOwnProperty(urn)) {
-            routeToTab({
-                tabName: 'Documentation',
-                tabParams: { editing: true, modal: !!showModal },
-            });
+            routeToTab({ tabName: 'Documentation', tabParams: { editing: true } });
         }
-    }, [urn, routeToTab, showModal, localStorageDictionary]);
+    }, [urn, routeToTab, localStorageDictionary]);
 
-    return isEditing && !showModal ? (
+    return isEditing ? (
         <>
             <DescriptionEditor onComplete={() => routeToTab({ tabName: 'Documentation' })} />
         </>
     ) : (
         <>
-            {description || links.length ? (
+            {sanitizedDescription || links.length ? (
                 <>
                     <TabToolbar>
                         <div>
@@ -67,33 +65,16 @@ export const DocumentationTab = ({ properties }: { properties?: Props }) => {
                             </Button>
                             {!hideLinksButton && <AddLinkModal buttonProps={{ type: 'text' }} refetch={refetch} />}
                         </div>
-                        <div>
-                            <Button
-                                type="text"
-                                onClick={() =>
-                                    routeToTab({
-                                        tabName: 'Documentation',
-                                        tabParams: { modal: true },
-                                    })
-                                }
-                            >
-                                <ExpandAltOutlined />
-                            </Button>
-                        </div>
                     </TabToolbar>
-                    <div>
-                        {description ? (
-                            <Editor content={description} readOnly />
+                    <DocumentationContainer>
+                        {sanitizedDescription ? (
+                            <MDEditor.Markdown style={{ fontWeight: 400 }} source={sanitizedDescription} />
                         ) : (
-                            <DocumentationContainer>
-                                <Typography.Text type="secondary">No documentation added yet.</Typography.Text>
-                            </DocumentationContainer>
+                            <Typography.Text type="secondary">No documentation added yet.</Typography.Text>
                         )}
                         <Divider />
-                        <DocumentationContainer>
-                            {!hideLinksButton && <LinkList refetch={refetch} />}
-                        </DocumentationContainer>
-                    </div>
+                        {!hideLinksButton && <LinkList refetch={refetch} />}
+                    </DocumentationContainer>
                 </>
             ) : (
                 <EmptyTab tab="documentation">
@@ -102,15 +83,6 @@ export const DocumentationTab = ({ properties }: { properties?: Props }) => {
                     </Button>
                     {!hideLinksButton && <AddLinkModal refetch={refetch} />}
                 </EmptyTab>
-            )}
-            {showModal && (
-                <DescriptionPreviewModal
-                    editMode={(isEditing && true) || false}
-                    description={description}
-                    onClose={() => {
-                        routeToTab({ tabName: 'Documentation', tabParams: { editing: false } });
-                    }}
-                />
             )}
         </>
     );

@@ -7,8 +7,5 @@ record ExternalReference {
   /**
    * URL where the reference exist
    */
-  @Searchable = {
-    "fieldType": "KEYWORD"
-  }
   externalUrl: optional Url
 }

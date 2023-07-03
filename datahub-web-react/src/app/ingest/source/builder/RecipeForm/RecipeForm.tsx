@@ -60,9 +60,8 @@ function getInitialValues(displayRecipe: string, allFields: any[]) {
     }
     if (recipeObj) {
         allFields.forEach((field) => {
-            initialValues[field.name] = field.getValueFromRecipeOverride
-                ? field.getValueFromRecipeOverride(recipeObj)
-                : get(recipeObj, field.fieldPath);
+            initialValues[field.name] =
+                field.getValueFromRecipeOverride?.(recipeObj) || get(recipeObj, field.fieldPath);
         });
     }
 
@@ -116,7 +115,6 @@ function RecipeForm(props: Props) {
     });
     const secrets =
         data?.listSecrets?.secrets.sort((secretA, secretB) => secretA.name.localeCompare(secretB.name)) || [];
-    const [form] = Form.useForm();
 
     function updateFormValues(changedValues: any, allValues: any) {
         let updatedValues = YAML.parse(displayRecipe);
@@ -124,9 +122,9 @@ function RecipeForm(props: Props) {
         Object.keys(changedValues).forEach((fieldName) => {
             const recipeField = allFields.find((f) => f.name === fieldName);
             if (recipeField) {
-                updatedValues = recipeField.setValueOnRecipeOverride
-                    ? recipeField.setValueOnRecipeOverride(updatedValues, allValues[fieldName])
-                    : setFieldValueOnRecipe(updatedValues, allValues[fieldName], recipeField.fieldPath);
+                updatedValues =
+                    recipeField.setValueOnRecipeOverride?.(updatedValues, allValues[fieldName]) ||
+                    setFieldValueOnRecipe(updatedValues, allValues[fieldName], recipeField.fieldPath);
             }
         });
 
@@ -134,17 +132,11 @@ function RecipeForm(props: Props) {
         setStagedRecipe(stagedRecipe);
     }
 
-    function updateFormValue(fieldName, fieldValue) {
-        updateFormValues({ [fieldName]: fieldValue }, { [fieldName]: fieldValue });
-        form.setFieldsValue({ [fieldName]: fieldValue });
-    }
-
     return (
         <Form
             layout="vertical"
             initialValues={getInitialValues(displayRecipe, allFields)}
             onFinish={onClickNext}
-            form={form}
             onValuesChange={updateFormValues}
         >
             <StyledCollapse defaultActiveKey="0">
@@ -155,7 +147,6 @@ function RecipeForm(props: Props) {
                             secrets={secrets}
                             refetchSecrets={refetchSecrets}
                             removeMargin={i === fields.length - 1}
-                            updateFormValue={updateFormValue}
                         />
                     ))}
                     {CONNECTORS_WITH_TEST_CONNECTION.has(type as string) && (
@@ -193,7 +184,6 @@ function RecipeForm(props: Props) {
                                         secrets={secrets}
                                         refetchSecrets={refetchSecrets}
                                         removeMargin={i === filterFields.length - 1}
-                                        updateFormValue={updateFormValue}
                                     />
                                 </MarginWrapper>
                             </>
@@ -219,7 +209,6 @@ function RecipeForm(props: Props) {
                             secrets={secrets}
                             refetchSecrets={refetchSecrets}
                             removeMargin={i === advancedFields.length - 1}
-                            updateFormValue={updateFormValue}
                         />
                     ))}
                 </Collapse.Panel>

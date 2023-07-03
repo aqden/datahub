@@ -2,8 +2,8 @@ package com.linkedin.datahub.graphql.resolvers.glossary;
 
 import com.linkedin.common.urn.Urn;
 import com.linkedin.datahub.graphql.QueryContext;
+import com.linkedin.datahub.graphql.authorization.AuthorizationUtils;
 import com.linkedin.datahub.graphql.exception.AuthorizationException;
-import com.linkedin.datahub.graphql.resolvers.mutate.util.GlossaryUtils;
 import com.linkedin.entity.client.EntityClient;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.r2.RemoteInvocationException;
@@ -28,10 +28,9 @@ public class DeleteGlossaryEntityResolver implements DataFetcher<CompletableFutu
   public CompletableFuture<Boolean> get(final DataFetchingEnvironment environment) throws Exception {
     final QueryContext context = environment.getContext();
     final Urn entityUrn = Urn.createFromString(environment.getArgument("urn"));
-    final Urn parentNodeUrn = GlossaryUtils.getParentUrn(entityUrn, context, _entityClient);
 
     return CompletableFuture.supplyAsync(() -> {
-      if (GlossaryUtils.canManageChildrenEntities(context, parentNodeUrn, _entityClient)) {
+      if (AuthorizationUtils.canManageGlossaries(environment.getContext())) {
         if (!_entityService.exists(entityUrn)) {
           throw new RuntimeException(String.format("This urn does not exist: %s", entityUrn));
         }

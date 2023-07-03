@@ -1,6 +1,7 @@
 source:
-  type: "demo-data"
-  config: {}
+  type: "file"
+  config:
+    filename: "./examples/demo_data/demo_data.json"
 
 sink:
   type: "datahub-rest"

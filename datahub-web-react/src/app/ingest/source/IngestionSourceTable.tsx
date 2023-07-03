@@ -48,7 +48,7 @@ function IngestionSourceTable({
             title: 'Type',
             dataIndex: 'type',
             key: 'type',
-            render: (type: string, record: any) => <TypeColumn type={type} record={record} />,
+            render: TypeColumn,
             sorter: (sourceA, sourceB) => sourceA.type.localeCompare(sourceB.type),
         },
         {
@@ -113,18 +113,16 @@ function IngestionSourceTable({
         timezone: source.schedule?.timezone,
         execCount: source.executions?.total || 0,
         lastExecUrn:
-            source.executions &&
-            source.executions?.executionRequests.length > 0 &&
-            source.executions?.executionRequests[0].urn,
+            source.executions?.total && source.executions?.total > 0 && source.executions?.executionRequests[0].urn,
         lastExecTime:
-            source.executions &&
-            source.executions?.executionRequests.length > 0 &&
+            source.executions?.total &&
+            source.executions?.total > 0 &&
             source.executions?.executionRequests[0].result?.startTimeMs,
         lastExecStatus:
-            source.executions &&
-            source.executions?.executionRequests.length > 0 &&
+            source.executions?.total &&
+            source.executions?.total > 0 &&
             source.executions?.executionRequests[0].result?.status,
-        cliIngestion: source.config?.executorId === CLI_EXECUTOR_ID,
+        cliIngestion: source.config.executorId === CLI_EXECUTOR_ID,
     }));
 
     return (

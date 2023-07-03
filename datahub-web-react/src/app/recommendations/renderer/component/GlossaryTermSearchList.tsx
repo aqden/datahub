@@ -53,7 +53,7 @@ export const GlossaryTermSearchList = ({ content, onClick }: Props) => {
             filters: [
                 {
                     field: 'glossaryTerms',
-                    values: [term.urn],
+                    value: term.urn,
                 },
             ],
             history,

@@ -13,17 +13,11 @@ import com.linkedin.metadata.models.SearchScoreFieldSpec;
 import com.linkedin.metadata.models.SearchableFieldSpec;
 import com.linkedin.metadata.models.annotation.SearchableAnnotation.FieldType;
 import com.linkedin.metadata.models.extractor.FieldExtractor;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nonnull;
 
 
 /**
@@ -39,20 +33,12 @@ public class SearchDocumentTransformer {
 
   private final int maxObjectKeys;
 
-  // Maximum customProperties value length
-  private final int maxValueLength;
-
-   private static final String BROWSE_PATH_V2_DELIMITER = "␟";
-
   public Optional<String> transformSnapshot(final RecordTemplate snapshot, final EntitySpec entitySpec,
       final Boolean forDelete) {
     final Map<SearchableFieldSpec, List<Object>> extractedSearchableFields =
-        FieldExtractor.extractFieldsFromSnapshot(snapshot, entitySpec, AspectSpec::getSearchableFieldSpecs, maxValueLength).entrySet()
-                // Delete expects urn to be preserved
-                .stream().filter(entry -> !forDelete || !"urn".equals(entry.getKey().getSearchableAnnotation().getFieldName()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        FieldExtractor.extractFieldsFromSnapshot(snapshot, entitySpec, AspectSpec::getSearchableFieldSpecs);
     final Map<SearchScoreFieldSpec, List<Object>> extractedSearchScoreFields =
-        FieldExtractor.extractFieldsFromSnapshot(snapshot, entitySpec, AspectSpec::getSearchScoreFieldSpecs, maxValueLength);
+        FieldExtractor.extractFieldsFromSnapshot(snapshot, entitySpec, AspectSpec::getSearchScoreFieldSpecs);
     if (extractedSearchableFields.isEmpty() && extractedSearchScoreFields.isEmpty()) {
       return Optional.empty();
     }
@@ -69,9 +55,9 @@ public class SearchDocumentTransformer {
       final AspectSpec aspectSpec,
       final Boolean forDelete) {
     final Map<SearchableFieldSpec, List<Object>> extractedSearchableFields =
-        FieldExtractor.extractFields(aspect, aspectSpec.getSearchableFieldSpecs(), maxValueLength);
+        FieldExtractor.extractFields(aspect, aspectSpec.getSearchableFieldSpecs());
     final Map<SearchScoreFieldSpec, List<Object>> extractedSearchScoreFields =
-        FieldExtractor.extractFields(aspect, aspectSpec.getSearchScoreFieldSpecs(), maxValueLength);
+        FieldExtractor.extractFields(aspect, aspectSpec.getSearchScoreFieldSpecs());
     if (extractedSearchableFields.isEmpty() && extractedSearchScoreFields.isEmpty()) {
       return Optional.empty();
     }
@@ -129,15 +115,10 @@ public class SearchDocumentTransformer {
     }
 
     if (isArray || (valueType == DataSchema.Type.MAP && fieldType != FieldType.OBJECT)) {
-      if (fieldType == FieldType.BROWSE_PATH_V2) {
-        String browsePathV2Value = getBrowsePathV2Value(fieldValues);
-        searchDocument.set(fieldName, JsonNodeFactory.instance.textNode(browsePathV2Value));
-      } else {
-        ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
-        fieldValues.subList(0, Math.min(fieldValues.size(), maxArrayLength))
-            .forEach(value -> getNodeForValue(valueType, value, fieldType).ifPresent(arrayNode::add));
-        searchDocument.set(fieldName, arrayNode);
-      }
+      ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
+      fieldValues.subList(0, Math.min(fieldValues.size(), maxArrayLength))
+          .forEach(value -> getNodeForValue(valueType, value, fieldType).ifPresent(arrayNode::add));
+      searchDocument.set(fieldName, arrayNode);
     } else if (valueType == DataSchema.Type.MAP) {
       ObjectNode dictDoc = JsonNodeFactory.instance.objectNode();
       fieldValues.subList(0, Math.min(fieldValues.size(), maxObjectKeys)).forEach(fieldValue -> {
@@ -207,25 +188,5 @@ public class SearchDocumentTransformer {
         return value.isEmpty() ? Optional.empty()
             : Optional.of(JsonNodeFactory.instance.textNode(fieldValue.toString()));
     }
-  }
-
-  /**
-   * The browsePathsV2 aspect is a list of objects and the @Searchable annotation specifies a
-   * list of strings that we receive. However, we want to aggregate those strings and store
-   * as a single string in ElasticSearch so we can do prefix matching against it.
-   */
-  private String getBrowsePathV2Value(@Nonnull final List<Object> fieldValues) {
-    List<String> stringValues = new ArrayList<>();
-    fieldValues.subList(0, Math.min(fieldValues.size(), maxArrayLength)).forEach(value -> {
-      if (value instanceof String) {
-        stringValues.add((String) value);
-      }
-    });
-    String aggregatedValue = String.join(BROWSE_PATH_V2_DELIMITER, stringValues);
-    // ensure browse path v2 starts with our delimiter if it's not empty
-    if (!aggregatedValue.equals("") && !aggregatedValue.startsWith(BROWSE_PATH_V2_DELIMITER)) {
-      aggregatedValue = BROWSE_PATH_V2_DELIMITER + aggregatedValue;
-    }
-    return aggregatedValue;
   }
 }

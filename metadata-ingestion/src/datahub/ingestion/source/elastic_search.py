@@ -10,10 +10,7 @@ from pydantic import validator
 from pydantic.fields import Field
 
 from datahub.configuration.common import AllowDenyPattern
-from datahub.configuration.source_common import (
-    EnvConfigMixin,
-    PlatformInstanceConfigMixin,
-)
+from datahub.configuration.source_common import DatasetSourceConfigBase
 from datahub.configuration.validate_host_port import validate_host_port
 from datahub.emitter.mce_builder import (
     make_data_platform_urn,
@@ -31,9 +28,7 @@ from datahub.ingestion.api.decorators import (
     support_status,
 )
 from datahub.ingestion.api.source import Source, SourceReport
-from datahub.ingestion.api.source_helpers import auto_workunit_reporter
 from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.ingestion.source.common.subtypes import DatasetSubTypes
 from datahub.metadata.com.linkedin.pegasus2avro.common import StatusClass
 from datahub.metadata.com.linkedin.pegasus2avro.schema import (
     SchemaField,
@@ -44,6 +39,7 @@ from datahub.metadata.schema_classes import (
     ArrayTypeClass,
     BooleanTypeClass,
     BytesTypeClass,
+    ChangeTypeClass,
     DataPlatformInstanceClass,
     DatasetPropertiesClass,
     DateTypeClass,
@@ -104,6 +100,7 @@ class ElasticToSchemaFieldConverter:
 
     @staticmethod
     def get_column_type(elastic_column_type: str) -> SchemaFieldDataType:
+
         type_class: Optional[
             Type
         ] = ElasticToSchemaFieldConverter._field_type_to_schema_field_type.get(
@@ -191,7 +188,7 @@ class ElasticsearchSourceReport(SourceReport):
         self.filtered.append(index)
 
 
-class ElasticsearchSourceConfig(PlatformInstanceConfigMixin, EnvConfigMixin):
+class ElasticsearchSourceConfig(DatasetSourceConfigBase):
     host: str = Field(
         default="localhost:9200", description="The elastic search host URI."
     )
@@ -264,7 +261,7 @@ class ElasticsearchSourceConfig(PlatformInstanceConfigMixin, EnvConfigMixin):
         return None if self.username is None else (self.username, self.password or "")
 
 
-@platform_name("Elasticsearch")
+@platform_name("Elastic Search")
 @config_class(ElasticsearchSourceConfig)
 @support_status(SupportStatus.CERTIFIED)
 @capability(SourceCapability.PLATFORM_INSTANCE, "Enabled by default")
@@ -304,9 +301,6 @@ class ElasticsearchSource(Source):
         return cls(config, ctx)
 
     def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        return auto_workunit_reporter(self.report, self.get_workunits_internal())
-
-    def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
         indices = self.client.indices.get_alias()
 
         for index in indices:
@@ -314,18 +308,24 @@ class ElasticsearchSource(Source):
 
             if self.source_config.index_pattern.allowed(index):
                 for mcp in self._extract_mcps(index, is_index=True):
-                    yield mcp.as_workunit()
+                    wu = MetadataWorkUnit(id=f"index-{index}", mcp=mcp)
+                    self.report.report_workunit(wu)
+                    yield wu
             else:
                 self.report.report_dropped(index)
 
         for mcp in self._get_data_stream_index_count_mcps():
-            yield mcp.as_workunit()
+            wu = MetadataWorkUnit(id=f"index-{index}", mcp=mcp)
+            self.report.report_workunit(wu)
+            yield wu
         if self.source_config.ingest_index_templates:
             templates = self.client.indices.get_template()
             for template in templates:
                 if self.source_config.index_template_pattern.allowed(template):
                     for mcp in self._extract_mcps(template, is_index=False):
-                        yield mcp.as_workunit()
+                        wu = MetadataWorkUnit(id=f"template-{template}", mcp=mcp)
+                        self.report.report_workunit(wu)
+                        yield wu
 
     def _get_data_stream_index_count_mcps(
         self,
@@ -338,10 +338,13 @@ class ElasticsearchSource(Source):
                 platform_instance=self.source_config.platform_instance,
             )
             yield MetadataChangeProposalWrapper(
+                entityType="dataset",
                 entityUrn=dataset_urn,
+                aspectName="datasetProperties",
                 aspect=DatasetPropertiesClass(
                     customProperties={"numPartitions": str(count)}
                 ),
+                changeType=ChangeTypeClass.UPSERT,
             )
 
     def _extract_mcps(
@@ -394,28 +397,37 @@ class ElasticsearchSource(Source):
             env=self.source_config.env,
         )
         yield MetadataChangeProposalWrapper(
+            entityType="dataset",
             entityUrn=dataset_urn,
+            aspectName="schemaMetadata",
             aspect=schema_metadata,
+            changeType=ChangeTypeClass.UPSERT,
         )
 
         # 2. Construct and emit the status aspect.
         yield MetadataChangeProposalWrapper(
+            entityType="dataset",
             entityUrn=dataset_urn,
+            aspectName="status",
             aspect=StatusClass(removed=False),
+            changeType=ChangeTypeClass.UPSERT,
         )
 
         # 3. Construct and emit subtype
         yield MetadataChangeProposalWrapper(
+            entityType="dataset",
             entityUrn=dataset_urn,
+            aspectName="subTypes",
             aspect=SubTypesClass(
                 typeNames=[
-                    DatasetSubTypes.ELASTIC_INDEX_TEMPLATE
+                    "Index Template"
                     if not is_index
-                    else DatasetSubTypes.ELASTIC_INDEX
+                    else "Index"
                     if not data_stream
-                    else DatasetSubTypes.ELASTIC_DATASTREAM
+                    else "Datastream"
                 ]
             ),
+            changeType=ChangeTypeClass.UPSERT,
         )
 
         # 4. Construct and emit properties if needed. Will attempt to get the following properties
@@ -442,20 +454,26 @@ class ElasticsearchSource(Source):
             custom_properties["num_replicas"] = num_replicas
 
         yield MetadataChangeProposalWrapper(
+            entityType="dataset",
             entityUrn=dataset_urn,
+            aspectName="datasetProperties",
             aspect=DatasetPropertiesClass(customProperties=custom_properties),
+            changeType=ChangeTypeClass.UPSERT,
         )
 
         # 5. Construct and emit platform instance aspect
         if self.source_config.platform_instance:
             yield MetadataChangeProposalWrapper(
+                entityType="dataset",
                 entityUrn=dataset_urn,
+                aspectName="dataPlatformInstance",
                 aspect=DataPlatformInstanceClass(
                     platform=make_data_platform_urn(self.platform),
                     instance=make_dataplatform_instance_urn(
                         self.platform, self.source_config.platform_instance
                     ),
                 ),
+                changeType=ChangeTypeClass.UPSERT,
             )
 
     def get_report(self):
@@ -464,4 +482,3 @@ class ElasticsearchSource(Source):
     def close(self):
         if self.client:
             self.client.close()
-        super().close()

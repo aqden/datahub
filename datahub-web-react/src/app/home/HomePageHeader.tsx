@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router';
 import { Typography, Image, Row, Button, Tag } from 'antd';
-import styled, { useTheme } from 'styled-components/macro';
-import { RightOutlined } from '@ant-design/icons';
+import styled, { useTheme } from 'styled-components';
+
 import { ManageAccount } from '../shared/ManageAccount';
+import { useGetAuthenticatedUser } from '../useGetAuthenticatedUser';
 import { useEntityRegistry } from '../useEntityRegistry';
 import { navigateToSearchUrl } from '../search/utils/navigateToSearchUrl';
 import { SearchBar } from '../search/SearchBar';
@@ -12,16 +13,12 @@ import {
     useGetAutoCompleteMultipleResultsLazyQuery,
     useGetSearchResultsForMultipleQuery,
 } from '../../graphql/search.generated';
-import { EntityType, FacetFilterInput } from '../../types.generated';
+import { EntityType } from '../../types.generated';
 import analytics, { EventType } from '../analytics';
 import { HeaderLinks } from '../shared/admin/HeaderLinks';
 import { ANTD_GRAY } from '../entity/shared/constants';
 import { useAppConfig } from '../useAppConfig';
 import { DEFAULT_APP_CONFIG } from '../../appConfigContext';
-import { HOME_PAGE_SEARCH_BAR_ID } from '../onboarding/config/HomePageOnboardingConfig';
-import { useQuickFiltersContext } from '../../providers/QuickFiltersContext';
-import { getAutoCompleteInputFromQuickFilter } from '../search/utils/filterUtils';
-import { useUserContext } from '../context/useUserContext';
 
 const Background = styled.div`
     width: 100%;
@@ -42,7 +39,7 @@ const styles = {
     navBar: { padding: '24px' },
     searchContainer: { width: '100%', marginTop: '40px' },
     logoImage: { width: 140 },
-    searchBox: { width: '50vw', minWidth: 400, margin: '40px 0px', marginBottom: '12px', maxWidth: '650px' },
+    searchBox: { width: '47vw', minWidth: 400, margin: '40px 0px', marginBottom: '12px', maxWidth: '650px' },
     subtitle: { marginTop: '28px', color: '#FFFFFF', fontSize: 12 },
 };
 
@@ -64,17 +61,11 @@ const NavGroup = styled.div`
 const SuggestionsContainer = styled.div`
     margin: 0px 30px;
     max-width: 650px;
-    width: 50vw;
+    width: 47vw;
     display: flex;
     flex-direction: column;
     justify-content: left;
     align-items: start;
-`;
-
-const SuggestionsHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
 `;
 
 const SuggestionTagContainer = styled.div`
@@ -111,22 +102,6 @@ const SearchBarContainer = styled.div`
     text-align: center;
 `;
 
-const ExploreAllButton = styled(Button)`
-    && {
-        padding: 0px;
-        margin: 0px;
-        height: 16px;
-    }
-`;
-
-const StyledRightOutlined = styled(RightOutlined)`
-    &&& {
-        font-size: 7px;
-        margin-left: 4px;
-        padding: 0px;
-    }
-`;
-
 function truncate(input, length) {
     if (input.length > length) {
         return `${input.substring(0, length)}...`;
@@ -142,13 +117,10 @@ export const HomePageHeader = () => {
     const history = useHistory();
     const entityRegistry = useEntityRegistry();
     const [getAutoCompleteResultsForMultiple, { data: suggestionsData }] = useGetAutoCompleteMultipleResultsLazyQuery();
-    const userContext = useUserContext();
+    const user = useGetAuthenticatedUser()?.corpUser;
     const themeConfig = useTheme();
     const appConfig = useAppConfig();
     const [newSuggestionData, setNewSuggestionData] = useState<GetAutoCompleteMultipleResultsQuery | undefined>();
-    const { selectedQuickFilter } = useQuickFiltersContext();
-    const { user } = userContext;
-    const viewUrn = userContext.localState?.selectedViewUrn;
 
     useEffect(() => {
         if (suggestionsData !== undefined) {
@@ -156,19 +128,19 @@ export const HomePageHeader = () => {
         }
     }, [suggestionsData]);
 
-    const onSearch = (query: string, type?: EntityType, filters?: FacetFilterInput[]) => {
+    const onSearch = (query: string, type?: EntityType) => {
+        if (!query || query.trim().length === 0) {
+            return;
+        }
         analytics.event({
             type: EventType.HomePageSearchEvent,
             query,
             pageNumber: 1,
-            selectedQuickFilterTypes: selectedQuickFilter ? [selectedQuickFilter.field] : undefined,
-            selectedQuickFilterValues: selectedQuickFilter ? [selectedQuickFilter.value] : undefined,
         });
         navigateToSearchUrl({
             type,
             query,
             history,
-            filters,
         });
     };
 
@@ -179,22 +151,10 @@ export const HomePageHeader = () => {
                     input: {
                         query,
                         limit: 10,
-                        viewUrn,
-                        ...getAutoCompleteInputFromQuickFilter(selectedQuickFilter),
                     },
                 },
             });
         }
-    };
-
-    const onClickExploreAll = () => {
-        analytics.event({
-            type: EventType.HomePageExploreAllClickEvent,
-        });
-        navigateToSearchUrl({
-            query: '*',
-            history,
-        });
     };
 
     // Fetch results
@@ -206,8 +166,6 @@ export const HomePageHeader = () => {
                 start: 0,
                 count: 6,
                 filters: [],
-                orFilters: [],
-                viewUrn,
             },
         },
     });
@@ -258,7 +216,7 @@ export const HomePageHeader = () => {
                 {!!themeConfig.content.subtitle && (
                     <Typography.Text style={styles.subtitle}>{themeConfig.content.subtitle}</Typography.Text>
                 )}
-                <SearchBarContainer id={HOME_PAGE_SEARCH_BAR_ID}>
+                <SearchBarContainer>
                     <SearchBar
                         placeholderText={themeConfig.content.search.searchbarMessage}
                         suggestions={newSuggestionData?.autoCompleteForMultiple?.suggestions || []}
@@ -266,16 +224,10 @@ export const HomePageHeader = () => {
                         onQueryChange={onAutoComplete}
                         autoCompleteStyle={styles.searchBox}
                         entityRegistry={entityRegistry}
-                        showQuickFilters
                     />
                     {searchResultsToShow && searchResultsToShow.length > 0 && (
                         <SuggestionsContainer>
-                            <SuggestionsHeader>
-                                <SuggestedQueriesText strong>Try searching for</SuggestedQueriesText>
-                                <ExploreAllButton type="link" onClick={onClickExploreAll}>
-                                    Explore all <StyledRightOutlined />
-                                </ExploreAllButton>
-                            </SuggestionsHeader>
+                            <SuggestedQueriesText strong>Try searching for</SuggestedQueriesText>
                             <SuggestionTagContainer>
                                 {searchResultsToShow.slice(0, 3).map((suggestion) => (
                                     <SuggestionButton

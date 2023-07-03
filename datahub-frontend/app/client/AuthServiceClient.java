@@ -3,8 +3,6 @@ package client;
 import com.datahub.authentication.Authentication;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +12,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import play.mvc.Http;
 
@@ -28,7 +27,6 @@ public class AuthServiceClient {
   private static final String SIGN_UP_ENDPOINT = "auth/signUp";
   private static final String RESET_NATIVE_USER_CREDENTIALS_ENDPOINT = "auth/resetNativeUserCredentials";
   private static final String VERIFY_NATIVE_USER_CREDENTIALS_ENDPOINT = "auth/verifyNativeUserCredentials";
-  private static final String TRACK_ENDPOINT = "auth/track";
   private static final String ACCESS_TOKEN_FIELD = "accessToken";
   private static final String USER_ID_FIELD = "userId";
   private static final String USER_URN_FIELD = "userUrn";
@@ -46,16 +44,13 @@ public class AuthServiceClient {
   private final Integer metadataServicePort;
   private final Boolean metadataServiceUseSsl;
   private final Authentication systemAuthentication;
-  private final CloseableHttpClient httpClient;
 
   public AuthServiceClient(@Nonnull final String metadataServiceHost, @Nonnull final Integer metadataServicePort,
-      @Nonnull final Boolean useSsl, @Nonnull final Authentication systemAuthentication,
-      @Nonnull final CloseableHttpClient httpClient) {
+      @Nonnull final Boolean useSsl, @Nonnull final Authentication systemAuthentication) {
     this.metadataServiceHost = Objects.requireNonNull(metadataServiceHost);
     this.metadataServicePort = Objects.requireNonNull(metadataServicePort);
     this.metadataServiceUseSsl = Objects.requireNonNull(useSsl);
     this.systemAuthentication = Objects.requireNonNull(systemAuthentication);
-    this.httpClient = Objects.requireNonNull(httpClient);
   }
 
   /**
@@ -67,7 +62,7 @@ public class AuthServiceClient {
   @Nonnull
   public String generateSessionTokenForUser(@Nonnull final String userId) {
     Objects.requireNonNull(userId, "userId must not be null");
-    CloseableHttpResponse response = null;
+    CloseableHttpClient httpClient = HttpClients.createDefault();
 
     try {
 
@@ -81,12 +76,12 @@ public class AuthServiceClient {
       final ObjectNode objectNode = objectMapper.createObjectNode();
       objectNode.put(USER_ID_FIELD, userId);
       final String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectNode);
-      request.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+      request.setEntity(new StringEntity(json));
 
       // Add authorization header with DataHub frontend system id and secret.
       request.addHeader(Http.HeaderNames.AUTHORIZATION, this.systemAuthentication.getCredentials());
 
-      response = httpClient.execute(request);
+      CloseableHttpResponse response = httpClient.execute(request);
       final HttpEntity entity = response.getEntity();
       if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK && entity != null) {
         // Successfully generated a token for the User
@@ -101,11 +96,9 @@ public class AuthServiceClient {
       throw new RuntimeException("Failed to generate session token for user", e);
     } finally {
       try {
-        if (response != null) {
-          response.close();
-        }
+        httpClient.close();
       } catch (Exception e) {
-        log.error("Failed to close http response", e);
+        log.warn("Failed to close http client", e);
       }
     }
   }
@@ -121,7 +114,7 @@ public class AuthServiceClient {
     Objects.requireNonNull(title, "title must not be null");
     Objects.requireNonNull(password, "password must not be null");
     Objects.requireNonNull(inviteToken, "inviteToken must not be null");
-    CloseableHttpResponse response = null;
+    CloseableHttpClient httpClient = HttpClients.createDefault();
 
     try {
 
@@ -130,7 +123,7 @@ public class AuthServiceClient {
           String.format("%s://%s:%s/%s", protocol, this.metadataServiceHost, this.metadataServicePort,
               SIGN_UP_ENDPOINT));
 
-      // Build JSON request to sign up a native user.
+      // Build JSON request to verify credentials for a native user.
       final ObjectMapper objectMapper = new ObjectMapper();
       final ObjectNode objectNode = objectMapper.createObjectNode();
       objectNode.put(USER_URN_FIELD, userUrn);
@@ -140,33 +133,29 @@ public class AuthServiceClient {
       objectNode.put(PASSWORD_FIELD, password);
       objectNode.put(INVITE_TOKEN_FIELD, inviteToken);
       final String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectNode);
-      request.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+      request.setEntity(new StringEntity(json));
 
       // Add authorization header with DataHub frontend system id and secret.
       request.addHeader(Http.HeaderNames.AUTHORIZATION, this.systemAuthentication.getCredentials());
 
-      response = httpClient.execute(request);
+      CloseableHttpResponse response = httpClient.execute(request);
       final HttpEntity entity = response.getEntity();
       if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK && entity != null) {
         // Successfully generated a token for the User
         final String jsonStr = EntityUtils.toString(entity);
         return getIsNativeUserCreatedFromJson(jsonStr);
       } else {
-        String content = response.getEntity().getContent() == null ? "" : new String(
-                response.getEntity().getContent().readAllBytes(), StandardCharsets.UTF_8);
         throw new RuntimeException(
-            String.format("Bad response from the Metadata Service: %s %s Body: %s", response.getStatusLine().toString(),
-                response.getEntity().toString(), content));
+            String.format("Bad response from the Metadata Service: %s %s", response.getStatusLine().toString(),
+                response.getEntity().toString()));
       }
     } catch (Exception e) {
-      throw new RuntimeException(String.format("Failed to create user %s", userUrn), e);
+      throw new RuntimeException("Failed to create user", e);
     } finally {
       try {
-        if (response != null) {
-          response.close();
-        }
+        httpClient.close();
       } catch (Exception e) {
-        log.error("Failed to close http response", e);
+        log.warn("Failed to close http client", e);
       }
     }
   }
@@ -179,7 +168,7 @@ public class AuthServiceClient {
     Objects.requireNonNull(userUrn, "userUrn must not be null");
     Objects.requireNonNull(password, "password must not be null");
     Objects.requireNonNull(resetToken, "reset token must not be null");
-    CloseableHttpResponse response = null;
+    CloseableHttpClient httpClient = HttpClients.createDefault();
 
     try {
 
@@ -195,12 +184,12 @@ public class AuthServiceClient {
       objectNode.put(PASSWORD_FIELD, password);
       objectNode.put(RESET_TOKEN_FIELD, resetToken);
       final String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectNode);
-      request.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+      request.setEntity(new StringEntity(json));
 
       // Add authorization header with DataHub frontend system id and secret.
       request.addHeader(Http.HeaderNames.AUTHORIZATION, this.systemAuthentication.getCredentials());
 
-      response = httpClient.execute(request);
+      CloseableHttpResponse response = httpClient.execute(request);
       final HttpEntity entity = response.getEntity();
       if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK && entity != null) {
         // Successfully generated a token for the User
@@ -215,11 +204,9 @@ public class AuthServiceClient {
       throw new RuntimeException("Failed to reset credentials for user", e);
     } finally {
       try {
-        if (response != null) {
-          response.close();
-        }
+        httpClient.close();
       } catch (Exception e) {
-        log.error("Failed to close http response", e);
+        log.warn("Failed to close http client", e);
       }
     }
   }
@@ -230,7 +217,7 @@ public class AuthServiceClient {
   public boolean verifyNativeUserCredentials(@Nonnull final String userUrn, @Nonnull final String password) {
     Objects.requireNonNull(userUrn, "userUrn must not be null");
     Objects.requireNonNull(password, "password must not be null");
-    CloseableHttpResponse response = null;
+    CloseableHttpClient httpClient = HttpClients.createDefault();
 
     try {
 
@@ -245,12 +232,12 @@ public class AuthServiceClient {
       objectNode.put(USER_URN_FIELD, userUrn);
       objectNode.put(PASSWORD_FIELD, password);
       final String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectNode);
-      request.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+      request.setEntity(new StringEntity(json));
 
       // Add authorization header with DataHub frontend system id and secret.
       request.addHeader(Http.HeaderNames.AUTHORIZATION, this.systemAuthentication.getCredentials());
 
-      response = httpClient.execute(request);
+      CloseableHttpResponse response = httpClient.execute(request);
       final HttpEntity entity = response.getEntity();
       if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK && entity != null) {
         // Successfully generated a token for the User
@@ -265,51 +252,9 @@ public class AuthServiceClient {
       throw new RuntimeException("Failed to verify credentials for user", e);
     } finally {
       try {
-        if (response != null) {
-          response.close();
-        }
+        httpClient.close();
       } catch (Exception e) {
-        log.error("Failed to close http response", e);
-      }
-    }
-  }
-
-  /**
-   * Call the Auth Service to track an analytics event
-   */
-  public void track(@Nonnull final String event) {
-    Objects.requireNonNull(event, "event must not be null");
-    CloseableHttpResponse response = null;
-
-    try {
-      final String protocol = this.metadataServiceUseSsl ? "https" : "http";
-      final HttpPost request = new HttpPost(
-          String.format("%s://%s:%s/%s", protocol, this.metadataServiceHost, this.metadataServicePort,
-              TRACK_ENDPOINT));
-
-      // Build JSON request to track event.
-      request.setEntity(new StringEntity(event, StandardCharsets.UTF_8));
-
-      // Add authorization header with DataHub frontend system id and secret.
-      request.addHeader(Http.HeaderNames.AUTHORIZATION, this.systemAuthentication.getCredentials());
-
-      response = httpClient.execute(request);
-      final HttpEntity entity = response.getEntity();
-
-      if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK || entity == null) {
-        throw new RuntimeException(
-            String.format("Bad response from the Metadata Service: %s %s", response.getStatusLine().toString(),
-                response.getEntity().toString()));
-      }
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to track event", e);
-    } finally {
-      try {
-        if (response != null) {
-          response.close();
-        }
-      } catch (Exception e) {
-        log.error("Failed to close http response", e);
+        log.warn("Failed to close http client", e);
       }
     }
   }

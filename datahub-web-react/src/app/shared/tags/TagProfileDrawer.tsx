@@ -4,8 +4,6 @@ import styled from 'styled-components';
 import { InfoCircleOutlined } from '@ant-design/icons';
 
 import TagStyleEntity from '../TagStyleEntity';
-import { useEntityRegistry } from '../../useEntityRegistry';
-import { EntityType } from '../../../types.generated';
 
 type Props = {
     closeTagProfileDrawer?: () => void;
@@ -19,7 +17,6 @@ const DetailsLayout = styled.div`
 `;
 
 export const TagProfileDrawer = ({ closeTagProfileDrawer, tagProfileDrawerVisible, urn }: Props) => {
-    const entityRegistry = useEntityRegistry();
     return (
         <>
             <Drawer
@@ -36,7 +33,7 @@ export const TagProfileDrawer = ({ closeTagProfileDrawer, tagProfileDrawerVisibl
                             </Button>
                         </Space>
                         <Space>
-                            <Button href={entityRegistry.getEntityUrl(EntityType.Tag, urn)}>
+                            <Button href={`/tag/${urn}`}>
                                 <InfoCircleOutlined /> Tag Details
                             </Button>
                         </Space>

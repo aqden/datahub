@@ -1,19 +1,17 @@
 import json
 import logging
 import os
-import pathlib
 import pprint
 import re
 import shutil
-import tempfile
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import deepdiff
 
-from datahub.emitter.mcp import MetadataChangeProposalWrapper
-from datahub.ingestion.sink.file import write_metadata_file
-from datahub.ingestion.source.file import read_metadata_file
-from datahub.metadata.schema_classes import MetadataChangeEventClass
+from datahub.metadata.schema_classes import (
+    MetadataChangeEventClass,
+    MetadataChangeProposalClass,
+)
 from datahub.utilities.urns.urn import Urn
 from tests.test_helpers.type_helpers import PytestConfig
 
@@ -123,13 +121,9 @@ def check_golden_file(
     golden_path: Union[str, os.PathLike],
     ignore_paths: Optional[List[str]] = None,
 ) -> None:
-    update_golden = pytestconfig.getoption("--update-golden-files")
-    copy_output = pytestconfig.getoption("--copy-output-files")
-    golden_exists = os.path.isfile(golden_path)
 
-    if copy_output:
-        shutil.copyfile(str(output_path), str(golden_path) + ".output")
-        print(f"Copied output file to {golden_path}.output")
+    update_golden = pytestconfig.getoption("--update-golden-files")
+    golden_exists = os.path.isfile(golden_path)
 
     if not update_golden and not golden_exists:
         raise FileNotFoundError(
@@ -143,12 +137,7 @@ def check_golden_file(
         golden = load_json_file(output_path)
         shutil.copyfile(str(output_path), str(golden_path))
     else:
-        # We have to "normalize" the golden file by reading and writing it back out.
-        # This will clean up nulls, double serialization, and other formatting issues.
-        with tempfile.NamedTemporaryFile() as temp:
-            golden_metadata = read_metadata_file(pathlib.Path(golden_path))
-            write_metadata_file(pathlib.Path(temp.name), golden_metadata)
-            golden = load_json_file(temp.name)
+        golden = load_json_file(golden_path)
 
     try:
         assert_mces_equal(output, golden, ignore_paths)
@@ -345,9 +334,9 @@ def assert_for_each_entity(
     ]:
         if o.get(MCPConstants.ASPECT_NAME) == aspect_name:
             # load the inner aspect payload and assign to this urn
-            aspect_map[o[MCPConstants.ENTITY_URN]] = o.get(
-                MCPConstants.ASPECT_VALUE, {}
-            ).get("json")
+            aspect_map[o[MCPConstants.ENTITY_URN]] = json.loads(
+                o.get(MCPConstants.ASPECT_VALUE, {}).get("value")
+            )
 
     success: List[str] = []
     failures: List[str] = []
@@ -365,9 +354,9 @@ def assert_for_each_entity(
     if success:
         print(f"Succeeded on assertion for urns {success}")
     if failures:
-        raise AssertionError(
-            f"Failed to find aspect_name {aspect_name} for urns {json.dumps(failures, indent=2)}"
-        )
+        assert (
+            False
+        ), f"Failed to find aspect_name {aspect_name} for urns {json.dumps(failures, indent=2)}"
 
     return len(success)
 
@@ -375,7 +364,6 @@ def assert_for_each_entity(
 def assert_entity_mce_aspect(
     entity_urn: str, aspect: Any, aspect_type: Type, file: str
 ) -> int:
-    # TODO: Replace with read_metadata_file()
     test_output = load_json_file(file)
     entity_type = Urn.create_from_string(entity_urn).get_type()
     assert isinstance(test_output, list)
@@ -398,13 +386,12 @@ def assert_entity_mce_aspect(
 def assert_entity_mcp_aspect(
     entity_urn: str, aspect_field_matcher: Dict[str, Any], aspect_name: str, file: str
 ) -> int:
-    # TODO: Replace with read_metadata_file()
     test_output = load_json_file(file)
     entity_type = Urn.create_from_string(entity_urn).get_type()
     assert isinstance(test_output, list)
     # mcps that match entity_urn
-    mcps: List[MetadataChangeProposalWrapper] = [
-        MetadataChangeProposalWrapper.from_obj_require_wrapper(x)
+    mcps: List[MetadataChangeProposalClass] = [
+        MetadataChangeProposalClass.from_obj(x)
         for x in test_output
         if _get_filter(mcp=True, entity_type=entity_type)(x)
         and _get_element(x, _get_mcp_urn_path_spec()) == entity_urn
@@ -413,7 +400,7 @@ def assert_entity_mcp_aspect(
     for mcp in mcps:
         if mcp.aspectName == aspect_name:
             assert mcp.aspect
-            aspect_val = mcp.aspect.to_obj()
+            aspect_val = json.loads(mcp.aspect.value)
             for f in aspect_field_matcher:
                 assert aspect_field_matcher[f] == _get_element(
                     aspect_val, [f]
@@ -425,7 +412,6 @@ def assert_entity_mcp_aspect(
 def assert_entity_urn_not_like(entity_type: str, regex_pattern: str, file: str) -> int:
     """Assert that there are no entity urns that match the regex pattern passed in. Returns the total number of events in the file"""
 
-    # TODO: Refactor common code with assert_entity_urn_like.
     test_output = load_json_file(file)
     assert isinstance(test_output, list)
     # mce urns

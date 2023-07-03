@@ -1,7 +1,5 @@
 package com.linkedin.datahub.upgrade;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
 
 
@@ -23,8 +21,6 @@ public interface Upgrade {
   /**
    * Returns a set of steps to perform on upgrade success, failure, or abort.
    */
-  default List<UpgradeCleanupStep> cleanupSteps() {
-    return ImmutableList.of();
-  }
+  List<UpgradeCleanupStep> cleanupSteps();
 
 }

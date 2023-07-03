@@ -3,13 +3,10 @@
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{ISO8601} [%thread] %-5level %logger{36}:%L - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}:%L - %msg%n</pattern>
         </encoder>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
-        </filter>
-        <filter class="com.linkedin.metadata.utils.log.LogMessageFilter">
-            <excluded>scanned from multiple locations</excluded>
         </filter>
     </appender>
 
@@ -28,11 +25,8 @@
             <level>INFO</level>
         </filter>
         <encoder>
-            <pattern>%date{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{dd MMM yyyy;HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
-        <filter class="com.linkedin.metadata.utils.log.LogMessageFilter">
-            <excluded>scanned from multiple locations</excluded>
-        </filter>
     </appender>
 
     <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -52,7 +46,7 @@
             <onMismatch>DENY</onMismatch>
         </filter>
         <encoder>
-            <pattern>%date{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{dd MMM yyyy;HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -73,6 +67,9 @@
         <appender-ref ref="STDOUT" />
     </logger>
 
+    <logger name="org.elasticsearch.client.RestClient" level="ERROR">
+        <appender-ref ref="STDOUT" />
+    </logger>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

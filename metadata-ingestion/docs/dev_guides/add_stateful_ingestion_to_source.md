@@ -65,8 +65,25 @@ Examples:
 3. [BaseSQLAlchemyCheckpointState](https://github.com/datahub-project/datahub/blob/master/metadata-ingestion/src/datahub/ingestion/source/state/sql_common_state.py#L17)
 
 ### 2. Modifying the SourceConfig
+The `stateful_ingestion` config param that is mandatory for any source using stateful ingestion needs to be overridden with a custom config that is more specific to the source
+and is inherited from `datahub.ingestion.source.state.stale_entity_removal_handler.StatefulStaleMetadataRemovalConfig`. The `StatefulStaleMetadataRemovalConfig` adds the following
+additional parameters to the basic stateful ingestion config that is common for all sources. Typical customization involves overriding the `_entity_types` private config member which helps produce
+more accurate documentation specific to the source.
+```python
+import pydantic
+from typing import List
+from datahub.ingestion.source.state.stateful_ingestion_base import StatefulIngestionConfig
+class StatefulStaleMetadataRemovalConfig(StatefulIngestionConfig):
+    """ Base specialized config for Stateful Ingestion with stale metadata removal capability. """
 
-The source's config must inherit from `StatefulIngestionConfigBase`, and should declare a field named `stateful_ingestion` of type `Optional[StatefulStaleMetadataRemovalConfig]`.
+    # Allows for sources to define(via override) the entity types they support.
+    _entity_types: List[str] = []
+    # Whether to enable removal of stale metadata.
+    remove_stale_metadata: bool = pydantic.Field(
+        default=True,
+        description=f"Soft-deletes the entities of type {', '.join(_entity_types)} in the last successful run but missing in the current run with stateful_ingestion enabled.",
+    )
+```
 
 Examples:
 1. The `KafkaSourceConfig`
@@ -77,11 +94,17 @@ from datahub.ingestion.source.state.stale_entity_removal_handler import Stateful
 from datahub.ingestion.source.state.stateful_ingestion_base import (
     StatefulIngestionConfigBase,
 )
+from datahub.configuration.source_common import DatasetSourceConfigBase
 
-class KafkaSourceConfig(StatefulIngestionConfigBase):
+class KafkaSourceStatefulIngestionConfig(StatefulStaleMetadataRemovalConfig):
+    """ Kafka custom stateful ingestion config definition(overrides _entity_types of StatefulStaleMetadataRemovalConfig). """
+    _entity_types: List[str] = pydantic.Field(default=["topic"])
+
+
+class KafkaSourceConfig(StatefulIngestionConfigBase, DatasetSourceConfigBase):
     # ...<other config params>...
-
-    stateful_ingestion: Optional[StatefulStaleMetadataRemovalConfig] = None
+    """ Override the stateful_ingestion config param with the Kafka custom stateful ingestion config in the KafkaSourceConfig. """
+    stateful_ingestion: Optional[KafkaSourceStatefulIngestionConfig] = None
 ```
 
 2. The [DBTStatefulIngestionConfig](https://github.com/datahub-project/datahub/blob/master/metadata-ingestion/src/datahub/ingestion/source/dbt.py#L131)

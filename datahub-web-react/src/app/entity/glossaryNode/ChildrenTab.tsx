@@ -11,8 +11,6 @@ function ChildrenTab() {
     const { entityData } = useEntityData();
     const entityRegistry = useEntityRegistry();
 
-    if (!entityData) return <></>;
-
     const childNodes = entityData?.children?.relationships
         .filter((child) => child.entity?.type === EntityType.GlossaryNode)
         .sort((nodeA, nodeB) => sortGlossaryNodes(entityRegistry, nodeA.entity, nodeB.entity))

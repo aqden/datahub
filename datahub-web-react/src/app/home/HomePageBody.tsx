@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { useUserContext } from '../context/useUserContext';
+import { useGetAuthenticatedUser } from '../useGetAuthenticatedUser';
 import { HomePageRecommendations } from './HomePageRecommendations';
 
 const BodyContainer = styled.div`
@@ -17,6 +17,10 @@ const BodyContainer = styled.div`
 `;
 
 export const HomePageBody = () => {
-    const user = useUserContext()?.user;
-    return <BodyContainer>{user && <HomePageRecommendations user={user} />}</BodyContainer>;
+    const authenticatedUserUrn = useGetAuthenticatedUser()?.corpUser?.urn;
+    return (
+        <BodyContainer>
+            {authenticatedUserUrn && <HomePageRecommendations userUrn={authenticatedUserUrn} />}
+        </BodyContainer>
+    );
 };

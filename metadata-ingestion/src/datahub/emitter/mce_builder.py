@@ -15,9 +15,7 @@ from datahub.emitter.serialization_helper import pre_json_transform
 from datahub.metadata.schema_classes import (
     AssertionKeyClass,
     AuditStampClass,
-    ChartKeyClass,
     ContainerKeyClass,
-    DashboardKeyClass,
     DatasetKeyClass,
     DatasetLineageTypeClass,
     DatasetSnapshotClass,
@@ -36,8 +34,7 @@ from datahub.metadata.schema_classes import (
     UpstreamLineageClass,
     _Aspect as AspectAbstract,
 )
-from datahub.utilities.urn_encoder import UrnEncoder
-from datahub.utilities.urns.data_flow_urn import DataFlowUrn
+from datahub.metadata.schema_classes import _Aspect as AspectAbstract
 from datahub.utilities.urns.dataset_urn import DatasetUrn
 
 logger = logging.getLogger(__name__)
@@ -101,11 +98,9 @@ def make_dataset_urn_with_platform_instance(
     )
 
 
-# Schema Field Urns url-encode reserved characters.
-# TODO: This needs to be handled on consumer (UI) side well.
 def make_schema_field_urn(parent_urn: str, field_path: str) -> str:
     assert parent_urn.startswith("urn:li:"), "Schema field's parent must be an urn"
-    return f"urn:li:schemaField:({parent_urn},{UrnEncoder.encode_string(field_path)})"
+    return f"urn:li:schemaField:({parent_urn},{field_path})"
 
 
 def schema_field_urn_to_key(schema_field_urn: str) -> Optional[SchemaFieldKeyClass]:
@@ -126,10 +121,20 @@ def dataset_urn_to_key(dataset_urn: str) -> Optional[DatasetKeyClass]:
     return None
 
 
-def dataset_key_to_urn(key: DatasetKeyClass) -> str:
-    return (
-        f"urn:li:dataset:(urn:li:dataPlatform:{key.platform},{key.name},{key.origin})"
-    )
+def make_container_new_urn(guid: str) -> str:
+    return f"urn:dh:container:0:({guid})"
+
+
+def container_new_urn_to_key(dataset_urn: str) -> Optional[ContainerKeyClass]:
+    pattern = r"urn:dh:container:0:\((.*)\)"
+    results = re.search(pattern, dataset_urn)
+    if results is not None:
+        return ContainerKeyClass(guid=results[1])
+    return None
+
+
+# def make_container_urn(platform: str, name: str, env: str = DEFAULT_ENV) -> str:
+#    return f"urn:li:container:({make_data_platform_urn(platform)},{env},{name})"
 
 
 def make_container_urn(guid: str) -> str:
@@ -164,34 +169,15 @@ def assertion_urn_to_key(assertion_urn: str) -> Optional[AssertionKeyClass]:
 
 
 def make_user_urn(username: str) -> str:
-    """
-    Makes a user urn if the input is not a user urn already
-    """
-    return (
-        f"urn:li:corpuser:{username}"
-        if not username.startswith("urn:li:corpuser:")
-        else username
-    )
+    return f"urn:li:corpuser:{username}"
 
 
 def make_group_urn(groupname: str) -> str:
-    """
-    Makes a group urn if the input is not a group urn already
-    """
-    if groupname and groupname.startswith("urn:li:corpGroup:"):
-        return groupname
-    else:
-        return f"urn:li:corpGroup:{groupname}"
+    return f"urn:li:corpGroup:{groupname}"
 
 
 def make_tag_urn(tag: str) -> str:
-    """
-    Makes a tag urn if the input is not a tag urn already
-    """
-    if tag and tag.startswith("urn:li:tag:"):
-        return tag
-    else:
-        return f"urn:li:tag:{tag}"
+    return f"urn:li:tag:{tag}"
 
 
 def make_owner_urn(owner: str, owner_type: OwnerType) -> str:
@@ -199,29 +185,13 @@ def make_owner_urn(owner: str, owner_type: OwnerType) -> str:
 
 
 def make_term_urn(term: str) -> str:
-    """
-    Makes a term urn if the input is not a term urn already
-    """
-    if term and term.startswith("urn:li:glossaryTerm:"):
-        return term
-    else:
-        return f"urn:li:glossaryTerm:{term}"
+    return f"urn:li:glossaryTerm:{term}"
 
 
 def make_data_flow_urn(
-    orchestrator: str,
-    flow_id: str,
-    cluster: str = DEFAULT_FLOW_CLUSTER,
-    platform_instance: Optional[str] = None,
+    orchestrator: str, flow_id: str, cluster: str = DEFAULT_FLOW_CLUSTER
 ) -> str:
-    return str(
-        DataFlowUrn.create_from_ids(
-            orchestrator=orchestrator,
-            flow_id=flow_id,
-            env=cluster,
-            platform_instance=platform_instance,
-        )
-    )
+    return f"urn:li:dataFlow:({orchestrator},{flow_id},{cluster})"
 
 
 def make_data_job_urn_with_flow(flow_urn: str, job_id: str) -> str:
@@ -233,51 +203,21 @@ def make_data_process_instance_urn(dataProcessInstanceId: str) -> str:
 
 
 def make_data_job_urn(
-    orchestrator: str,
-    flow_id: str,
-    job_id: str,
-    cluster: str = DEFAULT_FLOW_CLUSTER,
-    platform_instance: Optional[str] = None,
+    orchestrator: str, flow_id: str, job_id: str, cluster: str = DEFAULT_FLOW_CLUSTER
 ) -> str:
     return make_data_job_urn_with_flow(
-        make_data_flow_urn(orchestrator, flow_id, cluster, platform_instance), job_id
+        make_data_flow_urn(orchestrator, flow_id, cluster), job_id
     )
 
 
-def make_dashboard_urn(
-    platform: str, name: str, platform_instance: Optional[str] = None
-) -> str:
+def make_dashboard_urn(platform: str, name: str) -> str:
     # FIXME: dashboards don't currently include data platform urn prefixes.
-    if platform_instance:
-        return f"urn:li:dashboard:({platform},{platform_instance}.{name})"
-    else:
-        return f"urn:li:dashboard:({platform},{name})"
+    return f"urn:li:dashboard:({platform},{name})"
 
 
-def dashboard_urn_to_key(dashboard_urn: str) -> Optional[DashboardKeyClass]:
-    pattern = r"urn:li:dashboard:\((.*),(.*)\)"
-    results = re.search(pattern, dashboard_urn)
-    if results is not None:
-        return DashboardKeyClass(dashboardTool=results[1], dashboardId=results[2])
-    return None
-
-
-def make_chart_urn(
-    platform: str, name: str, platform_instance: Optional[str] = None
-) -> str:
+def make_chart_urn(platform: str, name: str) -> str:
     # FIXME: charts don't currently include data platform urn prefixes.
-    if platform_instance:
-        return f"urn:li:chart:({platform},{platform_instance}.{name})"
-    else:
-        return f"urn:li:chart:({platform},{name})"
-
-
-def chart_urn_to_key(chart_urn: str) -> Optional[ChartKeyClass]:
-    pattern = r"urn:li:chart:\((.*),(.*)\)"
-    results = re.search(pattern, chart_urn)
-    if results is not None:
-        return ChartKeyClass(dashboardTool=results[1], chartId=results[2])
-    return None
+    return f"urn:li:chart:({platform},{name})"
 
 
 def make_domain_urn(domain: str) -> str:
@@ -366,25 +306,21 @@ def can_add_aspect(mce: MetadataChangeEventClass, AspectType: Type[Aspect]) -> b
 
     constructor_annotations = get_type_hints(SnapshotType.__init__)
     aspect_list_union = typing_inspect.get_args(constructor_annotations["aspects"])[0]
-
-    supported_aspect_types = typing_inspect.get_args(aspect_list_union)
+    if not isinstance(aspect_list_union, tuple):
+        supported_aspect_types = typing_inspect.get_args(aspect_list_union)
+    else:
+        # On Python 3.6, the union type is represented as a tuple, where
+        # the first item is typing.Union and the subsequent elements are
+        # the types within the union.
+        supported_aspect_types = aspect_list_union[1:]
 
     return issubclass(AspectType, supported_aspect_types)
-
-
-def assert_can_add_aspect(
-    mce: MetadataChangeEventClass, AspectType: Type[Aspect]
-) -> None:
-    if not can_add_aspect(mce, AspectType):
-        raise AssertionError(
-            f"Cannot add aspect {AspectType} to {type(mce.proposedSnapshot)}"
-        )
 
 
 def get_aspect_if_available(
     mce: MetadataChangeEventClass, AspectType: Type[Aspect]
 ) -> Optional[Aspect]:
-    assert_can_add_aspect(mce, AspectType)
+    assert can_add_aspect(mce, AspectType)
 
     all_aspects = mce.proposedSnapshot.aspects
     aspects: List[Aspect] = [
@@ -403,7 +339,7 @@ def get_aspect_if_available(
 def remove_aspect_if_available(
     mce: MetadataChangeEventClass, aspect_type: Type[Aspect]
 ) -> bool:
-    assert_can_add_aspect(mce, aspect_type)
+    assert can_add_aspect(mce, aspect_type)
     # loose type annotations since we checked before
     aspects: List[Any] = [
         aspect

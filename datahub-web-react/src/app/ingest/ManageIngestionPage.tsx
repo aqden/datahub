@@ -3,11 +3,6 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { IngestionSourceList } from './source/IngestionSourceList';
 import { SecretsList } from './secret/SecretsList';
-import { OnboardingTour } from '../onboarding/OnboardingTour';
-import {
-    INGESTION_CREATE_SOURCE_ID,
-    INGESTION_REFRESH_SOURCES_ID,
-} from '../onboarding/config/IngestionOnboardingConfig';
 
 const PageContainer = styled.div`
     padding-top: 20px;
@@ -56,11 +51,10 @@ export const ManageIngestionPage = () => {
 
     return (
         <PageContainer>
-            <OnboardingTour stepIds={[INGESTION_CREATE_SOURCE_ID, INGESTION_REFRESH_SOURCES_ID]} />
             <PageHeaderContainer>
                 <PageTitle level={3}>Manage Ingestion</PageTitle>
                 <Typography.Paragraph type="secondary">
-                    Create, schedule, and run DataHub ingestion sources.
+                    Create, schedule, and run DataHub ingestion pipelines.
                 </Typography.Paragraph>
             </PageHeaderContainer>
             <StyledTabs activeKey={selectedTab} size="large" onTabClick={(tab: string) => onClickTab(tab)}>

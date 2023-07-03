@@ -27,7 +27,8 @@ Evaluation status and results for an assertion tracked over time.
 <summary>Python SDK: Emit assertion info and results for dataset </summary>
 
 ```python
-{{ inline /metadata-ingestion/examples/library/data_quality_mcpw_rest.py show_path_as_comment }}
+# inlined from examples/library/data_quality_mcpw_rest.py
+{{ inline examples/library/data_quality_mcpw_rest.py }}
 ```
 </details>
 

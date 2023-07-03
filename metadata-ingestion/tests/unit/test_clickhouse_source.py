@@ -2,6 +2,7 @@ from datahub.ingestion.source.sql.clickhouse import ClickHouseConfig
 
 
 def test_clickhouse_uri_https():
+
     config = ClickHouseConfig.parse_obj(
         {
             "username": "user",
@@ -18,6 +19,7 @@ def test_clickhouse_uri_https():
 
 
 def test_clickhouse_uri_native():
+
     config = ClickHouseConfig.parse_obj(
         {
             "username": "user",
@@ -30,6 +32,7 @@ def test_clickhouse_uri_native():
 
 
 def test_clickhouse_uri_native_secure():
+
     config = ClickHouseConfig.parse_obj(
         {
             "username": "user",
@@ -47,6 +50,7 @@ def test_clickhouse_uri_native_secure():
 
 
 def test_clickhouse_uri_default_password():
+
     config = ClickHouseConfig.parse_obj(
         {
             "username": "user",

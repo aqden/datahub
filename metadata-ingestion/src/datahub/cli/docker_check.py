@@ -1,233 +1,121 @@
-import enum
-import os
 from contextlib import contextmanager
-from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import docker
-import docker.errors
-import docker.models.containers
-import yaml
 
-from datahub.configuration.common import ExceptionWithProps
+REQUIRED_CONTAINERS = [
+    "elasticsearch-setup",
+    "elasticsearch",
+    "datahub-gms",
+    "datahub-frontend-react",
+    "kafka-setup",
+    "schema-registry",
+    "broker",
+    "zookeeper",
+    # These two containers are not necessary - only helpful in debugging.
+    # "kafka-topics-ui",
+    # "schema-registry-ui",
+    # "kibana",
+    # "kafka-rest-proxy",
+    # "datahub-mce-consumer",
+    # "datahub-mae-consumer"
+]
+
+ENSURE_EXIT_SUCCESS = [
+    "kafka-setup",
+    "elasticsearch-setup",
+    "mysql-setup",
+]
+
+CONTAINERS_TO_CHECK_IF_PRESENT = [
+    # We only add this container in some cases, but if it's present, we
+    # definitely want to check that it exits properly.
+    "mysql",
+    "mysql-setup",
+    "cassandra",
+    "cassandra-setup",
+    "neo4j",
+]
 
 # Docker seems to under-report memory allocated, so we also need a bit of buffer to account for it.
 MIN_MEMORY_NEEDED = 3.8  # GB
 
-DATAHUB_COMPOSE_PROJECT_FILTER = {"label": "com.docker.compose.project=datahub"}
-
-DATAHUB_COMPOSE_LEGACY_VOLUME_FILTERS = [
-    {"name": "datahub_neo4jdata"},
-    {"name": "datahub_mysqldata"},
-    {"name": "datahub_zkdata"},
-    {"name": "datahub_esdata"},
-    {"name": "datahub_cassandradata"},
-    {"name": "datahub_broker"},
-]
-
-
-class DockerNotRunningError(Exception):
-    SHOW_STACK_TRACE = False
-
-
-class DockerLowMemoryError(Exception):
-    SHOW_STACK_TRACE = False
-
-
-class DockerComposeVersionError(Exception):
-    SHOW_STACK_TRACE = False
-
-
-class QuickstartError(Exception, ExceptionWithProps):
-    SHOW_STACK_TRACE = False
-
-    def __init__(self, message: str, container_statuses: Dict[str, Any]):
-        super().__init__(message)
-        self.container_statuses = container_statuses
-
-    def get_telemetry_props(self) -> Dict[str, Any]:
-        return self.container_statuses
-
 
 @contextmanager
-def get_docker_client() -> Iterator[docker.DockerClient]:
-    # Get a reference to the Docker client.
-    client = None
+def get_client_with_error() -> Iterator[
+    Tuple[docker.DockerClient, Optional[Exception]]
+]:
     try:
-        client = docker.from_env()
+        docker_cli = docker.from_env()
     except docker.errors.DockerException as error:
+        yield None, error
+    else:
         try:
-            # Docker Desktop 4.13.0 broke the docker.sock symlink.
-            # See https://github.com/docker/docker-py/issues/3059.
-            maybe_sock_path = os.path.expanduser("~/.docker/run/docker.sock")
-            if os.path.exists(maybe_sock_path):
-                client = docker.DockerClient(base_url=f"unix://{maybe_sock_path}")
-            else:
-                raise error
-        except docker.errors.DockerException as error:
-            raise DockerNotRunningError(
-                "Docker doesn't seem to be running. Did you start it?"
-            ) from error
-    assert client
-
-    # Make sure that we can talk to Docker.
-    try:
-        client.ping()
-    except docker.errors.DockerException as error:
-        raise DockerNotRunningError(
-            "Unable to talk to Docker. Did you start it?"
-        ) from error
-
-    # Yield the client and make sure to close it.
-    try:
-        yield client
-    finally:
-        client.close()
+            yield docker_cli, None
+        finally:
+            docker_cli.close()
 
 
 def memory_in_gb(mem_bytes: int) -> float:
     return mem_bytes / (1024 * 1024 * 1000)
 
 
-def run_quickstart_preflight_checks(client: docker.DockerClient) -> None:
-    # Check total memory.
-    # TODO: add option to skip this check.
-    total_mem_configured = int(client.info()["MemTotal"])
-    if memory_in_gb(total_mem_configured) < MIN_MEMORY_NEEDED:
-        raise DockerLowMemoryError(
-            f"Total Docker memory configured {memory_in_gb(total_mem_configured):.2f}GB is below the minimum threshold {MIN_MEMORY_NEEDED}GB. "
-            "You can increase the memory allocated to Docker in the Docker settings."
-        )
+def check_local_docker_containers(preflight_only: bool = False) -> List[str]:
+    issues: List[str] = []
+    with get_client_with_error() as (client, error):
+        if error:
+            issues.append("Docker doesn't seem to be running. Did you start it?")
+            return issues
 
+        # Check total memory.
+        total_mem_configured = int(client.info()["MemTotal"])
+        if memory_in_gb(total_mem_configured) < MIN_MEMORY_NEEDED:
+            issues.append(
+                f"Total Docker memory configured {memory_in_gb(total_mem_configured):.2f}GB is below the minimum threshold {MIN_MEMORY_NEEDED}GB"
+            )
 
-class ContainerStatus(enum.Enum):
-    OK = "is ok"
+        if preflight_only:
+            return issues
 
-    # For containers that are expected to exit 0.
-    STILL_RUNNING = "is still running"
-    EXITED_WITH_FAILURE = "exited with an error"
-
-    # For containers that are expected to be running.
-    DIED = "is not running"
-    MISSING = "is not present"
-    STARTING = "is still starting"
-    UNHEALTHY = "is running by not yet healthy"
-
-
-@dataclass
-class DockerContainerStatus:
-    name: str
-    status: ContainerStatus
-
-
-@dataclass
-class QuickstartStatus:
-    containers: List[DockerContainerStatus]
-
-    def errors(self) -> List[str]:
-        if not self.containers:
-            return ["quickstart.sh or dev.sh is not running"]
-
-        return [
-            f"{container.name} {container.status.value}"
-            for container in self.containers
-            if container.status != ContainerStatus.OK
-        ]
-
-    def is_ok(self) -> bool:
-        return not self.errors()
-
-    def needs_up(self) -> bool:
-        return any(
-            container.status
-            in {
-                ContainerStatus.EXITED_WITH_FAILURE,
-                ContainerStatus.DIED,
-                ContainerStatus.MISSING,
-            }
-            for container in self.containers
-        )
-
-    def to_exception(
-        self, header: str, footer: Optional[str] = None
-    ) -> QuickstartError:
-        message = f"{header}\n"
-        for error in self.errors():
-            message += f"- {error}\n"
-        if footer:
-            message += f"\n{footer}"
-
-        return QuickstartError(
-            message,
-            {
-                "containers_all": [container.name for container in self.containers],
-                "containers_errors": [
-                    container.name
-                    for container in self.containers
-                    if container.status != ContainerStatus.OK
-                ],
-                **{
-                    f"container_{container.name}": container.status.name
-                    for container in self.containers
-                },
+        containers = client.containers.list(
+            all=True,
+            filters={
+                "label": "com.docker.compose.project=datahub",
             },
         )
 
-
-def check_docker_quickstart() -> QuickstartStatus:
-    container_statuses: List[DockerContainerStatus] = []
-    with get_docker_client() as client:
-        containers = client.containers.list(
-            all=True,
-            filters=DATAHUB_COMPOSE_PROJECT_FILTER,
-        )
+        # Check number of containers.
         if len(containers) == 0:
-            return QuickstartStatus([])
-
-        # load the expected containers from the docker-compose file
-        config_files = (
-            containers[0]
-            .labels.get("com.docker.compose.project.config_files")
-            .split(",")
-        )
-        all_containers = set()
-        for config_file in config_files:
-            with open(config_file, "r") as config_file:
-                all_containers.update(
-                    yaml.safe_load(config_file).get("services", {}).keys()
-                )
-
-        existing_containers = set()
-        # Check that the containers are running and healthy.
-        container: docker.models.containers.Container
-        for container in containers:
-            name = container.labels.get("com.docker.compose.service", container.name)
-            existing_containers.add(name)
-            status = ContainerStatus.OK
-            if name not in all_containers:
-                # Ignores containers that are not part of the datahub docker-compose
-                continue
-            if container.labels.get("datahub_setup_job", False):
-                if container.status != "exited":
-                    status = ContainerStatus.STILL_RUNNING
-                elif container.attrs["State"]["ExitCode"] != 0:
-                    status = ContainerStatus.EXITED_WITH_FAILURE
-
-            elif container.status != "running":
-                status = ContainerStatus.DIED
-            elif "Health" in container.attrs["State"]:
-                if container.attrs["State"]["Health"]["Status"] == "starting":
-                    status = ContainerStatus.STARTING
-                elif container.attrs["State"]["Health"]["Status"] != "healthy":
-                    status = ContainerStatus.UNHEALTHY
-
-            container_statuses.append(DockerContainerStatus(name, status))
-
-        # Check for missing containers.
-        missing_containers = set(all_containers) - existing_containers
-        for missing in missing_containers:
-            container_statuses.append(
-                DockerContainerStatus(missing, ContainerStatus.MISSING)
+            issues.append("quickstart.sh or dev.sh is not running")
+        else:
+            existing_containers = {container.name for container in containers}
+            missing_containers = set(REQUIRED_CONTAINERS) - existing_containers
+            issues.extend(
+                f"{missing} container is not present" for missing in missing_containers
             )
 
-    return QuickstartStatus(container_statuses)
+        # Check that the containers are running and healthy.
+        for container in containers:
+            if container.name not in (
+                REQUIRED_CONTAINERS + CONTAINERS_TO_CHECK_IF_PRESENT
+            ):
+                # Ignores things like "datahub-frontend" which are no longer used.
+                # This way, we only check required containers like "datahub-frontend-react"
+                # even if there are some old containers lying around.
+                continue
+
+            if container.name in ENSURE_EXIT_SUCCESS:
+                if container.status != "exited":
+                    issues.append(f"{container.name} is still running")
+                elif container.attrs["State"]["ExitCode"] != 0:
+                    issues.append(f"{container.name} did not exit cleanly")
+
+            elif container.status != "running":
+                issues.append(f"{container.name} is not running")
+            elif "Health" in container.attrs["State"]:
+                if container.attrs["State"]["Health"]["Status"] == "starting":
+                    issues.append(f"{container.name} is still starting")
+                elif container.attrs["State"]["Health"]["Status"] != "healthy":
+                    issues.append(f"{container.name} is running but not healthy")
+
+    return issues

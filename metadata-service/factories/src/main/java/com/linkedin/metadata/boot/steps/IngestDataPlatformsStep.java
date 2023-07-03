@@ -1,7 +1,6 @@
 package com.linkedin.metadata.boot.steps;
 
 import com.datahub.util.RecordUtils;
-import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.common.AuditStamp;
@@ -15,8 +14,6 @@ import java.net.URISyntaxException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
-
-import static com.linkedin.metadata.Constants.*;
 
 
 @Slf4j
@@ -36,9 +33,6 @@ public class IngestDataPlatformsStep implements BootstrapStep {
   public void execute() throws IOException, URISyntaxException {
 
     final ObjectMapper mapper = new ObjectMapper();
-    int maxSize = Integer.parseInt(System.getenv().getOrDefault(INGESTION_MAX_SERIALIZED_STRING_LENGTH, MAX_JACKSON_STRING_SIZE));
-    mapper.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
-        .maxStringLength(maxSize).build());
 
     // 1. Read from the file into JSON.
     final JsonNode dataPlatforms = mapper.readTree(new ClassPathResource("./boot/data_platforms.json").getFile());

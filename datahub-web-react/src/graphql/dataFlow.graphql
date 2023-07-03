@@ -1,7 +1,6 @@
 fragment dataFlowFields on DataFlow {
     urn
     type
-    exists
     lastIngested
     orchestrator
     flowId
@@ -37,7 +36,6 @@ fragment dataFlowFields on DataFlow {
     domain {
         ...entityDomain
     }
-    ...entityDataProduct
     status {
         removed
     }

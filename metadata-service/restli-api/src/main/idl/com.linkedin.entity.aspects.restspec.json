@@ -65,10 +65,6 @@
         "name" : "filter",
         "type" : "com.linkedin.metadata.query.filter.Filter",
         "optional" : true
-      }, {
-        "name" : "sort",
-        "type" : "com.linkedin.metadata.query.filter.SortCriterion",
-        "optional" : true
       } ],
       "returns" : "com.linkedin.aspect.GetTimeseriesAspectValuesResponse"
     }, {
@@ -76,10 +72,6 @@
       "parameters" : [ {
         "name" : "proposal",
         "type" : "com.linkedin.mxe.MetadataChangeProposal"
-      }, {
-        "name" : "async",
-        "type" : "string",
-        "default" : "unset"
       } ],
       "returns" : "string"
     }, {

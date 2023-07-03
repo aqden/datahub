@@ -8,8 +8,7 @@ CREATE TABLE metadata_aspect_v2 (
   createdon                     datetime(6) NOT NULL,
   createdby                     VARCHAR(255) NOT NULL,
   createdfor                    VARCHAR(255),
-  constraint pk_metadata_aspect_v2 primary key (urn,aspect,version),
-  INDEX timeIndex (createdon)
+  CONSTRAINT pk_metadata_aspect_v2 PRIMARY KEY (urn,aspect,version)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 
 INSERT INTO metadata_aspect_v2 (urn, aspect, version, metadata, createdon, createdby) VALUES(

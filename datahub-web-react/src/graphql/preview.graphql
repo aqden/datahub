@@ -35,7 +35,6 @@ fragment entityPreview on Entity {
         domain {
             ...entityDomain
         }
-        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -100,7 +99,6 @@ fragment entityPreview on Entity {
         domain {
             ...entityDomain
         }
-        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -141,7 +139,6 @@ fragment entityPreview on Entity {
         domain {
             ...entityDomain
         }
-        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -175,7 +172,6 @@ fragment entityPreview on Entity {
         domain {
             ...entityDomain
         }
-        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }
@@ -206,7 +202,6 @@ fragment entityPreview on Entity {
         domain {
             ...entityDomain
         }
-        ...entityDataProduct
         deprecation {
             ...deprecationFields
         }

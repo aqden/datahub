@@ -1,9 +1,8 @@
 package com.linkedin.datahub.graphql.authorization;
 
-import com.datahub.authorization.AuthUtil;
-import com.datahub.plugins.auth.authorization.Authorizer;
-import com.datahub.authorization.ConjunctivePrivilegeGroup;
-import com.datahub.authorization.DisjunctivePrivilegeGroup;
+import com.datahub.authorization.AuthorizationRequest;
+import com.datahub.authorization.AuthorizationResult;
+import com.datahub.authorization.Authorizer;
 import com.datahub.authorization.ResourceSpec;
 import com.google.common.collect.ImmutableList;
 import com.linkedin.common.AuditStamp;
@@ -11,9 +10,7 @@ import com.linkedin.common.urn.Urn;
 import com.linkedin.common.urn.UrnUtils;
 import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.metadata.authorization.PoliciesConfig;
-
 import java.time.Clock;
-import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 
@@ -67,6 +64,10 @@ public class AuthorizationUtils {
     return isAuthorized(context, Optional.empty(), PoliciesConfig.MANAGE_DOMAINS_PRIVILEGE);
   }
 
+  public static boolean canManageGlossaries(@Nonnull QueryContext context) {
+    return isAuthorized(context, Optional.empty(), PoliciesConfig.MANAGE_GLOSSARIES_PRIVILEGE);
+  }
+
   /**
    * Returns true if the current used is able to create Tags. This is true if the user has the 'Manage Tags' or 'Create Tags' platform privilege.
    */
@@ -106,43 +107,6 @@ public class AuthorizationUtils {
         groupUrnStr, orPrivilegeGroups);
   }
 
-  public static boolean canCreateGlobalAnnouncements(@Nonnull QueryContext context) {
-    return isAuthorized(context, Optional.empty(), PoliciesConfig.CREATE_GLOBAL_ANNOUNCEMENTS_PRIVILEGE);
-  }
-
-  public static boolean canManageGlobalViews(@Nonnull QueryContext context) {
-    return isAuthorized(context, Optional.empty(), PoliciesConfig.MANAGE_GLOBAL_VIEWS);
-  }
-
-  public static boolean canEditEntityQueries(@Nonnull List<Urn> entityUrns, @Nonnull QueryContext context) {
-    final DisjunctivePrivilegeGroup orPrivilegeGroups = new DisjunctivePrivilegeGroup(
-        ImmutableList.of(ALL_PRIVILEGES_GROUP,
-            new ConjunctivePrivilegeGroup(ImmutableList.of(PoliciesConfig.EDIT_QUERIES_PRIVILEGE.getType()))));
-    return entityUrns.stream().allMatch(entityUrn ->
-        isAuthorized(
-            context.getAuthorizer(),
-            context.getActorUrn(),
-            entityUrn.getEntityType(),
-            entityUrn.toString(),
-            orPrivilegeGroups
-        ));
-  }
-
-  public static boolean canCreateQuery(@Nonnull List<Urn> subjectUrns, @Nonnull QueryContext context) {
-    // Currently - you only need permission to edit an entity's queries to create a query.
-    return canEditEntityQueries(subjectUrns, context);
-  }
-
-  public static boolean canUpdateQuery(@Nonnull List<Urn> subjectUrns, @Nonnull QueryContext context) {
-    // Currently - you only need permission to edit an entity's queries to update any query.
-    return canEditEntityQueries(subjectUrns, context);
-  }
-
-  public static boolean canDeleteQuery(@Nonnull Urn entityUrn, @Nonnull List<Urn> subjectUrns, @Nonnull QueryContext context) {
-    // Currently - you only need permission to edit an entity's queries to remove any query.
-    return canEditEntityQueries(subjectUrns, context);
-  }
-
   public static boolean isAuthorized(
       @Nonnull QueryContext context,
       @Nonnull Optional<ResourceSpec> resourceSpec,
@@ -150,7 +114,7 @@ public class AuthorizationUtils {
     final Authorizer authorizer = context.getAuthorizer();
     final String actor = context.getActorUrn();
     final ConjunctivePrivilegeGroup andGroup = new ConjunctivePrivilegeGroup(ImmutableList.of(privilege.getType()));
-    return AuthUtil.isAuthorized(authorizer, actor, resourceSpec, new DisjunctivePrivilegeGroup(ImmutableList.of(andGroup)));
+    return isAuthorized(authorizer, actor, resourceSpec, new DisjunctivePrivilegeGroup(ImmutableList.of(andGroup)));
   }
 
   public static boolean isAuthorized(
@@ -158,7 +122,7 @@ public class AuthorizationUtils {
       @Nonnull String actor,
       @Nonnull DisjunctivePrivilegeGroup privilegeGroup
   ) {
-    return AuthUtil.isAuthorized(authorizer, actor, Optional.empty(), privilegeGroup);
+    return isAuthorized(authorizer, actor, Optional.empty(), privilegeGroup);
   }
 
   public static boolean isAuthorized(
@@ -169,7 +133,41 @@ public class AuthorizationUtils {
       @Nonnull DisjunctivePrivilegeGroup privilegeGroup
   ) {
     final ResourceSpec resourceSpec = new ResourceSpec(resourceType, resource);
-    return AuthUtil.isAuthorized(authorizer, actor, Optional.of(resourceSpec), privilegeGroup);
+    return isAuthorized(authorizer, actor, Optional.of(resourceSpec), privilegeGroup);
+  }
+
+  public static boolean isAuthorized(
+      @Nonnull Authorizer authorizer,
+      @Nonnull String actor,
+      @Nonnull Optional<ResourceSpec> maybeResourceSpec,
+      @Nonnull DisjunctivePrivilegeGroup privilegeGroup
+  ) {
+    for (ConjunctivePrivilegeGroup andPrivilegeGroup : privilegeGroup.getAuthorizedPrivilegeGroups()) {
+      // If any conjunctive privilege group is authorized, then the entire request is authorized.
+      if (isAuthorized(authorizer, actor, andPrivilegeGroup, maybeResourceSpec)) {
+        return true;
+      }
+    }
+    // If none of the disjunctive privilege groups were authorized, then the entire request is not authorized.
+    return false;
+  }
+
+  private static boolean isAuthorized(
+      @Nonnull Authorizer authorizer,
+      @Nonnull String actor,
+      @Nonnull ConjunctivePrivilegeGroup requiredPrivileges,
+      @Nonnull Optional<ResourceSpec> resourceSpec) {
+    // Each privilege in a group _must_ all be true to permit the operation.
+    for (final String privilege : requiredPrivileges.getRequiredPrivileges()) {
+      // Create and evaluate an Authorization request.
+      final AuthorizationRequest request = new AuthorizationRequest(actor, privilege, resourceSpec);
+      final AuthorizationResult result = authorizer.authorize(request);
+      if (AuthorizationResult.Type.DENY.equals(result.getType())) {
+        // Short circuit.
+        return false;
+      }
+    }
+    return true;
   }
 
   private AuthorizationUtils() { }

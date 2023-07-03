@@ -8,7 +8,6 @@ import com.linkedin.datahub.graphql.QueryContext;
 import com.linkedin.datahub.graphql.generated.UpdateNameInput;
 import com.linkedin.datahub.graphql.resolvers.mutate.UpdateNameResolver;
 import com.linkedin.domain.DomainProperties;
-import com.linkedin.entity.client.EntityClient;
 import com.linkedin.events.metadata.ChangeType;
 import com.linkedin.glossary.GlossaryNodeInfo;
 import com.linkedin.glossary.GlossaryTermInfo;
@@ -22,7 +21,7 @@ import org.testng.annotations.Test;
 
 import java.util.concurrent.CompletionException;
 
-import static com.linkedin.datahub.graphql.TestUtils.*;
+import static com.linkedin.datahub.graphql.TestUtils.getMockAllowContext;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
@@ -64,22 +63,23 @@ public class UpdateNameResolverTest {
   @Test
   public void testGetSuccess() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(TERM_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT);
 
-    UpdateNameResolver resolver = new UpdateNameResolver(mockService, mockClient);
+    UpdateNameResolver resolver = new UpdateNameResolver(mockService);
     final MetadataChangeProposal proposal = setupTests(mockEnv, mockService);
 
     assertTrue(resolver.get(mockEnv).get());
-    verifyIngestProposal(mockService, 1, proposal);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal),
+        Mockito.any()
+    );
   }
 
   @Test
   public void testGetSuccessForNode() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(NODE_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT_FOR_NODE);
@@ -105,16 +105,18 @@ public class UpdateNameResolverTest {
     proposal.setAspect(GenericRecordUtils.serializeAspect(info));
     proposal.setChangeType(ChangeType.UPSERT);
 
-    UpdateNameResolver resolver = new UpdateNameResolver(mockService, mockClient);
+    UpdateNameResolver resolver = new UpdateNameResolver(mockService);
 
     assertTrue(resolver.get(mockEnv).get());
-    verifyIngestProposal(mockService, 1, proposal);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal),
+        Mockito.any()
+    );
   }
 
   @Test
   public void testGetSuccessForDomain() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(DOMAIN_URN))).thenReturn(true);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT_FOR_DOMAIN);
@@ -140,24 +142,28 @@ public class UpdateNameResolverTest {
     proposal.setAspect(GenericRecordUtils.serializeAspect(properties));
     proposal.setChangeType(ChangeType.UPSERT);
 
-    UpdateNameResolver resolver = new UpdateNameResolver(mockService, mockClient);
+    UpdateNameResolver resolver = new UpdateNameResolver(mockService);
 
     assertTrue(resolver.get(mockEnv).get());
-    verifyIngestProposal(mockService, 1, proposal);
+    Mockito.verify(mockService, Mockito.times(1)).ingestProposal(
+        Mockito.eq(proposal),
+        Mockito.any()
+    );
   }
 
   @Test
   public void testGetFailureEntityDoesNotExist() throws Exception {
     EntityService mockService = Mockito.mock(EntityService.class);
-    EntityClient mockClient = Mockito.mock(EntityClient.class);
     Mockito.when(mockService.exists(Urn.createFromString(TERM_URN))).thenReturn(false);
     DataFetchingEnvironment mockEnv = Mockito.mock(DataFetchingEnvironment.class);
     Mockito.when(mockEnv.getArgument("input")).thenReturn(INPUT);
 
-    UpdateNameResolver resolver = new UpdateNameResolver(mockService, mockClient);
+    UpdateNameResolver resolver = new UpdateNameResolver(mockService);
     setupTests(mockEnv, mockService);
 
     assertThrows(CompletionException.class, () -> resolver.get(mockEnv).join());
-    verifyNoIngestProposal(mockService);
+    Mockito.verify(mockService, Mockito.times(0)).ingestProposal(
+        Mockito.any(),
+        Mockito.any());
   }
 }

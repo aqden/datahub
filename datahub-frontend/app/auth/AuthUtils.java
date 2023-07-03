@@ -4,11 +4,8 @@ import com.linkedin.common.urn.CorpuserUrn;
 import lombok.extern.slf4j.Slf4j;
 import play.mvc.Http;
 
-import javax.annotation.Nonnull;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 public class AuthUtils {
@@ -41,6 +38,8 @@ public class AuthUtils {
      */
     public static final String SYSTEM_CLIENT_SECRET_CONFIG_PATH = "systemClientSecret";
 
+    public static final String SESSION_TTL_CONFIG_PATH = "auth.session.ttlInHours";
+    public static final Integer DEFAULT_SESSION_TTL_HOURS = 720;
     public static final CorpuserUrn DEFAULT_ACTOR_URN = new CorpuserUrn("datahub");
 
     public static final String LOGIN_ROUTE = "/login";
@@ -64,8 +63,8 @@ public class AuthUtils {
      *
      * Returns true if the request is eligible to be forwarded to GMS, false otherwise.
      */
-    public static boolean isEligibleForForwarding(Http.Request req) {
-        return hasValidSessionCookie(req) || hasAuthHeader(req);
+    public static boolean isEligibleForForwarding(Http.Context ctx) {
+        return hasValidSessionCookie(ctx) || hasAuthHeader(ctx);
     }
 
     /**
@@ -76,17 +75,17 @@ public class AuthUtils {
      * Note that we depend on the presence of 2 cookies, one accessible to the browser and one not,
      * as well as their agreement to determine authentication status.
      */
-    public static boolean hasValidSessionCookie(final Http.Request req) {
-        return req.session().data().containsKey(ACTOR)
-                && req.getCookie(ACTOR).isPresent()
-                && req.session().data().get(ACTOR).equals(req.getCookie(ACTOR).get().value());
+    public static boolean hasValidSessionCookie(final Http.Context ctx) {
+        return ctx.session().containsKey(ACTOR)
+                && ctx.request().cookie(ACTOR) != null
+                && ctx.session().get(ACTOR).equals(ctx.request().cookie(ACTOR).value());
     }
 
     /**
      * Returns true if a request includes the Authorization header, false otherwise
      */
-    public static boolean hasAuthHeader(final Http.Request req) {
-        return req.getHeaders().contains(Http.HeaderNames.AUTHORIZATION);
+    public static boolean hasAuthHeader(final Http.Context ctx) {
+        return ctx.request().getHeaders().contains(Http.HeaderNames.AUTHORIZATION);
     }
 
     /**
@@ -95,36 +94,13 @@ public class AuthUtils {
      * @param actorUrn the urn of the authenticated actor, e.g. "urn:li:corpuser:datahub"
      * @param ttlInHours the number of hours until the actor cookie expires after being set
      */
-    public static Http.Cookie createActorCookie(
-        @Nonnull final String actorUrn,
-        @Nonnull final Integer ttlInHours,
-        @Nonnull final String sameSite,
-        final boolean isSecure
-    ) {
+    public static Http.Cookie createActorCookie(final String actorUrn, final Integer ttlInHours) {
         return Http.Cookie.builder(ACTOR, actorUrn)
-            .withHttpOnly(false)
-            .withMaxAge(Duration.of(ttlInHours, ChronoUnit.HOURS))
-            .withSameSite(convertSameSiteValue(sameSite))
-            .withSecure(isSecure)
-            .build();
-    }
-
-    public static Map<String, String> createSessionMap(final String userUrnStr, final String accessToken) {
-        final Map<String, String> sessionAttributes = new HashMap<>();
-        sessionAttributes.put(ACTOR, userUrnStr);
-        sessionAttributes.put(ACCESS_TOKEN, accessToken);
-        return sessionAttributes;
+                .withHttpOnly(false)
+                .withMaxAge(Duration.of(ttlInHours, ChronoUnit.HOURS))
+                .build();
     }
 
     private AuthUtils() { }
-
-    private static Http.Cookie.SameSite convertSameSiteValue(@Nonnull final String sameSiteValue) {
-        try {
-            return Http.Cookie.SameSite.valueOf(sameSiteValue);
-        } catch (IllegalArgumentException e) {
-            log.warn(String.format("Invalid AUTH_COOKIE_SAME_SITE value: %s. Using LAX instead.", sameSiteValue), e);
-            return Http.Cookie.SameSite.LAX;
-        }
-    }
 
 }
