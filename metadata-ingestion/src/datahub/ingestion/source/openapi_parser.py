@@ -22,7 +22,7 @@ def flatten(d: dict, prefix: str = "") -> Generator:
         if isinstance(v, dict):
             yield from flatten(v, f"{prefix}.{k}")
         else:
-            yield f"{prefix}-{k}".strip(".")
+            yield f"{prefix}.{k}".strip(".")
 
 
 def flatten2list(d: dict) -> list:
