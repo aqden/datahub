@@ -22,7 +22,7 @@ def flatten(d: dict, prefix: str = "") -> Generator:
         if isinstance(v, dict):
             yield from flatten(v, f"{prefix}.{k}")
         else:
-            yield f"{prefix}-{k}".strip(".")
+            yield f"{prefix}.{k}".strip(".")
 
 
 def flatten2list(d: dict) -> list:
@@ -95,7 +95,7 @@ def get_url_basepath(sw_dict: dict) -> str:
         return ""
 
 
-def check_sw_version(sw_dict: dict) -> None:
+def check_sw_version(sw_dict: dict) -> int:
     if "swagger" in sw_dict:
         v_split = sw_dict["swagger"].split(".")
     else:
@@ -108,6 +108,8 @@ def check_sw_version(sw_dict: dict) -> None:
             "This plugin is not compatible with Swagger version >3.0"
         )
 
+    return version[0]
+
 
 def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
     """
@@ -115,7 +117,7 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
     """
     url_details = {}
 
-    check_sw_version(sw_dict)
+    sw_version = check_sw_version(sw_dict)
 
     for p_k, p_o in sw_dict["paths"].items():
         # will track only the "get" methods, which are the ones that give us data
@@ -154,15 +156,20 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
                         ex_field = "examples"
 
                     if ex_field:
-                        if isinstance(res_cont["application/json"][ex_field], dict):
-                            url_details[p_k]["data"] = res_cont["application/json"][
-                                ex_field
-                            ]
-                        elif isinstance(res_cont["application/json"][ex_field], list):
-                            # taking the first example
-                            url_details[p_k]["data"] = res_cont["application/json"][
-                                ex_field
-                            ][0]
+                        if sw_version == 3 :
+                           for k, o in res_cont["application/json"][ex_field].items():
+                                if "value" in o.keys():
+                                    url_details[p_k]["data"] = o["value"]
+                        else:
+                            if isinstance(res_cont["application/json"][ex_field], dict):
+                                url_details[p_k]["data"] = res_cont["application/json"][
+                                    ex_field
+                                ]
+                            elif isinstance(res_cont["application/json"][ex_field], list):
+                                # taking the first example
+                                url_details[p_k]["data"] = res_cont["application/json"][
+                                    ex_field
+                                ][0]
                     else:
                         logger.warning(
                             f"Field in swagger file does not give consistent data --- {p_k}"

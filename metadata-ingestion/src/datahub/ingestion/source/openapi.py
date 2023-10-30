@@ -31,6 +31,7 @@ from datahub.ingestion.source.openapi_parser import (
     request_call,
     set_metadata,
     try_guessing,
+    flatten2list,
 )
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
@@ -247,7 +248,7 @@ class APISource(Source, ABC):
             # adding dataset fields
             if "data" in endpoint_dets.keys():
                 # we are lucky! data is defined in the swagger for this endpoint
-                schema_metadata = set_metadata(dataset_name, endpoint_dets["data"])
+                schema_metadata = set_metadata(dataset_name, flatten2list(endpoint_dets["data"]))
                 dataset_snapshot.aspects.append(schema_metadata)
                 yield self.build_wu(dataset_snapshot, dataset_name)
             elif (
