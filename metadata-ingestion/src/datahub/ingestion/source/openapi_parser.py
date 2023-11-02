@@ -302,7 +302,12 @@ def extract_fields(
     The list in the output tuple will contain the fields name.
     The dict in the output tuple will contain a sample of data.
     """
-    dict_data = json.loads(response.content)
+    try:
+        dict_data = json.loads(response.content)
+    except json.JSONDecodeError:  # it's not a JSON!
+        logger.warning(f"It is not valid JSON response --- {dataset_name}")
+        return [], {}
+
     if isinstance(dict_data, str):
         # no sense
         logger.warning(f"Empty data --- {dataset_name}")

@@ -239,12 +239,15 @@ class APISource(Source, ABC):
         # looping on all the urls
         for endpoint_k, endpoint_dets in url_endpoints.items():
             if endpoint_k in config.ignore_endpoints:
+                logging.info(f'Ignoring: {endpoint_k}')
                 continue
 
             dataset_snapshot, dataset_name = self.init_dataset(
                 endpoint_k, endpoint_dets
             )
 
+            logging.info(f'Processing: {endpoint_k}')
+            # adding dataset fields
             # adding dataset fields
             if "data" in endpoint_dets.keys():
                 # we are lucky! data is defined in the swagger for this endpoint
