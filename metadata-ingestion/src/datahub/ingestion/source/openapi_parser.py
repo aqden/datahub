@@ -156,8 +156,8 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
                         ex_field = "examples"
 
                     if ex_field:
-                        if sw_version == 3 :
-                           for k, o in res_cont["application/json"][ex_field].items():
+                        if sw_version == 3:
+                            for k, o in res_cont["application/json"][ex_field].items():
                                 if "value" in o.keys():
                                     url_details[p_k]["data"] = o["value"]
                         else:
@@ -165,7 +165,9 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
                                 url_details[p_k]["data"] = res_cont["application/json"][
                                     ex_field
                                 ]
-                            elif isinstance(res_cont["application/json"][ex_field], list):
+                            elif isinstance(
+                                res_cont["application/json"][ex_field], list
+                            ):
                                 # taking the first example
                                 url_details[p_k]["data"] = res_cont["application/json"][
                                     ex_field

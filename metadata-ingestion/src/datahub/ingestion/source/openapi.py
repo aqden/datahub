@@ -24,6 +24,7 @@ from datahub.ingestion.source.openapi_parser import (
     clean_url,
     compose_url_attr,
     extract_fields,
+    flatten2list,
     get_endpoints,
     get_swag_json,
     get_tok,
@@ -31,7 +32,6 @@ from datahub.ingestion.source.openapi_parser import (
     request_call,
     set_metadata,
     try_guessing,
-    flatten2list,
 )
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
@@ -239,19 +239,21 @@ class APISource(Source, ABC):
         # looping on all the urls
         for endpoint_k, endpoint_dets in url_endpoints.items():
             if endpoint_k in config.ignore_endpoints:
-                logging.info(f'Ignoring: {endpoint_k}')
+                logging.info(f"Ignoring: {endpoint_k}")
                 continue
 
             dataset_snapshot, dataset_name = self.init_dataset(
                 endpoint_k, endpoint_dets
             )
 
-            logging.info(f'Processing: {endpoint_k}')
+            logging.info(f"Processing: {endpoint_k}")
             # adding dataset fields
             # adding dataset fields
             if "data" in endpoint_dets.keys():
                 # we are lucky! data is defined in the swagger for this endpoint
-                schema_metadata = set_metadata(dataset_name, flatten2list(endpoint_dets["data"]))
+                schema_metadata = set_metadata(
+                    dataset_name, flatten2list(endpoint_dets["data"])
+                )
                 dataset_snapshot.aspects.append(schema_metadata)
                 yield self.build_wu(dataset_snapshot, dataset_name)
             elif (
