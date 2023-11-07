@@ -2,6 +2,7 @@ package com.linkedin.metadata.search.utils;
 
 import com.linkedin.common.UrnArray;
 import com.linkedin.common.urn.Urn;
+import com.linkedin.data.ByteString;
 import com.linkedin.data.template.LongMap;
 import com.linkedin.metadata.query.ListResult;
 import com.linkedin.metadata.query.SearchFlags;
@@ -22,6 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +67,16 @@ public class SearchUtils {
     } catch (UnsupportedEncodingException e) {
       log.error("Failed to encode the urn with error: {}", e.toString());
       return Optional.empty();
+    }
+  }
+
+  public static String getDocHash(@Nonnull String aspectValue) {
+    try {
+      MessageDigest hashDigest = MessageDigest.getInstance("SHA-256");
+      String hashId = Base64.getEncoder().encodeToString(hashDigest.digest(aspectValue.getBytes(StandardCharsets.UTF_8)));
+      return hashId;
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
     }
   }
 
