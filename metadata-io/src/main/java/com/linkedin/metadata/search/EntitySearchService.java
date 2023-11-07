@@ -38,6 +38,8 @@ public interface EntitySearchService {
    */
   void upsertDocument(@Nonnull String entityName, @Nonnull String document, @Nonnull String docId);
 
+  void createUpdateDocument(@Nonnull String document, @Nonnull String docId);
+
   /**
    * Deletes the document with the given document ID from the index.
    *

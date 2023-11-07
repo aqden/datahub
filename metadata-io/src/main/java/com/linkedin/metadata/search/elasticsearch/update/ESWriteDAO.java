@@ -6,7 +6,9 @@ import java.io.IOException;
 import javax.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -44,6 +46,17 @@ public class ESWriteDAO {
             .retryOnConflict(numRetries);
 
     bulkProcessor.add(updateRequest);
+  }
+
+  public void createUpdateDocument(@Nonnull String document, @Nonnull String docId) {
+    final String indexName = indexConvention.getIndexName("datahub_update_event");
+    final IndexRequest indexRequest = new IndexRequest(
+        indexName)
+        .id(docId)
+        .source(document, XContentType.JSON)
+        .opType(DocWriteRequest.OpType.CREATE);
+
+    bulkProcessor.add(indexRequest);
   }
 
   /**
