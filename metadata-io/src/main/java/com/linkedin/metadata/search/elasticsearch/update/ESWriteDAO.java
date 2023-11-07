@@ -48,6 +48,12 @@ public class ESWriteDAO {
     bulkProcessor.add(updateRequest);
   }
 
+  /**
+   * Creates a request to insert new document into datahub_update_event index
+   *
+   * @param document the document to insert
+   * @param docId the ID of the document
+   */
   public void createUpdateDocument(@Nonnull String document, @Nonnull String docId) {
     final String indexName = indexConvention.getIndexName("datahub_update_event");
     final IndexRequest indexRequest = new IndexRequest(

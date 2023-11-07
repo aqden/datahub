@@ -84,7 +84,6 @@ public class SearchDocumentTransformer {
     return Optional.of(searchDocument.toString());
   }
 
-  //TODO: Transform event into a JSON-like string to upsert into search
   public String transformEvent(MetadataChangeLog event) {
     final ObjectNode searchDocument = JsonNodeFactory.instance.objectNode();
     searchDocument.put("urn", event.getEntityUrn().toString());

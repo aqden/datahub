@@ -38,6 +38,11 @@ public interface EntitySearchService {
    */
   void upsertDocument(@Nonnull String entityName, @Nonnull String document, @Nonnull String docId);
 
+  /**
+   *
+   * @param document the document to update into update index
+   * @param docId the ID of the document
+   */
   void createUpdateDocument(@Nonnull String document, @Nonnull String docId);
 
   /**
