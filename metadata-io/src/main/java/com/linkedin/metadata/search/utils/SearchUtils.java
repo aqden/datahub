@@ -2,7 +2,6 @@ package com.linkedin.metadata.search.utils;
 
 import com.linkedin.common.UrnArray;
 import com.linkedin.common.urn.Urn;
-import com.linkedin.data.ByteString;
 import com.linkedin.data.template.LongMap;
 import com.linkedin.metadata.query.ListResult;
 import com.linkedin.metadata.query.SearchFlags;

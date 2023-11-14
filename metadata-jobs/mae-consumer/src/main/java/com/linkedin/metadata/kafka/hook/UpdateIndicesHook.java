@@ -496,10 +496,6 @@ public class UpdateIndicesHook implements MetadataChangeLogHook {
    * Process event and update Update index in Elastic
    */
   private void updateUpdateIndex(@Nonnull final MetadataChangeLog event) {
-    // Events are only handled if their change type is UPDATE or DELETE
-    // Events with different change types still go through invoke but nothing is executed
-    // Doing the population of the event index allows us to capture deletes as well
-    // Should we check if the update is successful before populating update event index?
     String updateDocument = _searchDocumentTransformer.transformEvent(event);
 
     // Generating a hash using event urn, event content and time, to be used as a unique id for ES documents
