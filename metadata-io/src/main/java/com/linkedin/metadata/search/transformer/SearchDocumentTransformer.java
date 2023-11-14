@@ -88,6 +88,7 @@ public class SearchDocumentTransformer {
     final ObjectNode searchDocument = JsonNodeFactory.instance.objectNode();
     searchDocument.put("urn", event.getEntityUrn().toString());
     searchDocument.put("changeType", event.getChangeType().toString());
+    searchDocument.put("entityType", event.getEntityType().toString());
     searchDocument.put("aspectName", event.getAspectName().toString());
 
     AuditStamp eventCreationInfo = event.getCreated();
