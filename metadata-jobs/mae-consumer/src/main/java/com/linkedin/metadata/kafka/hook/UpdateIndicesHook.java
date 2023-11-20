@@ -497,13 +497,7 @@ public class UpdateIndicesHook implements MetadataChangeLogHook {
    */
   private void updateUpdateIndex(@Nonnull final MetadataChangeLog event) {
     String updateDocument = _searchDocumentTransformer.transformEvent(event);
-
-    // Generating a hash using event urn, event content and time, to be used as a unique id for ES documents
-    String stringToBeHashed = event.getEntityType().toString() + '_'
-        + event.getAspect().getValue().asAvroString()
-        + '_' + event.getCreated().getTime().toString();
-    String docHash = SearchUtils.getDocHash(stringToBeHashed);
-    _entitySearchService.createUpdateDocument(updateDocument, docHash);
+    _entitySearchService.createUpdateDocument(updateDocument);
   }
 
   private void updateSystemMetadata(SystemMetadata systemMetadata, Urn urn, AspectSpec aspectSpec, RecordTemplate aspect) {
