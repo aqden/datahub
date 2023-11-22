@@ -107,6 +107,10 @@ function create_datahub_usage_event_datastream() {
   create_if_not_exists "_index_template/${PREFIX}datahub_usage_event_index_template" index_template.json
   #   3. although indexing request creates the data stream, it's not queryable before creation, causing GMS to throw exceptions
   create_if_not_exists "_data_stream/${PREFIX}datahub_usage_event" "datahub_usage_event"
+
+  # Create index template for update_events
+  create_if_not_exists "_index_template/${PREFIX}datahub_update_event_index_template" update_event_template.json
+  create_if_not_exists "_data_stream/${PREFIX}datahub_update_event" "datahub_update_event"
 }
 
 # create indices for ES OSS (AWS)

@@ -71,6 +71,12 @@ public class ElasticSearchService implements EntitySearchService, ElasticSearchI
   }
 
   @Override
+  public void createUpdateDocument(@Nonnull String document) {
+    log.debug(String.format("Creating Update document document: %s", document));
+    esWriteDAO.createUpdateDocument(document);
+  }
+
+  @Override
   public void deleteDocument(@Nonnull String entityName, @Nonnull String docId) {
     log.debug(String.format("Deleting Search document entityName: %s, docId: %s", entityName, docId));
     esWriteDAO.deleteDocument(entityName, docId);

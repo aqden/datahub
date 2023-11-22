@@ -1,0 +1,36 @@
+{
+  "index_patterns": ["*PREFIXdatahub_update_event*"],
+  "data_stream": { },
+  "priority": 499,
+  "template": {
+    "mappings": {
+      "dynamic" : false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "urn": {
+          "type": "keyword"
+        },
+        "changeType": {
+          "type": "keyword"
+        },
+        "entityType": {
+          "type": "keyword"
+        },
+        "aspectName": {
+          "type": "keyword"
+        },
+        "actorUrn": {
+          "type": "keyword"
+        },
+        "timestamp": {
+          "type": "date"
+        }
+      }
+  },
+    "settings": {
+      "index.lifecycle.name": "PREFIXdatahub_usage_event_policy"
+    }
+  }
+}

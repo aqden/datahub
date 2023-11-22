@@ -194,6 +194,9 @@ public class UpdateIndicesHook implements MetadataChangeLogHook {
     } else {
       updateGraphService(urn, aspectSpec, aspect, event);
     }
+
+    // Populate update index with update event
+    updateUpdateIndex(event);
   }
 
   /**
@@ -487,6 +490,14 @@ public class UpdateIndicesHook implements MetadataChangeLogHook {
     documents.entrySet().forEach(document -> {
       _timeseriesAspectService.upsertDocument(entityType, aspectName, document.getKey(), document.getValue());
     });
+  }
+
+  /**
+   * Process event and update Update index in Elastic
+   */
+  private void updateUpdateIndex(@Nonnull final MetadataChangeLog event) {
+    String updateDocument = _searchDocumentTransformer.transformEvent(event);
+    _entitySearchService.createUpdateDocument(updateDocument);
   }
 
   private void updateSystemMetadata(SystemMetadata systemMetadata, Urn urn, AspectSpec aspectSpec, RecordTemplate aspect) {

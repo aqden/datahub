@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.linkedin.common.AuditStamp;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.data.schema.DataSchema;
 import com.linkedin.data.template.RecordTemplate;
@@ -14,6 +15,7 @@ import com.linkedin.metadata.models.SearchableFieldSpec;
 import com.linkedin.metadata.models.annotation.SearchableAnnotation.FieldType;
 import com.linkedin.metadata.models.extractor.FieldExtractor;
 
+import com.linkedin.mxe.MetadataChangeLog;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +82,23 @@ public class SearchDocumentTransformer {
     extractedSearchableFields.forEach((key, values) -> setSearchableValue(key, values, searchDocument, forDelete));
     extractedSearchScoreFields.forEach((key, values) -> setSearchScoreValue(key, values, searchDocument, forDelete));
     return Optional.of(searchDocument.toString());
+  }
+
+  public String transformEvent(MetadataChangeLog event) {
+    final ObjectNode searchDocument = JsonNodeFactory.instance.objectNode();
+    searchDocument.put("urn", event.getEntityUrn().toString());
+    searchDocument.put("changeType", event.getChangeType().toString());
+    searchDocument.put("entityType", event.getEntityType().toString());
+    searchDocument.put("aspectName", event.getAspectName().toString());
+
+    AuditStamp eventCreationInfo = event.getCreated();
+    String actor = eventCreationInfo.getActor().toString();
+    Long time = eventCreationInfo.getTime();
+
+    searchDocument.put("actorUrn", actor);
+    searchDocument.put("timestamp", time);
+    searchDocument.put("@timestamp", time);
+    return searchDocument.toString();
   }
 
   public void setSearchableValue(final SearchableFieldSpec fieldSpec, final List<Object> fieldValues,
