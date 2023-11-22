@@ -156,8 +156,8 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
                         ex_field = "examples"
 
                     if ex_field:
-                        if sw_version == 3 :
-                           for k, o in res_cont["application/json"][ex_field].items():
+                        if sw_version == 3:
+                            for k, o in res_cont["application/json"][ex_field].items():
                                 if "value" in o.keys():
                                     url_details[p_k]["data"] = o["value"]
                         else:
@@ -165,7 +165,9 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
                                 url_details[p_k]["data"] = res_cont["application/json"][
                                     ex_field
                                 ]
-                            elif isinstance(res_cont["application/json"][ex_field], list):
+                            elif isinstance(
+                                res_cont["application/json"][ex_field], list
+                            ):
                                 # taking the first example
                                 url_details[p_k]["data"] = res_cont["application/json"][
                                     ex_field
@@ -302,7 +304,12 @@ def extract_fields(
     The list in the output tuple will contain the fields name.
     The dict in the output tuple will contain a sample of data.
     """
-    dict_data = json.loads(response.content)
+    try:
+        dict_data = json.loads(response.content)
+    except json.JSONDecodeError:  # it's not a JSON!
+        logger.warning(f"It is not valid JSON response --- {dataset_name}")
+        return [], {}
+
     if isinstance(dict_data, str):
         # no sense
         logger.warning(f"Empty data --- {dataset_name}")
