@@ -108,7 +108,7 @@ class name_param(BaseModel):
 #         arbitary_types_allowed = True
 
 
-def determine_type(input: str) -> str:
+def determine_type(input: str) -> Optional[str]:
     """
     this list will grow when we have more dataset types in the form
     """
@@ -140,7 +140,7 @@ def determine_type(input: str) -> str:
             "mariadb",
         ]:
             return platform
-    return "error"
+    return None
 
 
 class MyFilter(object):

@@ -545,7 +545,7 @@ async def create_item(item: create_dataset_params) -> Response:
             content={"message": "Platform and Container Type Mismatch"}, status_code=404
         )
     dataset_type = determine_type(item.platformSelect)
-    if dataset_type=="error":
+    if not dataset_type:
         return JSONResponse(
             content={"message": f"Illegal data platform type {item.platformSelect}, unable to proceed"}, status_code=404
         )
