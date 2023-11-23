@@ -115,9 +115,31 @@ def determine_type(input: str) -> str:
     m = re.search("urn:li:dataPlatform:(.+)", input)
     if m:
         platform = m.group(1)
-        if platform.islower():  # should not allow any uppercase.
+        # deliberate fix to allow OpenApi camelcase to maintain parity with OSS naming.
+        if platform in [
+            "hive",
+            "kudu",
+            "mysql",
+            "mssql",
+            "OpenApi",
+            "file",
+            "hdfs",
+            "iceberg",
+            "json",
+            "kafka",
+            "oracle",
+            "solr",
+            "spark",
+            "elasticsearch",
+            "csv",
+            "postgres",
+            "snowflake",
+            "s3",
+            "mongodb",
+            "app_ui",
+            "mariadb",
+        ]:
             return platform
-
     return "error"
 
 
