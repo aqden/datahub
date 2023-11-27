@@ -238,6 +238,9 @@ public class UpdateIndicesHook implements MetadataChangeLogHook {
       deleteGraphData(urn, aspectSpec, aspect, isDeletingKey, event);
       deleteSearchData(urn, entitySpec.getName(), aspectSpec, aspect, isDeletingKey);
     }
+
+    // Populate update index with delete event
+    updateUpdateIndex(event);
   }
 
   // TODO: remove this method once we implement sourceOverride when creating graph edges
