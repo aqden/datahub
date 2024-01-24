@@ -11,7 +11,7 @@ import MLModelSummary from './profile/MLModelSummary';
 import MLModelGroupsTab from './profile/MLModelGroupsTab';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
-import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
+import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/sidebar/SidebarOwnerSection';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
 import { PropertiesTab } from '../shared/tabs/Properties/PropertiesTab';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
@@ -99,16 +99,16 @@ export class MLModelEntity implements Entity<MlModel> {
                     component: SidebarAboutSection,
                 },
                 {
+                    component: SidebarOwnerSection,
+                    properties: {
+                        defaultOwnerType: OwnershipType.TechnicalOwner,
+                    },
+                },
+                {
                     component: SidebarTagsSection,
                     properties: {
                         hasTags: true,
                         hasTerms: true,
-                    },
-                },
-                {
-                    component: SidebarOwnerSection,
-                    properties: {
-                        defaultOwnerType: OwnershipType.TechnicalOwner,
                     },
                 },
                 {
@@ -127,7 +127,7 @@ export class MLModelEntity implements Entity<MlModel> {
 
     renderSearch = (result: SearchResult) => {
         const data = result.entity as MlModel;
-        return <Preview model={data} />;
+        return <Preview model={data} degree={(result as any).degree} paths={(result as any).paths} />;
     };
 
     getLineageVizConfig = (entity: MlModel) => {

@@ -12,7 +12,7 @@ import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab'
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
-import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
+import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/sidebar/SidebarOwnerSection';
 import { LineageTab } from '../shared/tabs/Lineage/LineageTab';
 import DataProductSection from '../shared/containers/profile/sidebar/DataProduct/DataProductSection';
 import { getDataProduct } from '../shared/utils';
@@ -89,16 +89,16 @@ export class MLPrimaryKeyEntity implements Entity<MlPrimaryKey> {
                     component: SidebarAboutSection,
                 },
                 {
+                    component: SidebarOwnerSection,
+                    properties: {
+                        defaultOwnerType: OwnershipType.TechnicalOwner,
+                    },
+                },
+                {
                     component: SidebarTagsSection,
                     properties: {
                         hasTags: true,
                         hasTerms: true,
-                    },
-                },
-                {
-                    component: SidebarOwnerSection,
-                    properties: {
-                        defaultOwnerType: OwnershipType.TechnicalOwner,
                     },
                 },
                 {
@@ -143,6 +143,8 @@ export class MLPrimaryKeyEntity implements Entity<MlPrimaryKey> {
                 platform={platform}
                 platformInstanceId={data.dataPlatformInstance?.instanceId}
                 dataProduct={getDataProduct(genericProperties?.dataProduct)}
+                degree={(result as any).degree}
+                paths={(result as any).paths}
             />
         );
     };

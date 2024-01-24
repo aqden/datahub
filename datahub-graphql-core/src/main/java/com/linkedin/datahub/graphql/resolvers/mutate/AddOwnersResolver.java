@@ -39,14 +39,14 @@ public class AddOwnersResolver implements DataFetcher<CompletableFuture<Boolean>
         throw new AuthorizationException("Unauthorized to perform this action. Please contact your DataHub administrator.");
       }
 
-      OwnerUtils.validateAddInput(
+      OwnerUtils.validateAddOwnerInput(
           owners,
           targetUrn,
           _entityService
       );
       try {
 
-        log.debug("Adding Owners. input: {}", input.toString());
+        log.debug("Adding Owners. input: {}", input);
 
         Urn actor = CorpuserUrn.createFromString(((QueryContext) environment.getContext()).getActorUrn());
         OwnerUtils.addOwnersToResources(
@@ -57,8 +57,8 @@ public class AddOwnersResolver implements DataFetcher<CompletableFuture<Boolean>
         );
         return true;
       } catch (Exception e) {
-        log.error("Failed to add owners to resource with input {}, {}", input.toString(), e.getMessage());
-        throw new RuntimeException(String.format("Failed to add owners to resource with input %s", input.toString()), e);
+        log.error("Failed to add owners to resource with input {}, {}", input, e.getMessage());
+        throw new RuntimeException(String.format("Failed to add owners to resource with input %s", input), e);
       }
     });
   }

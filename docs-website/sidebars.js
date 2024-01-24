@@ -81,6 +81,13 @@ module.exports = {
                 "docs/quick-ingestion-guides/powerbi/configuration",
               ],
             },
+            {
+              Looker: [
+                "docs/quick-ingestion-guides/looker/overview",
+                "docs/quick-ingestion-guides/looker/setup",
+                "docs/quick-ingestion-guides/looker/configuration",
+              ],
+            },
           ],
         },
         {
@@ -133,15 +140,25 @@ module.exports = {
             "metadata-ingestion/docs/dev_guides/classification",
             "metadata-ingestion/docs/dev_guides/add_stateful_ingestion_to_source",
             "metadata-ingestion/docs/dev_guides/sql_profiles",
+            "metadata-ingestion/docs/dev_guides/profiling_ingestions",
           ],
         },
       ],
     },
     {
-      Deployment: [
+      type: "category",
+      label: "Deployment",
+      link: {
+        type: "generated-index",
+        title: "Deployment Guides",
+        description:
+          "Learn how to deploy DataHub to your environment, set up authentication, manage upgrades, and more.",
+      },
+      items: [
         // The purpose of this section is to provide the minimum steps required to deploy DataHub to the vendor of your choosing
         "docs/deploy/aws",
         "docs/deploy/gcp",
+        "docs/deploy/azure",
         "docker/README",
         "docs/deploy/kubernetes",
         "docs/deploy/environment-vars",
@@ -149,6 +166,7 @@ module.exports = {
           Authentication: [
             "docs/authentication/README",
             "docs/authentication/concepts",
+            "docs/authentication/changing-default-credentials",
             "docs/authentication/guides/add-users",
             {
               "Frontend Authentication": [
@@ -159,6 +177,7 @@ module.exports = {
                     "docs/authentication/guides/sso/configure-oidc-react-google",
                     "docs/authentication/guides/sso/configure-oidc-react-okta",
                     "docs/authentication/guides/sso/configure-oidc-react-azure",
+                    "docs/authentication/guides/sso/configure-oidc-behind-proxy",
                   ],
                 },
               ],
@@ -188,6 +207,7 @@ module.exports = {
             "docs/how/kafka-config",
             "docs/deploy/confluent-cloud",
             "docs/advanced/no-code-upgrade",
+            "docs/how/jattach-guide",
           ],
         },
         "docs/how/updating-datahub",
@@ -288,6 +308,26 @@ module.exports = {
             },
             {
               type: "doc",
+              label: "Get Index Sizes",
+              id: "docs/api/restli/get-index-sizes",
+            },
+            {
+              type: "doc",
+              label: "Truncate Timeseries Aspect",
+              id: "docs/api/restli/truncate-time-series-aspect",
+            },
+            {
+              type: "doc",
+              label: "Get ElasticSearch Task Status Endpoint",
+              id: "docs/api/restli/get-elastic-task-status",
+            },
+            {
+              type: "doc",
+              label: "Evaluate Tests",
+              id: "docs/api/restli/evaluate-tests",
+            },
+            {
+              type: "doc",
               label: "Aspect Versioning and Rest.li Modeling",
               id: "docs/advanced/aspect-versioning",
             },
@@ -309,6 +349,7 @@ module.exports = {
         "metadata-integration/java/as-a-library",
         {
           "API and SDK Guides": [
+            "docs/advanced/patch",
             "docs/api/tutorials/datasets",
             "docs/api/tutorials/lineage",
             "docs/api/tutorials/tags",
@@ -372,7 +413,14 @@ module.exports = {
       ],
     },
     {
-      Features: [
+      type: "category",
+      label: "Features",
+      link: {
+        type: "generated-index",
+        title: "Feature Guides",
+        description: "Learn about the features of DataHub.",
+      },
+      items: [
         "docs/ui-ingestion",
         "docs/how/search",
         "docs/schema-history",
@@ -381,19 +429,29 @@ module.exports = {
         "docs/dataproducts",
         "docs/glossary/business-glossary",
         "docs/tags",
-        "docs/browse",
+        "docs/ownership/ownership-types",
         "docs/authorization/access-policies-guide",
         "docs/features/dataset-usage-and-query-history",
         "docs/posts",
         "docs/sync-status",
-        "docs/architecture/stemming_and_synonyms",
-        "docs/lineage/lineage-feature-guide",
+        "docs/generated/lineage/lineage-feature-guide",
         {
           type: "doc",
           id: "docs/tests/metadata-tests",
           className: "saasOnly",
         },
         "docs/act-on-metadata/impact-analysis",
+        {
+          Observability: [
+            "docs/managed-datahub/observe/freshness-assertions",
+            "docs/managed-datahub/observe/volume-assertions",
+            "docs/managed-datahub/observe/custom-sql-assertions",
+            "docs/managed-datahub/observe/column-assertions",
+          ],
+        },
+        {
+          Guides: ["docs/features/feature-guides/ui-lineage"],
+        },
       ],
     },
     {
@@ -421,6 +479,7 @@ module.exports = {
             "docs/components",
             "docs/architecture/metadata-ingestion",
             "docs/architecture/metadata-serving",
+            "docs/architecture/docker-containers",
           ],
         },
         {
@@ -428,6 +487,7 @@ module.exports = {
             "docs/developers",
             "docs/docker/development",
             "metadata-ingestion/developing",
+            "docs/api/graphql/graphql-endpoint-development",
             {
               Modules: [
                 "datahub-web-react/README",
@@ -461,6 +521,7 @@ module.exports = {
             "docs/how/add-custom-ingestion-source",
             "docs/how/add-custom-data-platform",
             "docs/advanced/browse-paths-upgrade",
+            "docs/browseV2/browse-paths-v2",
           ],
         },
       ],
@@ -549,6 +610,11 @@ module.exports = {
         },
         {
           "Managed DataHub Release History": [
+            "docs/managed-datahub/release-notes/v_0_2_12",
+            "docs/managed-datahub/release-notes/v_0_2_11",
+            "docs/managed-datahub/release-notes/v_0_2_10",
+            "docs/managed-datahub/release-notes/v_0_2_9",
+            "docs/managed-datahub/release-notes/v_0_2_8",
             "docs/managed-datahub/release-notes/v_0_2_7",
             "docs/managed-datahub/release-notes/v_0_2_6",
             "docs/managed-datahub/release-notes/v_0_2_5",
@@ -613,6 +679,7 @@ module.exports = {
     // "metadata-jobs/README",
     // "docs/how/add-user-data",
     // "docs/_feature-guide-template"
+    // - "metadata-service/services/README"
     // ],
   ],
 };

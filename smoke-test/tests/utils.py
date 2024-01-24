@@ -1,19 +1,21 @@
 import functools
 import json
+import logging
 import os
-from datetime import datetime, timedelta, timezone
 import subprocess
 import time
-from typing import Any, Dict, List, Tuple
+from datetime import datetime, timedelta, timezone
 from time import sleep
+from typing import Any, Dict, List, Tuple
+
+from datahub.cli import cli_utils
+from datahub.cli.cli_utils import get_system_auth
+from datahub.ingestion.graph.client import DatahubClientConfig, DataHubGraph
+from datahub.ingestion.run.pipeline import Pipeline
 from joblib import Parallel, delayed
 
 import requests_wrapper as requests
-import logging
-from datahub.cli import cli_utils
-from datahub.cli.cli_utils import get_system_auth
-from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
-from datahub.ingestion.run.pipeline import Pipeline
+from tests.consistency_utils import wait_for_writes_to_sync
 
 TIME: int = 1581407189000
 logger = logging.getLogger(__name__)
@@ -171,15 +173,7 @@ def delete_urns_from_file(filename: str, shared_data: bool = False) -> None:
         d = json.load(f)
         Parallel(n_jobs=10)(delayed(delete)(entry) for entry in d)
 
-    # Deletes require 60 seconds when run between tests operating on common data, otherwise standard sync wait
-    if shared_data:
-        wait_for_writes_to_sync()
-    #        sleep(60)
-    else:
-        wait_for_writes_to_sync()
-
-
-#        sleep(requests.ELASTICSEARCH_REFRESH_INTERVAL_SECONDS)
+    wait_for_writes_to_sync()
 
 
 # Fixed now value
@@ -240,29 +234,3 @@ def create_datahub_step_state_aspects(
     ]
     with open(onboarding_filename, "w") as f:
         json.dump(aspects_dict, f, indent=2)
-
-
-def wait_for_writes_to_sync(max_timeout_in_sec: int = 120) -> None:
-    start_time = time.time()
-    # get offsets
-    lag_zero = False
-    while not lag_zero and (time.time() - start_time) < max_timeout_in_sec:
-        time.sleep(1)  # micro-sleep
-        completed_process = subprocess.run(
-            "docker exec broker /bin/kafka-consumer-groups --bootstrap-server broker:29092 --group generic-mae-consumer-job-client --describe | grep -v LAG | awk '{print $6}'",
-            capture_output=True,
-            shell=True,
-            text=True,
-        )
-
-        result = str(completed_process.stdout)
-        lines = result.splitlines()
-        lag_values = [int(l) for l in lines if l != ""]
-        maximum_lag = max(lag_values)
-        if maximum_lag == 0:
-            lag_zero = True
-
-    if not lag_zero:
-        logger.warning(
-            f"Exiting early from waiting for elastic to catch up due to a timeout. Current lag is {lag_values}"
-        )

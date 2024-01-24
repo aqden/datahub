@@ -5,7 +5,7 @@ import { Entity, EntityCapabilityType, IconStyleType, PreviewType } from '../Ent
 import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab';
 import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
-import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
+import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/sidebar/SidebarOwnerSection';
 import { getDataForEntityType } from '../shared/containers/profile/utils';
 import { SidebarViewDefinitionSection } from '../shared/containers/profile/sidebar/Dataset/View/SidebarViewDefinitionSection';
 import { GetDatasetQuery } from '../../../graphql/dataset.generated';
@@ -51,7 +51,7 @@ export class DataProductEntity implements Entity<DataProduct> {
 
     isSearchEnabled = () => true;
 
-    isBrowseEnabled = () => false;
+    isBrowseEnabled = () => true;
 
     isLineageEnabled = () => false;
 
@@ -132,7 +132,7 @@ export class DataProductEntity implements Entity<DataProduct> {
                 globalTags={data.tags}
                 glossaryTerms={data.glossaryTerms}
                 domain={data.domain?.domain}
-                entityCount={data?.properties?.numAssets || undefined}
+                entityCount={data?.entities?.total || undefined}
                 externalUrl={data.properties?.externalUrl}
             />
         );
@@ -149,8 +149,10 @@ export class DataProductEntity implements Entity<DataProduct> {
                 globalTags={data.tags}
                 glossaryTerms={data.glossaryTerms}
                 domain={data.domain?.domain}
-                entityCount={data?.properties?.numAssets || undefined}
+                entityCount={data?.entities?.total || undefined}
                 externalUrl={data.properties?.externalUrl}
+                degree={(result as any).degree}
+                paths={(result as any).paths}
             />
         );
     };
@@ -162,7 +164,7 @@ export class DataProductEntity implements Entity<DataProduct> {
     getOverridePropertiesFromEntity = (data: DataProduct) => {
         const name = data?.properties?.name;
         const externalUrl = data?.properties?.externalUrl;
-        const entityCount = data?.properties?.numAssets || undefined;
+        const entityCount = data?.entities?.total || undefined;
         return {
             name,
             externalUrl,

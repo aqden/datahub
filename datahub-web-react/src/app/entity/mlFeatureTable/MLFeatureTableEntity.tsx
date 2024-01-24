@@ -8,7 +8,7 @@ import { GenericEntityProperties } from '../shared/types';
 import { useGetMlFeatureTableQuery } from '../../../graphql/mlFeatureTable.generated';
 import { EntityProfile } from '../shared/containers/profile/EntityProfile';
 import { SidebarDomainSection } from '../shared/containers/profile/sidebar/Domain/SidebarDomainSection';
-import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
+import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/sidebar/SidebarOwnerSection';
 import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
 import MlFeatureTableFeatures from './profile/features/MlFeatureTableFeatures';
@@ -94,16 +94,16 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
                     component: SidebarAboutSection,
                 },
                 {
+                    component: SidebarOwnerSection,
+                    properties: {
+                        defaultOwnerType: OwnershipType.TechnicalOwner,
+                    },
+                },
+                {
                     component: SidebarTagsSection,
                     properties: {
                         hasTags: true,
                         hasTerms: true,
-                    },
-                },
-                {
-                    component: SidebarOwnerSection,
-                    properties: {
-                        defaultOwnerType: OwnershipType.TechnicalOwner,
                     },
                 },
                 {
@@ -144,6 +144,8 @@ export class MLFeatureTableEntity implements Entity<MlFeatureTable> {
                 platformName={data.platform?.properties?.displayName || capitalizeFirstLetterOnly(data.platform?.name)}
                 platformInstanceId={data.dataPlatformInstance?.instanceId}
                 dataProduct={getDataProduct(genericProperties?.dataProduct)}
+                degree={(result as any).degree}
+                paths={(result as any).paths}
             />
         );
     };

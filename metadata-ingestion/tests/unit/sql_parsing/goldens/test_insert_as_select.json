@@ -1,0 +1,100 @@
+{
+    "query_type": "INSERT",
+    "in_tables": [
+        "urn:li:dataset:(urn:li:dataPlatform:hive,catalog_returns,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,catalog_sales,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,customer_demographics,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,date_dim,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,household_demographics,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,inventory,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,item,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,promotion,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:hive,warehouse,PROD)"
+    ],
+    "out_tables": [
+        "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)"
+    ],
+    "column_lineage": [
+        {
+            "downstream": {
+                "table": "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)",
+                "column": "i_item_desc",
+                "column_type": null,
+                "native_column_type": null
+            },
+            "upstreams": []
+        },
+        {
+            "downstream": {
+                "table": "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)",
+                "column": "w_warehouse_name",
+                "column_type": null,
+                "native_column_type": null
+            },
+            "upstreams": []
+        },
+        {
+            "downstream": {
+                "table": "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)",
+                "column": "d_week_seq",
+                "column_type": null,
+                "native_column_type": null
+            },
+            "upstreams": [
+                {
+                    "table": "urn:li:dataset:(urn:li:dataPlatform:hive,date_dim,PROD)",
+                    "column": "d_week_seq"
+                }
+            ]
+        },
+        {
+            "downstream": {
+                "table": "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)",
+                "column": "no_promo",
+                "column_type": {
+                    "type": {
+                        "com.linkedin.pegasus2avro.schema.NumberType": {}
+                    }
+                },
+                "native_column_type": "BIGINT"
+            },
+            "upstreams": [
+                {
+                    "table": "urn:li:dataset:(urn:li:dataPlatform:hive,promotion,PROD)",
+                    "column": "p_promo_sk"
+                }
+            ]
+        },
+        {
+            "downstream": {
+                "table": "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)",
+                "column": "promo",
+                "column_type": {
+                    "type": {
+                        "com.linkedin.pegasus2avro.schema.NumberType": {}
+                    }
+                },
+                "native_column_type": "BIGINT"
+            },
+            "upstreams": [
+                {
+                    "table": "urn:li:dataset:(urn:li:dataPlatform:hive,promotion,PROD)",
+                    "column": "p_promo_sk"
+                }
+            ]
+        },
+        {
+            "downstream": {
+                "table": "urn:li:dataset:(urn:li:dataPlatform:hive,query72,PROD)",
+                "column": "total_cnt",
+                "column_type": {
+                    "type": {
+                        "com.linkedin.pegasus2avro.schema.NumberType": {}
+                    }
+                },
+                "native_column_type": "BIGINT"
+            },
+            "upstreams": []
+        }
+    ]
+}

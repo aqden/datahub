@@ -1,9 +1,12 @@
 import contextlib
+import logging
 import subprocess
 from typing import Callable, Optional, Union
 
 import pytest
 import pytest_docker.plugin
+
+logger = logging.getLogger(__name__)
 
 
 def is_responsive(container_name: str, port: int, hostname: Optional[str]) -> bool:
@@ -37,6 +40,7 @@ def wait_for_port(
             if checker
             else lambda: is_responsive(container_name, container_port, hostname),
         )
+        logger.info(f"Container {container_name} is ready!")
     finally:
         # use check=True to raise an error if command gave bad exit code
         subprocess.run(f"docker logs {container_name}", shell=True, check=True)
@@ -69,3 +73,26 @@ def docker_compose_runner(
             yield docker_services
 
     return run
+
+
+def cleanup_image(image_name: str) -> None:
+    assert ":" not in image_name, "image_name should not contain a tag"
+
+    images_proc = subprocess.run(
+        f"docker image ls --filter 'reference={image_name}*' -q",
+        shell=True,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    if not images_proc.stdout:
+        logger.debug(f"No images to cleanup for {image_name}")
+        return
+
+    image_ids = images_proc.stdout.splitlines()
+    subprocess.run(
+        f"docker image rm {' '.join(image_ids)}",
+        shell=True,
+        check=True,
+    )

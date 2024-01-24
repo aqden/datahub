@@ -16,13 +16,16 @@ class DatasetSubTypes(str, Enum):
     SALESFORCE_STANDARD_OBJECT = "Object"
     POWERBI_DATASET_TABLE = "PowerBI Dataset Table"
 
+    # TODO: Create separate entity...
+    NOTEBOOK = "Notebook"
+
 
 class DatasetContainerSubTypes(str, Enum):
     # Generic SubTypes
     DATABASE = "Database"
     SCHEMA = "Schema"
     # System-Specific SubTypes
-    PRESTO_CATALOG = "Catalog"
+    CATALOG = "Catalog"  # Presto or Unity Catalog
     BIGQUERY_PROJECT = "Project"
     BIGQUERY_DATASET = "Dataset"
     DATABRICKS_METASTORE = "Metastore"

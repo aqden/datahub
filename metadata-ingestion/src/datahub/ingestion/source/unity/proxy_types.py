@@ -1,10 +1,20 @@
 # Supported types are available at
 # https://api-docs.databricks.com/rest/latest/unity-catalog-api-specification-2-1.html?_ga=2.151019001.1795147704.1666247755-2119235717.1666247755
+import dataclasses
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, FrozenSet, List, Optional, Set
 
+from databricks.sdk.service.catalog import (
+    CatalogType,
+    ColumnTypeName,
+    DataSourceFormat,
+    SecurableType,
+    TableType,
+)
 from databricks.sdk.service.sql import QueryStatementType
+from databricks.sdk.service.workspace import Language
 
 from datahub.metadata.schema_classes import (
     ArrayTypeClass,
@@ -16,30 +26,32 @@ from datahub.metadata.schema_classes import (
     NumberTypeClass,
     OperationTypeClass,
     RecordTypeClass,
-    SchemaFieldDataTypeClass,
     StringTypeClass,
     TimeTypeClass,
 )
 
+logger = logging.getLogger(__name__)
+
 DATA_TYPE_REGISTRY: dict = {
-    "BOOLEAN": BooleanTypeClass,
-    "BYTE": BytesTypeClass,
-    "DATE": DateTypeClass,
-    "SHORT": NumberTypeClass,
-    "INT": NumberTypeClass,
-    "LONG": NumberTypeClass,
-    "FLOAT": NumberTypeClass,
-    "DOUBLE": NumberTypeClass,
-    "TIMESTAMP": TimeTypeClass,
-    "STRING": StringTypeClass,
-    "BINARY": BytesTypeClass,
-    "DECIMAL": NumberTypeClass,
-    "INTERVAL": TimeTypeClass,
-    "ARRAY": ArrayTypeClass,
-    "STRUCT": RecordTypeClass,
-    "MAP": MapTypeClass,
-    "CHAR": StringTypeClass,
-    "NULL": NullTypeClass,
+    ColumnTypeName.BOOLEAN: BooleanTypeClass,
+    ColumnTypeName.BYTE: BytesTypeClass,
+    ColumnTypeName.DATE: DateTypeClass,
+    ColumnTypeName.SHORT: NumberTypeClass,
+    ColumnTypeName.INT: NumberTypeClass,
+    ColumnTypeName.LONG: NumberTypeClass,
+    ColumnTypeName.FLOAT: NumberTypeClass,
+    ColumnTypeName.DOUBLE: NumberTypeClass,
+    ColumnTypeName.TIMESTAMP: TimeTypeClass,
+    ColumnTypeName.TIMESTAMP_NTZ: TimeTypeClass,
+    ColumnTypeName.STRING: StringTypeClass,
+    ColumnTypeName.BINARY: BytesTypeClass,
+    ColumnTypeName.DECIMAL: NumberTypeClass,
+    ColumnTypeName.INTERVAL: TimeTypeClass,
+    ColumnTypeName.ARRAY: ArrayTypeClass,
+    ColumnTypeName.STRUCT: RecordTypeClass,
+    ColumnTypeName.MAP: MapTypeClass,
+    ColumnTypeName.CHAR: StringTypeClass,
+    ColumnTypeName.NULL: NullTypeClass,
 }
 
 
@@ -60,16 +72,19 @@ OPERATION_STATEMENT_TYPES = {
 ALLOWED_STATEMENT_TYPES = {*OPERATION_STATEMENT_TYPES.keys(), QueryStatementType.SELECT}
 
 
+NotebookId = int
+
+
 @dataclass
 class CommonProperty:
     id: str
     name: str
-    type: str
     comment: Optional[str]
 
 
 @dataclass
 class Metastore(CommonProperty):
+    global_metastore_id: str  # Global across clouds and regions
     metastore_id: str
     owner: Optional[str]
     cloud: Optional[str]
@@ -78,8 +93,9 @@ class Metastore(CommonProperty):
 
 @dataclass
 class Catalog(CommonProperty):
-    metastore: Metastore
+    metastore: Optional[Metastore]
     owner: Optional[str]
+    type: CatalogType
 
 
 @dataclass
@@ -91,7 +107,7 @@ class Schema(CommonProperty):
 @dataclass
 class Column(CommonProperty):
     type_text: str
-    type_name: SchemaFieldDataTypeClass
+    type_name: ColumnTypeName
     type_precision: int
     type_scale: int
     position: int
@@ -115,7 +131,7 @@ class ServicePrincipal:
 
 @dataclass(frozen=True, order=True)
 class TableReference:
-    metastore_id: str
+    metastore: Optional[str]
     catalog: str
     schema: str
     table: str
@@ -123,18 +139,71 @@ class TableReference:
     @classmethod
     def create(cls, table: "Table") -> "TableReference":
         return cls(
-            table.schema.catalog.metastore.id,
+            table.schema.catalog.metastore.id
+            if table.schema.catalog.metastore
+            else None,
             table.schema.catalog.name,
             table.schema.name,
             table.name,
         )
 
+    @classmethod
+    def create_from_lineage(
+        cls, d: dict, metastore: Optional[Metastore]
+    ) -> Optional["TableReference"]:
+        try:
+            return cls(
+                metastore.id if metastore else None,
+                d["catalog_name"],
+                d["schema_name"],
+                d.get("table_name", d["name"]),  # column vs table query output
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create TableReference from {d}: {e}")
+            return None
+
     def __str__(self) -> str:
-        return f"{self.metastore_id}.{self.catalog}.{self.schema}.{self.table}"
+        if self.metastore:
+            return f"{self.metastore}.{self.catalog}.{self.schema}.{self.table}"
+        else:
+            return self.qualified_table_name
 
     @property
     def qualified_table_name(self) -> str:
         return f"{self.catalog}.{self.schema}.{self.table}"
+
+    @property
+    def external_path(self) -> str:
+        return f"{self.catalog}/{self.schema}/{self.table}"
+
+
+@dataclass(frozen=True, order=True)
+class ExternalTableReference:
+    path: str
+    has_permission: bool
+    name: Optional[str]
+    type: Optional[SecurableType]
+    storage_location: Optional[str]
+
+    @classmethod
+    def create_from_lineage(cls, d: dict) -> Optional["ExternalTableReference"]:
+        try:
+            securable_type: Optional[SecurableType]
+            try:
+                securable_type = SecurableType(d.get("securable_type", "").lower())
+            except ValueError:
+                securable_type = None
+
+            return cls(
+                path=d["path"],
+                has_permission=d.get("has_permission") or True,
+                name=d.get("securable_name"),
+                type=securable_type,
+                storage_location=d.get("storage_location"),
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create ExternalTableReference from {d}: {e}")
+            return None
 
 
 @dataclass
@@ -142,11 +211,10 @@ class Table(CommonProperty):
     schema: Schema
     columns: List[Column]
     storage_location: Optional[str]
-    data_source_format: Optional[str]
-    comment: Optional[str]
-    table_type: str
+    data_source_format: Optional[DataSourceFormat]
+    table_type: TableType
     owner: Optional[str]
-    generation: int
+    generation: Optional[int]
     created_at: datetime
     created_by: str
     updated_at: Optional[datetime]
@@ -155,12 +223,15 @@ class Table(CommonProperty):
     view_definition: Optional[str]
     properties: Dict[str, str]
     upstreams: Dict[TableReference, Dict[str, List[str]]] = field(default_factory=dict)
+    external_upstreams: Set[ExternalTableReference] = field(default_factory=set)
+    upstream_notebooks: Set[NotebookId] = field(default_factory=set)
+    downstream_notebooks: Set[NotebookId] = field(default_factory=set)
 
     ref: TableReference = field(init=False)
-    # lineage: Optional[Lineage]
 
     def __post_init__(self):
         self.ref = TableReference.create(self)
+        self.is_view = self.table_type in [TableType.VIEW, TableType.MATERIALIZED_VIEW]
 
 
 @dataclass
@@ -216,4 +287,24 @@ class ColumnProfile:
                 self.min is not None,
                 self.max is not None,
             )
+        )
+
+
+@dataclass
+class Notebook:
+    id: NotebookId
+    path: str
+    language: Language
+    created_at: datetime
+    modified_at: datetime
+
+    upstreams: FrozenSet[TableReference] = field(default_factory=frozenset)
+
+    @classmethod
+    def add_upstream(cls, upstream: TableReference, notebook: "Notebook") -> "Notebook":
+        return cls(
+            **{  # type: ignore
+                **dataclasses.asdict(notebook),
+                "upstreams": frozenset([*notebook.upstreams, upstream]),
+            }
         )

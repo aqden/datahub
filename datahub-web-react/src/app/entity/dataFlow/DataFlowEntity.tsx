@@ -9,7 +9,7 @@ import { DocumentationTab } from '../shared/tabs/Documentation/DocumentationTab'
 import { PropertiesTab } from '../shared/tabs/Properties/PropertiesTab';
 import { SidebarAboutSection } from '../shared/containers/profile/sidebar/AboutSection/SidebarAboutSection';
 import { SidebarTagsSection } from '../shared/containers/profile/sidebar/SidebarTagsSection';
-import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/SidebarOwnerSection';
+import { SidebarOwnerSection } from '../shared/containers/profile/sidebar/Ownership/sidebar/SidebarOwnerSection';
 import { GenericEntityProperties } from '../shared/types';
 import { DataFlowJobsTab } from '../shared/tabs/Entity/DataFlowJobsTab';
 import { getDataForEntityType } from '../shared/containers/profile/utils';
@@ -85,16 +85,16 @@ export class DataFlowEntity implements Entity<DataFlow> {
                     component: SidebarAboutSection,
                 },
                 {
+                    component: SidebarOwnerSection,
+                    properties: {
+                        defaultOwnerType: OwnershipType.TechnicalOwner,
+                    },
+                },
+                {
                     component: SidebarTagsSection,
                     properties: {
                         hasTags: true,
                         hasTerms: true,
-                    },
-                },
-                {
-                    component: SidebarOwnerSection,
-                    properties: {
-                        defaultOwnerType: OwnershipType.TechnicalOwner,
                     },
                 },
                 {
@@ -158,6 +158,8 @@ export class DataFlowEntity implements Entity<DataFlow> {
                 externalUrl={data.properties?.externalUrl}
                 jobCount={(data as any).childJobs?.total}
                 deprecation={data.deprecation}
+                degree={(result as any).degree}
+                paths={(result as any).paths}
             />
         );
     };

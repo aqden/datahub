@@ -379,49 +379,24 @@ export const dataset3 = {
         time: 0,
     },
     ownership: {
-        __typename: 'Ownership',
         owners: [
             {
                 owner: {
-                    __typename: 'CorpUser',
-                    urn: 'urn:li:corpuser:2',
-                    type: 'CORP_USER',
-                    username: 'jdoe',
-                    info: {
-                        __typename: 'CorpUserInfo',
-                        active: true,
-                        displayName: 'John Doe',
-                        title: 'Software Engineer',
-                        email: 'jdoe@linkedin.com',
-                        firstName: null,
-                        lastName: null,
-                        fullName: 'John Doe',
-                    },
-                    properties: {
-                        __typename: 'CorpUserProperties',
-                        active: true,
-                        displayName: 'John Doe',
-                        title: 'Software Engineer',
-                        email: 'jdoe@linkedin.com',
-                        firstName: null,
-                        lastName: null,
-                        fullName: 'John Doe',
-                    },
-                    editableProperties: {
-                        __typename: 'CorpUserEditableProperties',
-                        displayName: 'sdas',
-                        title: 'Software Engineer',
-                        pictureLink: 'something',
-                        email: 'sdas@domain.com',
-                    },
+                    ...user1,
                 },
                 type: 'DATAOWNER',
                 associatedUrn: 'urn:li:dataset:3',
             },
+            {
+                owner: {
+                    ...user2,
+                },
+                type: 'DELEGATE',
+                associatedUrn: 'urn:li:dataset:3',
+            },
         ],
         lastModified: {
-            __typename: 'AuditStamp',
-            time: 1581407189000,
+            time: 0,
         },
     },
     globalTags: {
@@ -478,6 +453,7 @@ export const dataset3 = {
                     actor: 'urn:li:corpuser:1',
                     time: 1612396473001,
                 },
+                associatedUrn: 'urn:li:dataset:3',
             },
         ],
     },
@@ -533,6 +509,7 @@ export const dataset3 = {
     siblings: null,
     statsSummary: null,
     embed: null,
+    browsePathV2: { path: [{ name: 'test', entity: null }], __typename: 'BrowsePathV2' },
 } as Dataset;
 
 export const dataset3WithSchema = {
@@ -3531,4 +3508,6 @@ export const platformPrivileges: PlatformPrivileges = {
     createTags: true,
     createDomains: true,
     manageGlobalViews: true,
+    manageOwnershipTypes: true,
+    manageGlobalAnnouncements: true,
 };

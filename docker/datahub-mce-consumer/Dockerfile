@@ -1,7 +1,7 @@
 # Defining environment
 ARG APP_ENV=prod
 
-FROM golang:1-alpine3.17 AS binary
+FROM golang:1-alpine3.18 AS binary
 
 ENV DOCKERIZE_VERSION v0.6.1
 WORKDIR /go/src/github.com/jwilder
@@ -20,6 +20,7 @@ ENV JMX_VERSION=0.18.0
 RUN apk --no-cache --update-cache --available upgrade \
     && apk --no-cache add curl bash sqlite \
     && apk --no-cache add openjdk11-jre --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community \
+    && apk --no-cache add jattach --repository http://dl-cdn.alpinelinux.org/alpine/edge/community/ \
     && wget --no-verbose https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.24.0/opentelemetry-javaagent.jar \
     && wget --no-verbose https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${JMX_VERSION}/jmx_prometheus_javaagent-${JMX_VERSION}.jar -O jmx_prometheus_javaagent.jar \
     && cp /usr/lib/jvm/java-11-openjdk/jre/lib/security/cacerts /tmp/kafka.client.truststore.jks

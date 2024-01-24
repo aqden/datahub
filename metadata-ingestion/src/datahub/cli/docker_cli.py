@@ -34,6 +34,7 @@ from datahub.cli.quickstart_versioning import QuickstartVersionMappingConfig
 from datahub.ingestion.run.pipeline import Pipeline
 from datahub.telemetry import telemetry
 from datahub.upgrade import upgrade
+from datahub.utilities.perf_timer import PerfTimer
 from datahub.utilities.sample_data import BOOTSTRAP_MCES_FILE, download_sample_data
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ KAFKA_SETUP_QUICKSTART_COMPOSE_FILE = (
 
 
 _QUICKSTART_MAX_WAIT_TIME = datetime.timedelta(minutes=10)
+_QUICKSTART_UP_TIMEOUT = datetime.timedelta(seconds=100)
 _QUICKSTART_STATUS_CHECK_INTERVAL = datetime.timedelta(seconds=2)
 
 
@@ -424,7 +426,7 @@ def detect_quickstart_arch(arch: Optional[str]) -> Architectures:
     return quickstart_arch
 
 
-@docker.command()
+@docker.command()  # noqa: C901
 @click.option(
     "--version",
     type=str,
@@ -586,7 +588,7 @@ def detect_quickstart_arch(arch: Optional[str]) -> Architectures:
         "arch",
     ]
 )
-def quickstart(
+def quickstart(  # noqa: C901
     version: Optional[str],
     build_locally: bool,
     pull_images: bool,
@@ -702,14 +704,28 @@ def quickstart(
             # As such, we'll only use the quiet flag if we're in an interactive environment.
             # If we're in quiet mode, then we'll show a spinner instead.
             quiet = not sys.stderr.isatty()
-            with click_spinner.spinner(disable=not quiet):
+            with PerfTimer() as timer, click_spinner.spinner(disable=not quiet):
                 subprocess.run(
                     [*base_command, "pull", *(("-q",) if quiet else ())],
                     check=True,
                     env=_docker_subprocess_env(),
                 )
+
+            telemetry.telemetry_instance.ping(
+                "quickstart-image-pull",
+                {
+                    "status": "success",
+                    "duration": timer.elapsed_seconds(),
+                },
+            )
             click.secho("Finished pulling docker images!")
     except subprocess.CalledProcessError:
+        telemetry.telemetry_instance.ping(
+            "quickstart-image-pull",
+            {
+                "status": "failure",
+            },
+        )
         click.secho(
             "Error while pulling images. Going to attempt to move on to docker compose up assuming the images have "
             "been built locally",
@@ -736,11 +752,24 @@ def quickstart(
         if up_attempts == 0 or (status and status.needs_up()):
             if up_attempts > 0:
                 click.echo()
-            subprocess.run(
+            up_attempts += 1
+
+            logger.debug(f"Executing docker compose up command, attempt #{up_attempts}")
+            up_process = subprocess.Popen(
                 base_command + ["up", "-d", "--remove-orphans"],
                 env=_docker_subprocess_env(),
             )
-            up_attempts += 1
+            try:
+                up_process.wait(timeout=_QUICKSTART_UP_TIMEOUT.total_seconds())
+            except subprocess.TimeoutExpired:
+                logger.debug("docker compose up timed out, sending SIGTERM")
+                up_process.terminate()
+                try:
+                    up_process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    logger.debug("docker compose up still running, sending SIGKILL")
+                    up_process.kill()
+                    up_process.wait()
 
         # Check docker health every few seconds.
         status = check_docker_quickstart()
@@ -871,6 +900,7 @@ def download_compose_files(
             tmp_file.write(quickstart_download_response.content)
             logger.debug(f"Copied to {path}")
     if kafka_setup:
+        base_url = get_docker_compose_base_url(compose_git_ref)
         kafka_setup_github_file = f"{base_url}/{KAFKA_SETUP_QUICKSTART_COMPOSE_FILE}"
 
         default_kafka_compose_file = (
@@ -963,7 +993,7 @@ def ingest_sample_data(path: Optional[str], token: Optional[str]) -> None:
     if token is not None:
         recipe["sink"]["config"]["token"] = token
 
-    pipeline = Pipeline.create(recipe)
+    pipeline = Pipeline.create(recipe, no_default_report=True)
     pipeline.run()
     ret = pipeline.pretty_print_summary()
     sys.exit(ret)
