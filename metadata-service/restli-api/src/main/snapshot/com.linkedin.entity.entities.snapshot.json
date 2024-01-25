@@ -3245,11 +3245,6 @@
                                 "fields" : [ ]
                               }, {
                                 "type" : "record",
-                                "name" : "UnknownType",
-                                "doc" : "Unknown field type.",
-                                "fields" : [ ]
-                              }, {
-                                "type" : "record",
                                 "name" : "StringType",
                                 "doc" : "String field type.",
                                 "fields" : [ ]
@@ -3328,6 +3323,11 @@
                                 "type" : "record",
                                 "name" : "RecordType",
                                 "doc" : "Record field type.",
+                                "fields" : [ ]
+                              }, {
+                                "type" : "record",
+                                "name" : "UnknownType",
+                                "doc" : "Unknown field type.",
                                 "fields" : [ ]
                               } ],
                               "doc" : "Data platform specific types"
@@ -6287,13 +6287,14 @@
       "doc" : "Additional properties",
       "optional" : true
     } ]
-  }, "com.linkedin.policy.DataHubActorFilter", "com.linkedin.policy.DataHubPolicyInfo", "com.linkedin.policy.DataHubResourceFilter", "com.linkedin.policy.PolicyMatchCondition", "com.linkedin.policy.PolicyMatchCriterion", "com.linkedin.policy.PolicyMatchFilter", "com.linkedin.retention.DataHubRetentionConfig", "com.linkedin.retention.Retention", "com.linkedin.retention.TimeBasedRetention", "com.linkedin.retention.VersionBasedRetention", "com.linkedin.schema.ArrayType", "com.linkedin.schema.BinaryJsonSchema", "com.linkedin.schema.BooleanType", "com.linkedin.schema.BytesType", "com.linkedin.schema.DatasetFieldForeignKey", "com.linkedin.schema.DateType", "com.linkedin.schema.EditableSchemaFieldInfo", "com.linkedin.schema.EditableSchemaMetadata", "com.linkedin.schema.EnumType", "com.linkedin.schema.EspressoSchema", "com.linkedin.schema.FixedType", "com.linkedin.schema.UnknownType", "com.linkedin.schema.ForeignKeyConstraint", "com.linkedin.schema.ForeignKeySpec", "com.linkedin.schema.KafkaSchema", "com.linkedin.schema.KeyValueSchema", "com.linkedin.schema.MapType", "com.linkedin.schema.MySqlDDL", "com.linkedin.schema.NullType", "com.linkedin.schema.NumberType", "com.linkedin.schema.OracleDDL", "com.linkedin.schema.OrcSchema", "com.linkedin.schema.OtherSchema", "com.linkedin.schema.PrestoDDL", "com.linkedin.schema.RecordType", "com.linkedin.schema.SchemaField", "com.linkedin.schema.SchemaFieldDataType", "com.linkedin.schema.SchemaMetadata", "com.linkedin.schema.SchemaMetadataKey", "com.linkedin.schema.Schemaless", "com.linkedin.schema.StringType", "com.linkedin.schema.TimeType", "com.linkedin.schema.UnionType", "com.linkedin.schema.UrnForeignKey", "com.linkedin.tag.TagProperties" ],
+  }, "com.linkedin.policy.DataHubActorFilter", "com.linkedin.policy.DataHubPolicyInfo", "com.linkedin.policy.DataHubResourceFilter", "com.linkedin.policy.PolicyMatchCondition", "com.linkedin.policy.PolicyMatchCriterion", "com.linkedin.policy.PolicyMatchFilter", "com.linkedin.retention.DataHubRetentionConfig", "com.linkedin.retention.Retention", "com.linkedin.retention.TimeBasedRetention", "com.linkedin.retention.VersionBasedRetention", "com.linkedin.schema.ArrayType", "com.linkedin.schema.BinaryJsonSchema", "com.linkedin.schema.BooleanType", "com.linkedin.schema.BytesType", "com.linkedin.schema.DatasetFieldForeignKey", "com.linkedin.schema.DateType", "com.linkedin.schema.EditableSchemaFieldInfo", "com.linkedin.schema.EditableSchemaMetadata", "com.linkedin.schema.EnumType", "com.linkedin.schema.EspressoSchema", "com.linkedin.schema.FixedType", "com.linkedin.schema.ForeignKeyConstraint", "com.linkedin.schema.ForeignKeySpec", "com.linkedin.schema.KafkaSchema", "com.linkedin.schema.KeyValueSchema", "com.linkedin.schema.MapType", "com.linkedin.schema.MySqlDDL", "com.linkedin.schema.NullType", "com.linkedin.schema.NumberType", "com.linkedin.schema.OracleDDL", "com.linkedin.schema.OrcSchema", "com.linkedin.schema.OtherSchema", "com.linkedin.schema.PrestoDDL", "com.linkedin.schema.RecordType", "com.linkedin.schema.SchemaField", "com.linkedin.schema.SchemaFieldDataType", "com.linkedin.schema.SchemaMetadata", "com.linkedin.schema.SchemaMetadataKey", "com.linkedin.schema.Schemaless", "com.linkedin.schema.StringType", "com.linkedin.schema.TimeType", "com.linkedin.schema.UnionType", "com.linkedin.schema.UnknownType", "com.linkedin.schema.UrnForeignKey", "com.linkedin.tag.TagProperties" ],
   "schema" : {
     "name" : "entities",
     "namespace" : "com.linkedin.entity",
     "path" : "/entities",
     "schema" : "com.linkedin.entity.Entity",
     "doc" : "Single unified resource for fetching, updating, searching, & browsing DataHub entities\n\ngenerated from: com.linkedin.metadata.resources.entity.EntityResource",
+    "resourceClass" : "com.linkedin.metadata.resources.entity.EntityResource",
     "collection" : {
       "identifier" : {
         "name" : "entitiesId",
@@ -6302,6 +6303,7 @@
       "supports" : [ "batch_get", "get" ],
       "methods" : [ {
         "method" : "get",
+        "javaMethodName" : "get",
         "doc" : "Retrieves the value for an entity that is made up of latest versions of specified aspects.",
         "parameters" : [ {
           "name" : "aspects",
@@ -6310,6 +6312,7 @@
         } ]
       }, {
         "method" : "batch_get",
+        "javaMethodName" : "batchGet",
         "parameters" : [ {
           "name" : "aspects",
           "type" : "{ \"type\" : \"array\", \"items\" : \"string\" }",
@@ -6318,6 +6321,7 @@
       } ],
       "actions" : [ {
         "name" : "applyRetention",
+        "javaMethodName" : "applyRetention",
         "parameters" : [ {
           "name" : "start",
           "type" : "int",
@@ -6342,6 +6346,7 @@
         "returns" : "string"
       }, {
         "name" : "autocomplete",
+        "javaMethodName" : "autocomplete",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6363,6 +6368,7 @@
         "returns" : "com.linkedin.metadata.query.AutoCompleteResult"
       }, {
         "name" : "batchGetTotalEntityCount",
+        "javaMethodName" : "batchGetTotalEntityCount",
         "parameters" : [ {
           "name" : "entities",
           "type" : "{ \"type\" : \"array\", \"items\" : \"string\" }"
@@ -6370,6 +6376,7 @@
         "returns" : "{ \"type\" : \"map\", \"values\" : \"long\" }"
       }, {
         "name" : "batchIngest",
+        "javaMethodName" : "batchIngest",
         "parameters" : [ {
           "name" : "entities",
           "type" : "{ \"type\" : \"array\", \"items\" : \"com.linkedin.entity.Entity\" }"
@@ -6380,6 +6387,7 @@
         } ]
       }, {
         "name" : "browse",
+        "javaMethodName" : "browse",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6400,6 +6408,7 @@
         "returns" : "com.linkedin.metadata.browse.BrowseResult"
       }, {
         "name" : "delete",
+        "javaMethodName" : "deleteEntity",
         "doc" : "Deletes all data related to an individual urn(entity).\nService Returns: - a DeleteEntityResponse object.",
         "parameters" : [ {
           "name" : "urn",
@@ -6424,6 +6433,7 @@
         "returns" : "com.linkedin.metadata.run.DeleteEntityResponse"
       }, {
         "name" : "deleteAll",
+        "javaMethodName" : "deleteEntities",
         "parameters" : [ {
           "name" : "registryId",
           "type" : "string",
@@ -6436,6 +6446,7 @@
         "returns" : "com.linkedin.metadata.run.RollbackResponse"
       }, {
         "name" : "deleteReferences",
+        "javaMethodName" : "deleteReferencesTo",
         "parameters" : [ {
           "name" : "urn",
           "type" : "string"
@@ -6447,6 +6458,7 @@
         "returns" : "com.linkedin.metadata.run.DeleteReferencesResponse"
       }, {
         "name" : "exists",
+        "javaMethodName" : "exists",
         "parameters" : [ {
           "name" : "urn",
           "type" : "string"
@@ -6454,6 +6466,7 @@
         "returns" : "boolean"
       }, {
         "name" : "filter",
+        "javaMethodName" : "filter",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6474,6 +6487,7 @@
         "returns" : "com.linkedin.metadata.search.SearchResult"
       }, {
         "name" : "getBrowsePaths",
+        "javaMethodName" : "getBrowsePaths",
         "parameters" : [ {
           "name" : "urn",
           "type" : "com.linkedin.common.Urn"
@@ -6481,6 +6495,7 @@
         "returns" : "{ \"type\" : \"array\", \"items\" : \"string\" }"
       }, {
         "name" : "getTotalEntityCount",
+        "javaMethodName" : "getTotalEntityCount",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6488,6 +6503,7 @@
         "returns" : "long"
       }, {
         "name" : "ingest",
+        "javaMethodName" : "ingest",
         "parameters" : [ {
           "name" : "entity",
           "type" : "com.linkedin.entity.Entity"
@@ -6498,6 +6514,7 @@
         } ]
       }, {
         "name" : "list",
+        "javaMethodName" : "list",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6519,6 +6536,7 @@
         "returns" : "com.linkedin.metadata.query.ListResult"
       }, {
         "name" : "listUrns",
+        "javaMethodName" : "listUrns",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6532,6 +6550,7 @@
         "returns" : "com.linkedin.metadata.query.ListUrnsResult"
       }, {
         "name" : "scrollAcrossEntities",
+        "javaMethodName" : "scrollAcrossEntities",
         "parameters" : [ {
           "name" : "entities",
           "type" : "{ \"type\" : \"array\", \"items\" : \"string\" }",
@@ -6564,6 +6583,7 @@
         "returns" : "com.linkedin.metadata.search.ScrollResult"
       }, {
         "name" : "scrollAcrossLineage",
+        "javaMethodName" : "scrollAcrossLineage",
         "parameters" : [ {
           "name" : "urn",
           "type" : "string"
@@ -6615,6 +6635,7 @@
         "returns" : "com.linkedin.metadata.search.LineageScrollResult"
       }, {
         "name" : "search",
+        "javaMethodName" : "search",
         "parameters" : [ {
           "name" : "entity",
           "type" : "string"
@@ -6650,6 +6671,7 @@
         "returns" : "com.linkedin.metadata.search.SearchResult"
       }, {
         "name" : "searchAcrossEntities",
+        "javaMethodName" : "searchAcrossEntities",
         "parameters" : [ {
           "name" : "entities",
           "type" : "{ \"type\" : \"array\", \"items\" : \"string\" }",
@@ -6679,6 +6701,7 @@
         "returns" : "com.linkedin.metadata.search.SearchResult"
       }, {
         "name" : "searchAcrossLineage",
+        "javaMethodName" : "searchAcrossLineage",
         "parameters" : [ {
           "name" : "urn",
           "type" : "string"
@@ -6727,6 +6750,7 @@
         "returns" : "com.linkedin.metadata.search.LineageSearchResult"
       }, {
         "name" : "setWritable",
+        "javaMethodName" : "setWriteable",
         "parameters" : [ {
           "name" : "value",
           "type" : "boolean",
