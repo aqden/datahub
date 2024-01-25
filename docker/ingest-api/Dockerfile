@@ -10,8 +10,7 @@ RUN cd /datahub-src && ./gradlew :metadata-ingestion:codegen -vvv
 FROM base as prod-codegen
 COPY --from=prod-build /datahub-src /datahub-src
 RUN cd /datahub-src/metadata-ingestion && \
-    pip install -e ".[base]" && \
-    ./scripts/codegen.sh
+    pip install -e ".[base]" 
 
 FROM base as final
 ENV PROMETHEUS_MULTIPROC_DIR=/gunicorn/
