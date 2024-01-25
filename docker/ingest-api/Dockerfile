@@ -5,7 +5,7 @@ RUN apt update && apt install -y build-essential python3-dev
 # FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-slim as base
 FROM openjdk:8 as prod-build
 COPY . /datahub-src
-RUN cd /datahub-src && ./gradlew :metadata-ingestion:codegen
+RUN cd /datahub-src && ./gradlew :metadata-ingestion:codegen -vvv
 
 FROM base as prod-codegen
 COPY --from=prod-build /datahub-src /datahub-src
