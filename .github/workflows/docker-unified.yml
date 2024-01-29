@@ -920,7 +920,7 @@ jobs:
           images: |
             ${{ env.INGEST_API_IMAGE }}
           build-args: |
-            BASE_IMAGE=${{ env.INGEST_API_IMAGE }}
+            BASE_IMAGE=${{ env.DATAHUB_INGESTION_BASE_IMAGE }}
             DOCKER_VERSION=${{ steps.filter.outputs.datahub-ingestion-base == 'true' && needs.setup.outputs.unique_slim_tag || 'head-slim' }}
             RELEASE_VERSION=${{ needs.setup.outputs.python_release_version }}
             APP_ENV=slim
