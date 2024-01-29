@@ -961,7 +961,7 @@ jobs:
   ingestapi_scan:
     name: "[Monitoring] Scan ingest-api images for vulnerabilities"
     runs-on: ubuntu-latest
-    needs: [setup, ingestapi_build]
+    needs: [setup, ingestapi_build2]
     steps:
       - name: Download image
         uses: ishworkh/docker-image-artifact-download@v1
