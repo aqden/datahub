@@ -27,11 +27,12 @@ ARG DOCKER_VERSION=head
 
 FROM $BASE_IMAGE:$DOCKER_VERSION as base
 USER 0
-ENV PROMETHEUS_MULTIPROC_DIR=/gunicorn/
 COPY ./metadata-ingestion /datahub-ingestion
 WORKDIR /datahub-ingestion
 RUN pip install --no-cache --user ".[base]"
 
+FROM base as final
+ENV PROMETHEUS_MULTIPROC_DIR=/gunicorn/
 COPY ./ingest-api/ /ingest-api/
 WORKDIR /ingest-api/ingest_api
 RUN pip install -r ../requirements.txt && pip install ../ && mkdir /gunicorn/

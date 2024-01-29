@@ -883,7 +883,7 @@ jobs:
           channel: github-activities
   ingestapi_build2:
   # this is based on datahub_ingestion_slim_build build step. like slim, I need codegen to run successfully first. (to get the datahub.metadata classes)
-    name: Build and Push DataHub Ingestion Docker Images
+    name: Build Ingest API
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
@@ -902,6 +902,8 @@ jobs:
               - 'docker/datahub-ingestion-base/**'
             datahub-ingestion:
               - 'docker/datahub-ingestion/**'
+            ingest-api:
+              - 'docker/ingest-api/**'              
       - name: Build codegen
         if: ${{ steps.filter.outputs.datahub-ingestion-base == 'true' || steps.filter.outputs.datahub-ingestion == 'true' || needs.setup.outputs.publish }}
         run: ./gradlew :metadata-ingestion:codegen
@@ -911,12 +913,12 @@ jobs:
         with:
           image: ${{ env.DATAHUB_INGESTION_BASE_IMAGE }}:${{ steps.filter.outputs.datahub-ingestion-base == 'true' && needs.setup.outputs.unique_slim_tag || 'head-slim' }}
       - name: Build and push IngestAPI image
-        if: ${{ steps.filter.outputs.datahub-ingestion-base == 'true' || steps.filter.outputs.datahub-ingestion == 'true' || needs.setup.outputs.publish }}
+        if: ${{ steps.filter.outputs.datahub-ingestion-base == 'true' || steps.filter.outputs.datahub-ingestion == 'true' || steps.filter.outputs.ingest-api == 'true' ||needs.setup.outputs.publish }}
         uses: ./.github/actions/docker-custom-build-and-push
         with:
-          target: final
+          target: final #publish the image labelled as final in dockerfile
           images: |
-            ${{ env.DATAHUB_INGESTION_IMAGE }}
+            ${{ env.INGEST_API_IMAGE }}
           build-args: |
             BASE_IMAGE=${{ env.INGEST_API_IMAGE }}
             DOCKER_VERSION=${{ steps.filter.outputs.datahub-ingestion-base == 'true' && needs.setup.outputs.unique_slim_tag || 'head-slim' }}
