@@ -113,6 +113,7 @@ def check_sw_version(sw_dict: dict) -> int:
 
     return version[0]
 
+
 def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
     """
     Get all the URLs, together with their description and the tags
@@ -146,7 +147,7 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
 
         url_details[p_k] = {"description": desc, "tags": tags, "method": method}
 
-        example_data = check_for_api_example_data(base_res, p_k)
+        example_data = check_for_api_example_data(base_res, p_k, sw_version)
         if example_data:
             url_details[p_k]["data"] = example_data
 
@@ -157,7 +158,7 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
     return dict(sorted(url_details.items()))
 
 
-def check_for_api_example_data(base_res: dict, key: str) -> dict:
+def check_for_api_example_data(base_res: dict, key: str, sw_version: int) -> dict:
     """
     Try to determine if example data is defined for the endpoint, and return it
     """
@@ -172,7 +173,7 @@ def check_for_api_example_data(base_res: dict, key: str) -> dict:
                 ex_field = "examples"
 
             if ex_field:
-                if sw_version == 3 :
+                if sw_version == 3:
                     for k, o in res_cont["application/json"][ex_field].items():
                         if "value" in o.keys():
                             data = o["value"]
