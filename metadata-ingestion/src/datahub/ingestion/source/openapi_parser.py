@@ -98,7 +98,7 @@ def get_url_basepath(sw_dict: dict) -> str:
     return ""
 
 
-def check_sw_version(sw_dict: dict) -> None:
+def check_sw_version(sw_dict: dict) -> int:
     if "swagger" in sw_dict:
         v_split = sw_dict["swagger"].split(".")
     else:
@@ -111,6 +111,7 @@ def check_sw_version(sw_dict: dict) -> None:
             "This plugin is not compatible with Swagger version >3.0"
         )
 
+    return version[0]
 
 def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
     """
@@ -118,7 +119,7 @@ def get_endpoints(sw_dict: dict) -> dict:  # noqa: C901
     """
     url_details = {}
 
-    check_sw_version(sw_dict)
+    sw_version = check_sw_version(sw_dict)
 
     for p_k, p_o in sw_dict["paths"].items():
         method = list(p_o)[0]
@@ -171,11 +172,16 @@ def check_for_api_example_data(base_res: dict, key: str) -> dict:
                 ex_field = "examples"
 
             if ex_field:
-                if isinstance(res_cont["application/json"][ex_field], dict):
-                    data = res_cont["application/json"][ex_field]
-                elif isinstance(res_cont["application/json"][ex_field], list):
-                    # taking the first example
-                    data = res_cont["application/json"][ex_field][0]
+                if sw_version == 3 :
+                    for k, o in res_cont["application/json"][ex_field].items():
+                        if "value" in o.keys():
+                            data = o["value"]
+                else:
+                    if isinstance(res_cont["application/json"][ex_field], dict):
+                        data = res_cont["application/json"][ex_field]
+                    elif isinstance(res_cont["application/json"][ex_field], list):
+                        # taking the first example
+                        data = res_cont["application/json"][ex_field][0]
             else:
                 logger.warning(
                     f"Field in swagger file does not give consistent data --- {key}"

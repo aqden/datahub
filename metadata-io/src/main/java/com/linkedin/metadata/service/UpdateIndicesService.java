@@ -225,6 +225,9 @@ public class UpdateIndicesService {
       deleteGraphData(urn, aspectSpec, aspect, isDeletingKey, event);
       deleteSearchData(_entitySearchService, urn, entitySpec.getName(), aspectSpec, aspect, isDeletingKey);
     }
+
+    // Populate update index with delete event
+    updateUpdateIndex(event);
   }
 
   // TODO: remove this method once we implement sourceOverride when creating graph edges
@@ -478,6 +481,14 @@ public class UpdateIndicesService {
     documents.entrySet().forEach(document -> {
       _timeseriesAspectService.upsertDocument(entityType, aspectName, document.getKey(), document.getValue());
     });
+  }
+
+  /**
+   * Process event and update Update index in Elastic
+   */
+  private void updateUpdateIndex(@Nonnull final MetadataChangeLog event) {
+    String updateDocument = _searchDocumentTransformer.transformEvent(event);
+    _entitySearchService.createUpdateDocument(updateDocument);
   }
 
   private void updateSystemMetadata(SystemMetadata systemMetadata, Urn urn, AspectSpec aspectSpec, RecordTemplate aspect) {
