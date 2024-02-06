@@ -45,9 +45,9 @@ export const EntityTabs = <T,>({ tabs, selectedTab }: Props) => {
         >
             {tabs.map((tab) => {
                 if (!tab.display?.enabled(entityData, baseEntity)) {
-                    return <Tab tab={tab.name} key={tab.name} disabled />;
+                    return <Tab data-testid={tab.name} tab={tab.name} key={tab.name} disabled />;
                 }
-                return <Tab tab={tab.name} key={tab.name} />;
+                return <Tab data-testid={tab.name} tab={tab.name} key={tab.name} />;
             })}
         </UnborderedTabs>
     );
