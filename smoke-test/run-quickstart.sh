@@ -18,6 +18,14 @@ XPACK_SECURITY_ENABLED="${XPACK_SECURITY_ENABLED:=plugins.security.disabled=true
 ELASTICSEARCH_USE_SSL="${ELASTICSEARCH_USE_SSL:=false}"
 USE_AWS_ELASTICSEARCH="${USE_AWS_ELASTICSEARCH:=true}"
 
+echo "Point to our repo for the smoke test"
+DATAHUB_FRONTEND_IMAGE="${DATAHUB_FRONTEND_IMAGE:-heruko/datahub-frontend-react}"
+DATAHUB_GMS_IMAGE="${DATAHUB_GMS_IMAGE:-heruko/datahub-gms}"
+DATAHUB_UPGRADE_IMAGE="${DATAHUB_UPGRADE_IMAGE:-heruko/datahub-upgrade}"
+DATAHUB_ELASTIC_SETUP_IMAGE="${DATAHUB_ELASTIC_SETUP_IMAGE:-heruko/datahub-elasticsearch-setup}"
+DATAHUB_KAFKA_SETUP_IMAGE="${DATAHUB_KAFKA_SETUP_IMAGE:-heruko/datahub-kafka-setup}"
+DATAHUB_MYSQL_SETUP_IMAGE="${DATAHUB_MYSQL_SETUP_IMAGE:-heruko/datahub-mysql-setup}"
+
 echo "DATAHUB_VERSION = $DATAHUB_VERSION"
 DATAHUB_TELEMETRY_ENABLED=false  \
 DOCKER_COMPOSE_BASE="file://$( dirname "$DIR" )" \
