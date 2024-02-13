@@ -286,7 +286,7 @@ export const EditPropertiesTableEditable = () => {
                 <Button data-testid="edit-properties-button" onClick={addRow}>
                     Add New Row
                 </Button>
-                <Button data-testid="edit-properties-button" onClick={deleteRow}>
+                <Button data-testid="delete-properties-button" onClick={deleteRow}>
                     Delete Row
                 </Button>
                 &nbsp;
