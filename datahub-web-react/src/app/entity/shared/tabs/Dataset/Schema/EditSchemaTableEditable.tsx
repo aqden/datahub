@@ -342,8 +342,12 @@ export const EditSchemaTableEditable = () => {
     return (
         <Form form={form} component={false}>
             <Row>
-                <Button data-testid="edit-schema-button" onClick={addRow}>Add New Row</Button>
-                <Button data-testid="delete-schema-button" onClick={deleteRow}>Delete Row</Button>
+                <Button data-testid="edit-schema-button" onClick={addRow}>
+                    Add New Row
+                </Button>
+                <Button data-testid="delete-schema-button" onClick={deleteRow}>
+                    Delete Row
+                </Button>
                 &nbsp;
                 <Button onClick={shiftUpwards}>&#x2191;</Button>
                 <Button onClick={shiftDownwards}>&#x2193;</Button>
