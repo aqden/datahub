@@ -1,4 +1,4 @@
-describe("edit schema", () => {
+describe("edit properties", () => {
   it("open test dataset page, edit documentation", () => {
     //edit documentation and verify changes saved
     cy.loginWithCredentials();
