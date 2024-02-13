@@ -283,8 +283,8 @@ export const EditPropertiesTableEditable = () => {
     return (
         <Form form={form} component={false}>
             <Row>
-                <Button onClick={addRow}>Add New Row</Button>
-                <Button onClick={deleteRow}>Delete Row</Button>
+                <Button data-testid="edit-properties-button" onClick={addRow}>Add New Row</Button>
+                <Button data-testid="edit-properties-button" onClick={deleteRow}>Delete Row</Button>
                 &nbsp;
                 <Button onClick={shiftUpwards}>&#x2191;</Button>
                 <Button onClick={shiftDownwards}>&#x2193;</Button>
