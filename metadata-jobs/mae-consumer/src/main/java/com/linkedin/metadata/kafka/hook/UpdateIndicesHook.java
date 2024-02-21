@@ -49,5 +49,6 @@ public class UpdateIndicesHook implements MetadataChangeLogHook {
         }
       }
     }
+    _updateIndicesService.handleChangeEvent(event);
   }
 }

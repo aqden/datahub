@@ -184,8 +184,6 @@ public class UpdateIndicesService {
     } else {
       updateGraphService(urn, aspectSpec, aspect, event);
     }
-    // Populate update index with update event
-    updateUpdateIndex(event);
   }
 
   /**
