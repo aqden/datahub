@@ -20,6 +20,7 @@ import com.linkedin.gms.factory.config.ConfigurationProvider;
 import com.linkedin.gms.factory.entityregistry.EntityRegistryFactory;
 import com.linkedin.gms.factory.entity.RestliEntityClientFactory;
 import com.linkedin.gms.factory.recommendation.RecommendationServiceFactory;
+import com.linkedin.metadata.client.SystemJavaEntityClient;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.metadata.graph.GraphClient;
 import com.linkedin.metadata.graph.GraphService;
@@ -28,6 +29,7 @@ import com.linkedin.metadata.models.registry.EntityRegistry;
 import com.linkedin.metadata.recommendation.RecommendationsService;
 import com.linkedin.metadata.secret.SecretService;
 import com.linkedin.metadata.service.DataProductService;
+import com.linkedin.metadata.service.OwnershipTypeService;
 import com.linkedin.metadata.service.QueryService;
 import com.linkedin.metadata.service.SettingsService;
 import com.linkedin.metadata.service.ViewService;
@@ -38,7 +40,7 @@ import com.linkedin.metadata.utils.elasticsearch.IndexConvention;
 import com.linkedin.metadata.version.GitVersion;
 import com.linkedin.usage.UsageClient;
 import javax.annotation.Nonnull;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.opensearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,6 +65,10 @@ public class GraphQLEngineFactory {
   @Autowired
   @Qualifier("javaEntityClient")
   private JavaEntityClient _entityClient;
+
+  @Autowired
+  @Qualifier("systemJavaEntityClient")
+  private SystemJavaEntityClient _systemEntityClient;
 
   @Autowired
   @Qualifier("graphClient")
@@ -141,6 +147,10 @@ public class GraphQLEngineFactory {
   private ViewService _viewService;
 
   @Autowired
+  @Qualifier("ownerShipTypeService")
+  private OwnershipTypeService _ownershipTypeService;
+
+  @Autowired
   @Qualifier("settingsService")
   private SettingsService _settingsService;
 
@@ -165,6 +175,7 @@ public class GraphQLEngineFactory {
   protected GraphQLEngine getInstance() {
     GmsGraphQLEngineArgs args = new GmsGraphQLEngineArgs();
     args.setEntityClient(_entityClient);
+    args.setSystemEntityClient(_systemEntityClient);
     args.setGraphClient(_graphClient);
     args.setUsageClient(_usageClient);
     if (isAnalyticsEnabled) {
@@ -194,6 +205,7 @@ public class GraphQLEngineFactory {
     args.setInviteTokenService(_inviteTokenService);
     args.setPostService(_postService);
     args.setViewService(_viewService);
+    args.setOwnershipTypeService(_ownershipTypeService);
     args.setSettingsService(_settingsService);
     args.setLineageService(_lineageService);
     args.setQueryService(_queryService);

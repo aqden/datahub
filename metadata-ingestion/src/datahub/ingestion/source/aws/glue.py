@@ -67,6 +67,7 @@ from datahub.ingestion.source.state.stateful_ingestion_base import (
     StatefulIngestionConfigBase,
     StatefulIngestionSourceBase,
 )
+from datahub.ingestion.source_config.operation_config import is_profiling_enabled
 from datahub.metadata.com.linkedin.pegasus2avro.common import Status, SubTypes
 from datahub.metadata.com.linkedin.pegasus2avro.metadata.snapshot import DatasetSnapshot
 from datahub.metadata.com.linkedin.pegasus2avro.mxe import MetadataChangeEvent
@@ -161,6 +162,11 @@ class GlueSourceConfig(
         default=None, description=""
     )
 
+    def is_profiling_enabled(self) -> bool:
+        return self.profiling is not None and is_profiling_enabled(
+            self.profiling.operation_config
+        )
+
     @property
     def glue_client(self):
         return self.get_glue_client()
@@ -192,6 +198,13 @@ class GlueSourceReport(StaleEntityRemovalSourceReport):
     tables_scanned = 0
     filtered: List[str] = dataclass_field(default_factory=list)
 
+    num_job_script_location_missing: int = 0
+    num_job_script_location_invalid: int = 0
+    num_job_script_failed_download: int = 0
+    num_job_script_failed_parsing: int = 0
+    num_job_without_nodes: int = 0
+    num_dataset_to_dataset_edges_in_job: int = 0
+
     def report_table_scanned(self) -> None:
         self.tables_scanned += 1
 
@@ -208,6 +221,7 @@ class GlueSourceReport(StaleEntityRemovalSourceReport):
     SourceCapability.DELETION_DETECTION,
     "Enabled by default when stateful ingestion is turned on.",
 )
+@capability(SourceCapability.LINEAGE_COARSE, "Enabled by default")
 class GlueSource(StatefulIngestionSourceBase):
     """
     Note: if you also have files in S3 that you'd like to ingest, we recommend you use Glue's built-in data catalog. See [here](../../../../docs/generated/ingestion/sources/s3.md) for a quick guide on how to set up a crawler on Glue and ingest the outputs with DataHub.
@@ -254,7 +268,7 @@ class GlueSource(StatefulIngestionSourceBase):
     """
 
     source_config: GlueSourceConfig
-    report = GlueSourceReport()
+    report: GlueSourceReport
 
     def __init__(self, config: GlueSourceConfig, ctx: PipelineContext):
         super().__init__(config, ctx)
@@ -297,7 +311,9 @@ class GlueSource(StatefulIngestionSourceBase):
 
         return jobs
 
-    def get_dataflow_graph(self, script_path: str) -> Optional[Dict[str, Any]]:
+    def get_dataflow_graph(
+        self, script_path: str, flow_urn: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Get the DAG of transforms and data sources/sinks for a job.
 
@@ -313,10 +329,11 @@ class GlueSource(StatefulIngestionSourceBase):
 
         # catch any other cases where the script path is invalid
         if not script_path.startswith("s3://"):
-            self.report.report_warning(
-                script_path,
+            self.report_warning(
+                flow_urn,
                 f"Error parsing DAG for Glue job. The script {script_path} is not a valid S3 path.",
             )
+            self.report.num_job_script_location_invalid += 1
 
             return None
 
@@ -330,10 +347,11 @@ class GlueSource(StatefulIngestionSourceBase):
         try:
             obj = self.s3_client.get_object(Bucket=bucket, Key=key)
         except botocore.exceptions.ClientError as e:
-            self.report.report_failure(
-                script_path,
+            self.report_warning(
+                flow_urn,
                 f"Unable to download DAG for Glue job from {script_path}, so job subtasks and lineage will be missing: {e}",
             )
+            self.report.num_job_script_failed_download += 1
             return None
         script = obj["Body"].read().decode("utf-8")
 
@@ -344,10 +362,11 @@ class GlueSource(StatefulIngestionSourceBase):
 
         # sometimes the Python script can be user-modified and the script is not valid for graph extraction
         except self.glue_client.exceptions.InvalidInputException as e:
-            self.report.report_warning(
-                script_path,
+            self.report_warning(
+                flow_urn,
                 f"Error parsing DAG for Glue job. The script {script_path} cannot be processed by Glue (this usually occurs when it has been user-modified): {e}",
             )
+            self.report.num_job_script_failed_parsing += 1
 
             return None
 
@@ -415,9 +434,9 @@ class GlueSource(StatefulIngestionSourceBase):
                 s3_uri = self.get_s3_uri(node_args)
 
                 if s3_uri is None:
-                    self.report.report_warning(
-                        f"{node['Nodetype']}-{node['Id']}",
-                        f"Could not find script path for job {node['Nodetype']}-{node['Id']} in flow {flow_urn}. Skipping",
+                    self.report_warning(
+                        flow_urn,
+                        f"Could not find script path for job {node['NodeType']}-{node['Id']} in flow {flow_urn}. Skipping",
                     )
                     return None
 
@@ -451,9 +470,9 @@ class GlueSource(StatefulIngestionSourceBase):
 
             else:
                 if self.source_config.ignore_unsupported_connectors:
-                    logger.info(
+                    self.report_warning(
                         flow_urn,
-                        f"Unrecognized Glue data object type: {node_args}. Skipping.",
+                        f"Unrecognized node {node['NodeType']}-{node['Id']} in flow {flow_urn}. Args: {node_args} Skipping",
                     )
                     return None
                 else:
@@ -515,9 +534,10 @@ class GlueSource(StatefulIngestionSourceBase):
             # Source and Target for some edges is not available
             # in nodes. this may lead to broken edge in lineage.
             if source_node is None or target_node is None:
-                logger.warning(
-                    f"{flow_urn}: Unrecognized source or target node in edge: {edge}. Skipping.\
-                        This may lead to broken edge in lineage",
+                self.report_warning(
+                    flow_urn,
+                    f"Unrecognized source or target node in edge: {edge}. Skipping."
+                    "This may lead to missing lineage",
                 )
                 continue
 
@@ -800,7 +820,9 @@ class GlueSource(StatefulIngestionSourceBase):
     def get_profile_if_enabled(
         self, mce: MetadataChangeEventClass, database_name: str, table_name: str
     ) -> Iterable[MetadataWorkUnit]:
-        if self.source_config.profiling:
+        # We don't need both checks only the second one
+        # but then lint believes that GlueProfilingConfig can be None
+        if self.source_config.profiling and self.source_config.is_profiling_enabled():
             # for cross-account ingestion
             kwargs = dict(
                 DatabaseName=database_name,
@@ -978,7 +1000,9 @@ class GlueSource(StatefulIngestionSourceBase):
             dag: Optional[Dict[str, Any]] = None
 
             if job_script_location is not None:
-                dag = self.get_dataflow_graph(job_script_location)
+                dag = self.get_dataflow_graph(job_script_location, flow_urn)
+            else:
+                self.report.num_job_script_location_missing += 1
 
             dags[flow_urn] = dag
             flow_names[flow_urn] = job["Name"]
@@ -1000,9 +1024,17 @@ class GlueSource(StatefulIngestionSourceBase):
                 dag, flow_urn, s3_formats
             )
 
+            if not nodes:
+                self.report.num_job_without_nodes += 1
+
             for node in nodes.values():
                 if node["NodeType"] not in ["DataSource", "DataSink"]:
                     yield self.get_datajob_wu(node, flow_names[flow_urn])
+                elif (node["NodeType"] == "DataSource" and node["outputDatasets"]) or (
+                    node["NodeType"] == "DataSink" and node["inputDatasets"]
+                ):
+                    # Not common, but capturing counts here for reporting
+                    self.report.num_dataset_to_dataset_edges_in_job += 1
 
             for dataset_id, dataset_mce in zip(new_dataset_ids, new_dataset_mces):
                 yield MetadataWorkUnit(id=dataset_id, mce=dataset_mce)
@@ -1189,3 +1221,7 @@ class GlueSource(StatefulIngestionSourceBase):
 
     def get_report(self):
         return self.report
+
+    def report_warning(self, key: str, reason: str) -> None:
+        logger.warning(f"{key}: {reason}")
+        self.report.report_warning(key, reason)

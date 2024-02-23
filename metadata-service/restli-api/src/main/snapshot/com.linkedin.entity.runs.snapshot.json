@@ -94,7 +94,8 @@
       "doc" : "Title of the chart",
       "Searchable" : {
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -877,10 +878,11 @@
         "type" : "enum",
         "name" : "OwnershipType",
         "doc" : "Asset owner types",
-        "symbols" : [ "TECHNICAL_OWNER", "BUSINESS_OWNER", "DATA_STEWARD", "NONE", "DEVELOPER", "DATAOWNER", "DELEGATE", "PRODUCER", "CONSUMER", "STAKEHOLDER" ],
+        "symbols" : [ "CUSTOM", "TECHNICAL_OWNER", "BUSINESS_OWNER", "DATA_STEWARD", "NONE", "DEVELOPER", "DATAOWNER", "DELEGATE", "PRODUCER", "CONSUMER", "STAKEHOLDER" ],
         "symbolDocs" : {
           "BUSINESS_OWNER" : "A person or group who is responsible for logical, or business related, aspects of the asset.",
           "CONSUMER" : "A person, group, or service that consumes the data\nDeprecated! Use TECHNICAL_OWNER or BUSINESS_OWNER instead.",
+          "CUSTOM" : "Set when ownership type is unknown or a when new one is specified as an ownership type entity for which we have no\nenum value for. This is used for backwards compatibility",
           "DATAOWNER" : "A person or group that is owning the data\nDeprecated! Use TECHNICAL_OWNER instead.",
           "DATA_STEWARD" : "A steward, expert, or delegate responsible for the asset.",
           "DELEGATE" : "A person or a group that overseas the operation, e.g. a DBA or SRE.\nDeprecated! Use TECHNICAL_OWNER instead.",
@@ -899,7 +901,17 @@
           "STAKEHOLDER" : true
         }
       },
-      "doc" : "The type of the ownership"
+      "doc" : "The type of the ownership",
+      "deprecated" : true
+    }, {
+      "name" : "typeUrn",
+      "type" : "Urn",
+      "doc" : "The type of the ownership\nUrn of type O",
+      "optional" : true,
+      "Relationship" : {
+        "entityTypes" : [ "ownershipType" ],
+        "name" : "ownershipType"
+      }
     }, {
       "name" : "source",
       "type" : {
@@ -1021,7 +1033,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1147,7 +1160,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1206,7 +1220,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1607,7 +1622,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "qualifiedName",
@@ -1618,7 +1634,7 @@
         "addToFilters" : false,
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT"
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "description",
@@ -1795,7 +1811,8 @@
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
         "fieldName" : "displayName",
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "id",
@@ -1831,7 +1848,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL"
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM"
       }
     }, {
       "name" : "definition",
@@ -1895,6 +1913,7 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
+        "fieldNameAliases" : [ "_entityName" ],
         "fieldType" : "TEXT_PARTIAL",
         "queryByDefault" : true
       }
@@ -2022,7 +2041,7 @@
       "optional" : true,
       "Searchable" : {
         "boostScore" : 10.0,
-        "fieldType" : "TEXT_PARTIAL",
+        "fieldType" : "WORD_GRAM",
         "queryByDefault" : true
       }
     }, {
@@ -2074,7 +2093,8 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL",
+        "fieldNameAliases" : [ "_entityName" ],
+        "fieldType" : "WORD_GRAM",
         "queryByDefault" : true
       }
     }, {
@@ -2137,7 +2157,7 @@
       "Searchable" : {
         "boostScore" : 10.0,
         "enableAutocomplete" : true,
-        "fieldType" : "TEXT_PARTIAL",
+        "fieldType" : "WORD_GRAM",
         "queryByDefault" : true
       }
     }, {
@@ -2230,7 +2250,7 @@
         "Searchable" : {
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL",
+          "fieldType" : "WORD_GRAM",
           "queryByDefault" : true
         }
       } ],
@@ -2250,7 +2270,7 @@
           "boostScore" : 2.0,
           "enableAutocomplete" : true,
           "fieldName" : "ldap",
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2296,7 +2316,7 @@
         "doc" : "Unique Identifier of the data flow",
         "Searchable" : {
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       }, {
         "name" : "cluster",
@@ -2333,7 +2353,7 @@
         "doc" : "Unique Identifier of the data job",
         "Searchable" : {
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2574,11 +2594,6 @@
                     "fields" : [ ]
                   }, {
                     "type" : "record",
-                    "name" : "UnknownType",
-                    "doc" : "Unknown field type.",
-                    "fields" : [ ]
-                  }, {
-                    "type" : "record",
                     "name" : "StringType",
                     "doc" : "String field type.",
                     "fields" : [ ]
@@ -2657,6 +2672,11 @@
                     "type" : "record",
                     "name" : "RecordType",
                     "doc" : "Record field type.",
+                    "fields" : [ ]
+                  }, {
+                    "type" : "record",
+                    "name" : "UnknownType",
+                    "doc" : "Unknown field type.",
                     "fields" : [ ]
                   } ],
                   "doc" : "Data platform specific types"
@@ -2913,7 +2933,7 @@
         "type" : "string",
         "Searchable" : {
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2931,7 +2951,7 @@
         "Searchable" : {
           "enableAutocomplete" : true,
           "fieldName" : "id",
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -2956,7 +2976,8 @@
         "Searchable" : {
           "boostScore" : 8.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldNameAliases" : [ "_entityName" ],
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -3021,7 +3042,8 @@
         "Searchable" : {
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldNameAliases" : [ "_entityName" ],
+          "fieldType" : "WORD_GRAM"
         }
       }, {
         "name" : "origin",
@@ -3588,7 +3610,7 @@
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
           "fieldName" : "id",
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldType" : "WORD_GRAM"
         }
       } ],
       "Aspect" : {
@@ -3606,7 +3628,8 @@
         "Searchable" : {
           "boostScore" : 10.0,
           "enableAutocomplete" : true,
-          "fieldType" : "TEXT_PARTIAL"
+          "fieldNameAliases" : [ "_entityName" ],
+          "fieldType" : "WORD_GRAM"
         }
       }, {
         "name" : "description",
@@ -3723,13 +3746,14 @@
         }
       }
     } ]
-  }, "com.linkedin.metadata.run.UnsafeEntityInfo", "com.linkedin.ml.metadata.BaseData", "com.linkedin.ml.metadata.CaveatDetails", "com.linkedin.ml.metadata.CaveatsAndRecommendations", "com.linkedin.ml.metadata.EthicalConsiderations", "com.linkedin.ml.metadata.EvaluationData", "com.linkedin.ml.metadata.HyperParameterValueType", "com.linkedin.ml.metadata.IntendedUse", "com.linkedin.ml.metadata.IntendedUserType", "com.linkedin.ml.metadata.MLFeatureProperties", "com.linkedin.ml.metadata.MLHyperParam", "com.linkedin.ml.metadata.MLMetric", "com.linkedin.ml.metadata.MLModelFactorPrompts", "com.linkedin.ml.metadata.MLModelFactors", "com.linkedin.ml.metadata.MLModelProperties", "com.linkedin.ml.metadata.Metrics", "com.linkedin.ml.metadata.QuantitativeAnalyses", "com.linkedin.ml.metadata.ResultsType", "com.linkedin.ml.metadata.SourceCode", "com.linkedin.ml.metadata.SourceCodeUrl", "com.linkedin.ml.metadata.SourceCodeUrlType", "com.linkedin.ml.metadata.TrainingData", "com.linkedin.schema.ArrayType", "com.linkedin.schema.BinaryJsonSchema", "com.linkedin.schema.BooleanType", "com.linkedin.schema.BytesType", "com.linkedin.schema.DatasetFieldForeignKey", "com.linkedin.schema.DateType", "com.linkedin.schema.EditableSchemaFieldInfo", "com.linkedin.schema.EditableSchemaMetadata", "com.linkedin.schema.EnumType", "com.linkedin.schema.EspressoSchema", "com.linkedin.schema.FixedType", "com.linkedin.schema.UnknownType", "com.linkedin.schema.ForeignKeyConstraint", "com.linkedin.schema.ForeignKeySpec", "com.linkedin.schema.KafkaSchema", "com.linkedin.schema.KeyValueSchema", "com.linkedin.schema.MapType", "com.linkedin.schema.MySqlDDL", "com.linkedin.schema.NullType", "com.linkedin.schema.NumberType", "com.linkedin.schema.OracleDDL", "com.linkedin.schema.OrcSchema", "com.linkedin.schema.OtherSchema", "com.linkedin.schema.PrestoDDL", "com.linkedin.schema.RecordType", "com.linkedin.schema.SchemaField", "com.linkedin.schema.SchemaFieldDataType", "com.linkedin.schema.SchemaMetadata", "com.linkedin.schema.SchemaMetadataKey", "com.linkedin.schema.Schemaless", "com.linkedin.schema.StringType", "com.linkedin.schema.TimeType", "com.linkedin.schema.UnionType", "com.linkedin.schema.UrnForeignKey", "com.linkedin.tag.TagProperties" ],
+  }, "com.linkedin.metadata.run.UnsafeEntityInfo", "com.linkedin.ml.metadata.BaseData", "com.linkedin.ml.metadata.CaveatDetails", "com.linkedin.ml.metadata.CaveatsAndRecommendations", "com.linkedin.ml.metadata.EthicalConsiderations", "com.linkedin.ml.metadata.EvaluationData", "com.linkedin.ml.metadata.HyperParameterValueType", "com.linkedin.ml.metadata.IntendedUse", "com.linkedin.ml.metadata.IntendedUserType", "com.linkedin.ml.metadata.MLFeatureProperties", "com.linkedin.ml.metadata.MLHyperParam", "com.linkedin.ml.metadata.MLMetric", "com.linkedin.ml.metadata.MLModelFactorPrompts", "com.linkedin.ml.metadata.MLModelFactors", "com.linkedin.ml.metadata.MLModelProperties", "com.linkedin.ml.metadata.Metrics", "com.linkedin.ml.metadata.QuantitativeAnalyses", "com.linkedin.ml.metadata.ResultsType", "com.linkedin.ml.metadata.SourceCode", "com.linkedin.ml.metadata.SourceCodeUrl", "com.linkedin.ml.metadata.SourceCodeUrlType", "com.linkedin.ml.metadata.TrainingData", "com.linkedin.schema.ArrayType", "com.linkedin.schema.BinaryJsonSchema", "com.linkedin.schema.BooleanType", "com.linkedin.schema.BytesType", "com.linkedin.schema.DatasetFieldForeignKey", "com.linkedin.schema.DateType", "com.linkedin.schema.EditableSchemaFieldInfo", "com.linkedin.schema.EditableSchemaMetadata", "com.linkedin.schema.EnumType", "com.linkedin.schema.EspressoSchema", "com.linkedin.schema.FixedType", "com.linkedin.schema.ForeignKeyConstraint", "com.linkedin.schema.ForeignKeySpec", "com.linkedin.schema.KafkaSchema", "com.linkedin.schema.KeyValueSchema", "com.linkedin.schema.MapType", "com.linkedin.schema.MySqlDDL", "com.linkedin.schema.NullType", "com.linkedin.schema.NumberType", "com.linkedin.schema.OracleDDL", "com.linkedin.schema.OrcSchema", "com.linkedin.schema.OtherSchema", "com.linkedin.schema.PrestoDDL", "com.linkedin.schema.RecordType", "com.linkedin.schema.SchemaField", "com.linkedin.schema.SchemaFieldDataType", "com.linkedin.schema.SchemaMetadata", "com.linkedin.schema.SchemaMetadataKey", "com.linkedin.schema.Schemaless", "com.linkedin.schema.StringType", "com.linkedin.schema.TimeType", "com.linkedin.schema.UnionType", "com.linkedin.schema.UnknownType", "com.linkedin.schema.UrnForeignKey", "com.linkedin.tag.TagProperties" ],
   "schema" : {
     "name" : "runs",
     "namespace" : "com.linkedin.entity",
     "path" : "/runs",
     "schema" : "com.linkedin.metadata.aspect.VersionedAspect",
     "doc" : "resource for showing information and rolling back runs\n\ngenerated from: com.linkedin.metadata.resources.entity.BatchIngestionRunResource",
+    "resourceClass" : "com.linkedin.metadata.resources.entity.BatchIngestionRunResource",
     "collection" : {
       "identifier" : {
         "name" : "runsId",
@@ -3738,6 +3762,7 @@
       "supports" : [ ],
       "actions" : [ {
         "name" : "describe",
+        "javaMethodName" : "describe",
         "parameters" : [ {
           "name" : "runId",
           "type" : "string"
@@ -3759,6 +3784,7 @@
         "returns" : "{ \"type\" : \"array\", \"items\" : \"com.linkedin.metadata.run.AspectRowSummary\" }"
       }, {
         "name" : "list",
+        "javaMethodName" : "list",
         "doc" : "Retrieves the value for an entity that is made up of latest versions of specified aspects.",
         "parameters" : [ {
           "name" : "pageOffset",
@@ -3776,6 +3802,7 @@
         "returns" : "{ \"type\" : \"array\", \"items\" : \"com.linkedin.metadata.run.IngestionRunSummary\" }"
       }, {
         "name" : "rollback",
+        "javaMethodName" : "rollback",
         "doc" : "Rolls back an ingestion run",
         "parameters" : [ {
           "name" : "runId",

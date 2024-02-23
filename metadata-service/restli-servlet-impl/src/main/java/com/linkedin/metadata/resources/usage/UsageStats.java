@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.datahub.authentication.Authentication;
 import com.datahub.authentication.AuthenticationContext;
 import com.datahub.plugins.auth.authorization.Authorizer;
-import com.datahub.authorization.ResourceSpec;
+import com.datahub.authorization.EntitySpec;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.linkedin.common.WindowDuration;
 import com.linkedin.common.urn.Urn;
+import com.linkedin.common.urn.UrnUtils;
 import com.linkedin.data.template.StringArray;
 import com.linkedin.dataset.DatasetFieldUsageCounts;
 import com.linkedin.dataset.DatasetFieldUsageCountsArray;
@@ -124,7 +125,7 @@ public class UsageStats extends SimpleResourceTemplate<UsageAggregation> {
     return RestliUtil.toTask(() -> {
       Authentication auth = AuthenticationContext.getAuthentication();
       if (Boolean.parseBoolean(System.getenv(REST_API_AUTHORIZATION_ENABLED_ENV))
-          && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.EDIT_ENTITY_PRIVILEGE), (ResourceSpec) null)) {
+          && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.EDIT_ENTITY_PRIVILEGE), (EntitySpec) null)) {
         throw new RestLiServiceException(HttpStatus.S_401_UNAUTHORIZED,
             "User is unauthorized to edit entities.");
       }
@@ -319,8 +320,10 @@ public class UsageStats extends SimpleResourceTemplate<UsageAggregation> {
     log.info("Attempting to query usage stats");
     return RestliUtil.toTask(() -> {
       Authentication auth = AuthenticationContext.getAuthentication();
+      Urn resourceUrn = UrnUtils.getUrn(resource);
       if (Boolean.parseBoolean(System.getenv(REST_API_AUTHORIZATION_ENABLED_ENV))
-          && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.VIEW_DATASET_USAGE_PRIVILEGE), (ResourceSpec) null)) {
+          && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.VIEW_DATASET_USAGE_PRIVILEGE),
+          new EntitySpec(resourceUrn.getEntityType(), resourceUrn.toString()))) {
         throw new RestLiServiceException(HttpStatus.S_401_UNAUTHORIZED,
             "User is unauthorized to query usage.");
       }
@@ -377,8 +380,10 @@ public class UsageStats extends SimpleResourceTemplate<UsageAggregation> {
   public Task<UsageQueryResult> queryRange(@ActionParam(PARAM_RESOURCE) @Nonnull String resource,
       @ActionParam(PARAM_DURATION) @Nonnull WindowDuration duration, @ActionParam(PARAM_RANGE) UsageTimeRange range) {
     Authentication auth = AuthenticationContext.getAuthentication();
+    Urn resourceUrn = UrnUtils.getUrn(resource);
     if (Boolean.parseBoolean(System.getenv(REST_API_AUTHORIZATION_ENABLED_ENV))
-        && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.VIEW_DATASET_USAGE_PRIVILEGE), (ResourceSpec) null)) {
+        && !isAuthorized(auth, _authorizer, ImmutableList.of(PoliciesConfig.VIEW_DATASET_USAGE_PRIVILEGE),
+            new EntitySpec(resourceUrn.getEntityType(), resourceUrn.toString()))) {
       throw new RestLiServiceException(HttpStatus.S_401_UNAUTHORIZED,
           "User is unauthorized to query usage.");
     }

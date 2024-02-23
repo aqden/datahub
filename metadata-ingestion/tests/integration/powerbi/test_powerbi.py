@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 from typing import Any, Dict, List, cast
 from unittest import mock
@@ -20,6 +21,7 @@ from datahub.ingestion.source.powerbi.rest_api_wrapper.data_classes import (
 )
 from tests.test_helpers import mce_helpers
 
+pytestmark = pytest.mark.integration_batch_2
 FROZEN_TIME = "2022-02-03 07:00:00"
 
 
@@ -434,6 +436,19 @@ def register_mock_api(request_mock: Any, override_data: dict = {}) -> None:
                                     },
                                 ],
                             },
+                            {
+                                "id": "91580e0e-1680-4b1c-bbf9-4f6764d7a5ff",
+                                "tables": [
+                                    {
+                                        "name": "employee_ctc",
+                                        "source": [
+                                            {
+                                                "expression": "dummy",
+                                            }
+                                        ],
+                                    }
+                                ],
+                            },
                         ],
                         "dashboards": [
                             {
@@ -564,6 +579,16 @@ def register_mock_api(request_mock: Any, override_data: dict = {}) -> None:
                         "currentValue": "gcp_billing",
                     },
                 ]
+            },
+        },
+        "https://api.powerbi.com/v1.0/myorg/groups/64ED5CAD-7C10-4684-8180-826122881108/datasets/91580e0e-1680-4b1c-bbf9-4f6764d7a5ff": {
+            "method": "GET",
+            "status_code": 200,
+            "json": {
+                "id": "91580e0e-1680-4b1c-bbf9-4f6764d7a5ff",
+                "name": "employee-dataset",
+                "description": "Employee Management",
+                "webUrl": "http://localhost/groups/64ED5CAD-7C10-4684-8180-826122881108/datasets/91580e0e-1680-4b1c-bbf9-4f6764d7a5ff",
             },
         },
     }
@@ -1103,7 +1128,7 @@ def test_dataset_type_mapping_error(
     """
     register_mock_api(request_mock=requests_mock)
 
-    try:
+    with pytest.raises(Exception, match=r"dataset_type_mapping is deprecated"):
         Pipeline.create(
             {
                 "run_id": "powerbi-test",
@@ -1125,11 +1150,6 @@ def test_dataset_type_mapping_error(
                     },
                 },
             }
-        )
-    except Exception as e:
-        assert (
-            "dataset_type_mapping is deprecated. Use server_to_platform_instance only."
-            in str(e)
         )
 
 
@@ -1209,6 +1229,7 @@ def validate_pipeline(pipeline: Pipeline) -> None:
         report_endorsements={},
         dashboard_endorsements={},
         scan_result={},
+        independent_datasets=[],
     )
     # Fetch actual reports
     reports: List[Report] = cast(
@@ -1389,3 +1410,182 @@ def test_reports_with_failed_page_request(
     )
 
     validate_pipeline(pipeline)
+
+
+@freeze_time(FROZEN_TIME)
+@mock.patch("msal.ConfidentialClientApplication", side_effect=mock_msal_cca)
+def test_independent_datasets_extraction(
+    mock_msal, pytestconfig, tmp_path, mock_time, requests_mock
+):
+
+    test_resources_dir = pytestconfig.rootpath / "tests/integration/powerbi"
+
+    register_mock_api(
+        request_mock=requests_mock,
+        override_data={
+            "https://api.powerbi.com/v1.0/myorg/groups": {
+                "method": "GET",
+                "status_code": 200,
+                "json": {
+                    "@odata.count": 3,
+                    "value": [
+                        {
+                            "id": "64ED5CAD-7C10-4684-8180-826122881108",
+                            "isReadOnly": True,
+                            "name": "demo-workspace",
+                            "type": "Workspace",
+                        },
+                    ],
+                },
+            },
+            "https://api.powerbi.com/v1.0/myorg/admin/workspaces/scanResult/4674efd1-603c-4129-8d82-03cf2be05aff": {
+                "method": "GET",
+                "status_code": 200,
+                "json": {
+                    "workspaces": [
+                        {
+                            "id": "64ED5CAD-7C10-4684-8180-826122881108",
+                            "name": "demo-workspace",
+                            "state": "Active",
+                            "datasets": [
+                                {
+                                    "id": "91580e0e-1680-4b1c-bbf9-4f6764d7a5ff",
+                                    "tables": [
+                                        {
+                                            "name": "employee_ctc",
+                                            "source": [
+                                                {
+                                                    "expression": "dummy",
+                                                }
+                                            ],
+                                        }
+                                    ],
+                                },
+                            ],
+                        },
+                    ]
+                },
+            },
+            "https://api.powerbi.com/v1.0/myorg/groups/64ED5CAD-7C10-4684-8180-826122881108/dashboards": {
+                "method": "GET",
+                "status_code": 200,
+                "json": {"value": []},
+            },
+        },
+    )
+
+    pipeline = Pipeline.create(
+        {
+            "run_id": "powerbi-test",
+            "source": {
+                "type": "powerbi",
+                "config": {
+                    **default_source_config(),
+                    "extract_independent_datasets": True,
+                },
+            },
+            "sink": {
+                "type": "file",
+                "config": {
+                    "filename": f"{tmp_path}/powerbi_independent_mces.json",
+                },
+            },
+        }
+    )
+
+    pipeline.run()
+    pipeline.raise_from_status()
+    golden_file = "golden_test_independent_datasets.json"
+
+    mce_helpers.check_golden_file(
+        pytestconfig,
+        output_path=tmp_path / "powerbi_independent_mces.json",
+        golden_path=f"{test_resources_dir}/{golden_file}",
+    )
+
+
+@freeze_time(FROZEN_TIME)
+@mock.patch("msal.ConfidentialClientApplication", side_effect=mock_msal_cca)
+def test_cll_extraction(mock_msal, pytestconfig, tmp_path, mock_time, requests_mock):
+
+    test_resources_dir = pytestconfig.rootpath / "tests/integration/powerbi"
+
+    register_mock_api(
+        request_mock=requests_mock,
+    )
+
+    default_conf: dict = default_source_config()
+
+    del default_conf[
+        "dataset_type_mapping"
+    ]  # delete this key so that connector set it to default (all dataplatform)
+
+    pipeline = Pipeline.create(
+        {
+            "run_id": "powerbi-test",
+            "source": {
+                "type": "powerbi",
+                "config": {
+                    **default_conf,
+                    "extract_lineage": True,
+                    "extract_column_level_lineage": True,
+                    "enable_advance_lineage_sql_construct": True,
+                    "native_query_parsing": True,
+                    "extract_independent_datasets": True,
+                },
+            },
+            "sink": {
+                "type": "file",
+                "config": {
+                    "filename": f"{tmp_path}/powerbi_cll_mces.json",
+                },
+            },
+        }
+    )
+
+    pipeline.run()
+    pipeline.raise_from_status()
+    golden_file = "golden_test_cll.json"
+
+    mce_helpers.check_golden_file(
+        pytestconfig,
+        output_path=tmp_path / "powerbi_cll_mces.json",
+        golden_path=f"{test_resources_dir}/{golden_file}",
+    )
+
+
+@freeze_time(FROZEN_TIME)
+@mock.patch("msal.ConfidentialClientApplication", side_effect=mock_msal_cca)
+def test_cll_extraction_flags(
+    mock_msal, pytestconfig, tmp_path, mock_time, requests_mock
+):
+
+    register_mock_api(
+        request_mock=requests_mock,
+    )
+
+    default_conf: dict = default_source_config()
+    pattern: str = re.escape(
+        "Enable all these flags in recipe: ['native_query_parsing', 'enable_advance_lineage_sql_construct', 'extract_lineage']"
+    )
+
+    with pytest.raises(Exception, match=pattern):
+
+        Pipeline.create(
+            {
+                "run_id": "powerbi-test",
+                "source": {
+                    "type": "powerbi",
+                    "config": {
+                        **default_conf,
+                        "extract_column_level_lineage": True,
+                    },
+                },
+                "sink": {
+                    "type": "file",
+                    "config": {
+                        "filename": f"{tmp_path}/powerbi_cll_mces.json",
+                    },
+                },
+            }
+        )

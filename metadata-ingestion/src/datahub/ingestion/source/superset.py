@@ -8,6 +8,7 @@ import requests
 from pydantic.class_validators import root_validator, validator
 from pydantic.fields import Field
 
+from datahub.configuration import ConfigModel
 from datahub.emitter.mce_builder import DEFAULT_ENV
 from datahub.ingestion.api.common import PipelineContext
 from datahub.ingestion.api.decorators import (
@@ -20,7 +21,9 @@ from datahub.ingestion.api.decorators import (
 )
 from datahub.ingestion.api.source import MetadataWorkUnitProcessor, Source
 from datahub.ingestion.api.workunit import MetadataWorkUnit
-from datahub.ingestion.source.sql import sql_common
+from datahub.ingestion.source.sql.sqlalchemy_uri_mapper import (
+    get_platform_from_sqlalchemy_uri,
+)
 from datahub.ingestion.source.state.stale_entity_removal_handler import (
     StaleEntityRemovalHandler,
     StaleEntityRemovalSourceReport,
@@ -69,7 +72,7 @@ chart_type_from_viz_type = {
 }
 
 
-class SupersetConfig(StatefulIngestionConfigBase):
+class SupersetConfig(StatefulIngestionConfigBase, ConfigModel):
     # See the Superset /security/login endpoint for details
     # https://superset.apache.org/docs/rest-api
     connect_uri: str = Field(
@@ -139,6 +142,7 @@ def get_filter_name(filter_obj):
 @capability(
     SourceCapability.DELETION_DETECTION, "Optionally enabled via stateful_ingestion"
 )
+@capability(SourceCapability.LINEAGE_COARSE, "Supported by default")
 class SupersetSource(StatefulIngestionSourceBase):
     """
     This plugin extracts the following:
@@ -199,7 +203,9 @@ class SupersetSource(StatefulIngestionSourceBase):
             f"{self.config.connect_uri}/api/v1/database/{database_id}"
         ).json()
         sqlalchemy_uri = database_response.get("result", {}).get("sqlalchemy_uri")
-        return sql_common.get_platform_from_sqlalchemy_uri(sqlalchemy_uri)
+        if sqlalchemy_uri is None:
+            return database_response.get("result", {}).get("backend", "external")
+        return get_platform_from_sqlalchemy_uri(sqlalchemy_uri)
 
     @lru_cache(maxsize=None)
     def get_datasource_urn_from_id(self, datasource_id):

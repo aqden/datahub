@@ -1,9 +1,10 @@
 package com.linkedin.gms.factory.auth;
 
 import com.datahub.authentication.token.StatefulTokenService;
-import com.linkedin.gms.factory.spring.YamlPropertySourceFactory;
 import com.linkedin.metadata.entity.EntityService;
 import javax.annotation.Nonnull;
+
+import com.linkedin.metadata.spring.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,10 +23,10 @@ public class DataHubTokenServiceFactory {
   @Value("${authentication.tokenService.salt:}")
   private String saltingKey;
 
-  @Value("${elasticsearch.tokenService.signingAlgorithm:HS256}")
+  @Value("${authentication.tokenService.signingAlgorithm:HS256}")
   private String signingAlgorithm;
 
-  @Value("${elasticsearch.tokenService.issuer:datahub-metadata-service}")
+  @Value("${authentication.tokenService.issuer:datahub-metadata-service}")
   private String issuer;
 
   /**
@@ -36,7 +37,7 @@ public class DataHubTokenServiceFactory {
    */
   @Autowired
   @Qualifier("entityService")
-  private EntityService entityService;
+  private EntityService _entityService;
 
   @Bean(name = "dataHubTokenService")
   @Scope("singleton")
@@ -46,7 +47,7 @@ public class DataHubTokenServiceFactory {
         this.signingKey,
         this.signingAlgorithm,
         this.issuer,
-        this.entityService,
+        this._entityService,
         this.saltingKey
     );
   }

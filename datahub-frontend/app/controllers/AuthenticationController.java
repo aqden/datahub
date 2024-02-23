@@ -13,14 +13,15 @@ import com.linkedin.common.urn.Urn;
 import com.typesafe.config.Config;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.pac4j.core.client.Client;
+import org.pac4j.core.context.Cookie;
 import org.pac4j.core.exception.http.FoundAction;
 import org.pac4j.core.exception.http.RedirectionAction;
-import org.pac4j.core.util.Pac4jConstants;
 import org.pac4j.play.PlayWebContext;
 import org.pac4j.play.http.PlayHttpActionAdapter;
 import org.pac4j.play.store.PlaySessionStore;
@@ -33,23 +34,14 @@ import play.mvc.Result;
 import play.mvc.Results;
 import security.AuthenticationManager;
 
-import static auth.AuthUtils.DEFAULT_ACTOR_URN;
-import static auth.AuthUtils.EMAIL;
-import static auth.AuthUtils.FULL_NAME;
-import static auth.AuthUtils.INVITE_TOKEN;
-import static auth.AuthUtils.LOGIN_ROUTE;
-import static auth.AuthUtils.PASSWORD;
-import static auth.AuthUtils.RESET_TOKEN;
-import static auth.AuthUtils.TITLE;
-import static auth.AuthUtils.USER_NAME;
-import static auth.AuthUtils.createActorCookie;
-import static auth.AuthUtils.createSessionMap;
+import static auth.AuthUtils.*;
 import static org.pac4j.core.client.IndirectClient.ATTEMPTED_AUTHENTICATION_SUFFIX;
+import static org.pac4j.play.store.PlayCookieSessionStore.*;
 
 
 // TODO add logging.
 public class AuthenticationController extends Controller {
-
+    public static final String AUTH_VERBOSE_LOGGING = "auth.verbose.logging";
     private static final String AUTH_REDIRECT_URI_PARAM = "redirect_uri";
     private static final String ERROR_MESSAGE_URI_PARAM = "error_msg";
     private static final String SSO_DISABLED_ERROR_MESSAGE = "SSO is not configured";
@@ -60,6 +52,7 @@ public class AuthenticationController extends Controller {
     private final CookieConfigs _cookieConfigs;
     private final JAASConfigs _jaasConfigs;
     private final NativeAuthenticationConfigs _nativeAuthenticationConfigs;
+    private final boolean _verbose;
 
     @Inject
     private org.pac4j.core.config.Config _ssoConfig;
@@ -78,6 +71,7 @@ public class AuthenticationController extends Controller {
         _cookieConfigs = new CookieConfigs(configs);
         _jaasConfigs = new JAASConfigs(configs);
         _nativeAuthenticationConfigs = new NativeAuthenticationConfigs(configs);
+        _verbose = configs.hasPath(AUTH_VERBOSE_LOGGING) && configs.getBoolean(AUTH_VERBOSE_LOGGING);
     }
 
     /**
@@ -282,7 +276,11 @@ public class AuthenticationController extends Controller {
             final Optional<RedirectionAction> action = client.getRedirectionAction(playWebContext);
             return action.map(act -> new PlayHttpActionAdapter().adapt(act, playWebContext));
         } catch (Exception e) {
-            _logger.error("Caught exception while attempting to redirect to SSO identity provider! It's likely that SSO integration is mis-configured", e);
+            if (_verbose) {
+                _logger.error("Caught exception while attempting to redirect to SSO identity provider! It's likely that SSO integration is mis-configured", e);
+            } else {
+                _logger.error("Caught exception while attempting to redirect to SSO identity provider! It's likely that SSO integration is mis-configured");
+            }
             return Optional.of(Results.redirect(
                 String.format("/login?error_msg=%s",
                 URLEncoder.encode("Failed to redirect to Single Sign-On provider. Please contact your DataHub Administrator, "
@@ -291,8 +289,12 @@ public class AuthenticationController extends Controller {
     }
 
     private void configurePac4jSessionStore(PlayWebContext context, Client client, String redirectPath) {
-        // Set the originally requested path for post-auth redirection.
-        _playSessionStore.set(context, Pac4jConstants.REQUESTED_URL, new FoundAction(redirectPath));
+        // Set the originally requested path for post-auth redirection. We split off into a separate cookie from the session
+        // to reduce size of the session cookie
+        FoundAction foundAction = new FoundAction(redirectPath);
+        byte[] javaSerBytes = JAVA_SER_HELPER.serializeToBytes(foundAction);
+        String serialized = Base64.getEncoder().encodeToString(compressBytes(javaSerBytes));
+        context.addResponseCookie(new Cookie(REDIRECT_URL_COOKIE_NAME, serialized));
         // This is to prevent previous login attempts from being cached.
         // We replicate the logic here, which is buried in the Pac4j client.
         if (_playSessionStore.get(context, client.getName() + ATTEMPTED_AUTHENTICATION_SUFFIX) != null) {
@@ -316,7 +318,11 @@ public class AuthenticationController extends Controller {
                 _logger.debug("Jaas authentication successful. Login succeeded");
                 loginSucceeded = true;
             } catch (Exception e) {
-                _logger.debug("Jaas authentication error. Login failed", e);
+                if (_verbose) {
+                    _logger.debug("Jaas authentication error. Login failed", e);
+                } else {
+                    _logger.debug("Jaas authentication error. Login failed");
+                }
             }
         }
 

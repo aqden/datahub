@@ -18,7 +18,14 @@ logging.getLogger("py4j").setLevel(logging.ERROR)
 logger: logging.Logger = logging.getLogger(__name__)
 
 SUPPORTED_FILE_TYPES: List[str] = ["csv", "tsv", "json", "parquet", "avro"]
-SUPPORTED_COMPRESSIONS: List[str] = ["gz", "bz2"]
+
+# These come from the smart_open library.
+SUPPORTED_COMPRESSIONS: List[str] = [
+    "gz",
+    "bz2",
+    # We have a monkeypatch on smart_open that aliases .gzip to .gz.
+    "gzip",
+]
 
 
 class PathSpec(ConfigModel):
@@ -79,6 +86,34 @@ class PathSpec(ConfigModel):
 
         logger.debug(f"{path} had selected extension {ext}")
         logger.debug(f"{path} allowed for dataset creation")
+        return True
+
+    def dir_allowed(self, path: str) -> bool:
+        path_slash = path.count("/")
+        glob_slash = self.glob_include.count("/")
+        if path_slash > glob_slash:
+            return False
+
+        # We need to remove the extra slashes from the glob include other wise it would keep the part after the last slash
+        # which wouldn't match to the dir path
+        slash_to_remove_from_glob = (glob_slash - path_slash) + 1
+
+        # glob_include = self.glob_include.rsplit("/", 1)[0]
+        glob_include = self.glob_include
+
+        for i in range(slash_to_remove_from_glob):
+            glob_include = glob_include.rsplit("/", 1)[0]
+
+        logger.debug(f"Checking dir to inclusion: {path}")
+        if not pathlib.PurePath(path).globmatch(glob_include, flags=pathlib.GLOBSTAR):
+            return False
+        logger.debug(f"{path} matched include ")
+        if self.exclude:
+            for exclude_path in self.exclude:
+                if pathlib.PurePath(path.rstrip("/")).globmatch(
+                    exclude_path.rstrip("/"), flags=pathlib.GLOBSTAR
+                ):
+                    return False
         return True
 
     @classmethod

@@ -16,6 +16,8 @@ public class EntityTypeMapper {
   static final Map<EntityType, String> ENTITY_TYPE_TO_NAME =
       ImmutableMap.<EntityType, String>builder()
           .put(EntityType.DATASET, "dataset")
+          .put(EntityType.ROLE, "role")
+          .put(EntityType.ASSERTION, Constants.ASSERTION_ENTITY_NAME)
           .put(EntityType.CORP_USER, "corpuser")
           .put(EntityType.CORP_GROUP, "corpGroup")
           .put(EntityType.DATA_PLATFORM, "dataPlatform")
@@ -24,6 +26,7 @@ public class EntityTypeMapper {
           .put(EntityType.TAG, "tag")
           .put(EntityType.DATA_FLOW, "dataFlow")
           .put(EntityType.DATA_JOB, "dataJob")
+          .put(EntityType.DATA_PROCESS_INSTANCE, Constants.DATA_PROCESS_INSTANCE_ENTITY_NAME)
           .put(EntityType.GLOSSARY_TERM, "glossaryTerm")
           .put(EntityType.GLOSSARY_NODE, "glossaryNode")
           .put(EntityType.MLMODEL, "mlModel")
