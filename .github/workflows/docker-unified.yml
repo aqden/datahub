@@ -23,17 +23,17 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DATAHUB_GMS_IMAGE: "heruko/datahub-gms"
-  DATAHUB_FRONTEND_IMAGE: "heruko/datahub-frontend-react"
-  DATAHUB_MAE_CONSUMER_IMAGE: "heruko/datahub-mae-consumer"
-  DATAHUB_MCE_CONSUMER_IMAGE: "heruko/datahub-mce-consumer"
-  DATAHUB_KAFKA_SETUP_IMAGE: "heruko/datahub-kafka-setup"
-  DATAHUB_ELASTIC_SETUP_IMAGE: "heruko/datahub-elasticsearch-setup"
-  DATAHUB_MYSQL_SETUP_IMAGE: "heruko/datahub-mysql-setup"
-  DATAHUB_UPGRADE_IMAGE: "heruko/datahub-upgrade"
-  DATAHUB_INGESTION_BASE_IMAGE: "heruko/datahub-ingestion-base"
-  DATAHUB_INGESTION_IMAGE: "heruko/datahub-ingestion"
-  INGEST_API_IMAGE: 'heruko/ingest-api'
+  DATAHUB_GMS_IMAGE: "aqden/datahub-gms"
+  DATAHUB_FRONTEND_IMAGE: "aqden/datahub-frontend-react"
+  DATAHUB_MAE_CONSUMER_IMAGE: "aqden/datahub-mae-consumer"
+  DATAHUB_MCE_CONSUMER_IMAGE: "aqden/datahub-mce-consumer"
+  DATAHUB_KAFKA_SETUP_IMAGE: "aqden/datahub-kafka-setup"
+  DATAHUB_ELASTIC_SETUP_IMAGE: "aqden/datahub-elasticsearch-setup"
+  DATAHUB_MYSQL_SETUP_IMAGE: "aqden/datahub-mysql-setup"
+  DATAHUB_UPGRADE_IMAGE: "aqden/datahub-upgrade"
+  DATAHUB_INGESTION_BASE_IMAGE: "aqden/datahub-ingestion-base"
+  DATAHUB_INGESTION_IMAGE: "aqden/datahub-ingestion"
+  INGEST_API_IMAGE: 'aqden/ingest-api'
 
 jobs:
   setup:
