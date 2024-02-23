@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: heruko/datahub-ingestion-smoke
+  IMAGE: aqden/datahub-ingestion-smoke
 
 jobs:
   setup:
