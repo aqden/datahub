@@ -66,7 +66,7 @@ jobs:
         uses: ./.github/actions/docker-custom-build-and-push
         with:
           images: |
-            heruko/datahub-ingestion
+            aqden/datahub-ingestion
           tags: ${{ needs.setup.outputs.tag }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -80,7 +80,7 @@ jobs:
         uses: ./.github/actions/docker-custom-build-and-push
         with:
           images: |
-            heruko/datahub-ingestion-slim
+            aqden/datahub-ingestion-slim
           tags: ${{ needs.setup.outputs.tag }}
           username: ${{ secrets.ACRYL_DOCKER_USERNAME }}
           password: ${{ secrets.ACRYL_DOCKER_PASSWORD }}
@@ -103,13 +103,13 @@ jobs:
       - name: Download image
         uses: ishworkh/docker-image-artifact-download@v1
         with:
-          image: heruko/datahub-ingestion-slim:latest
+          image: aqden/datahub-ingestion-slim:latest
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.8.0
         env:
           TRIVY_OFFLINE_SCAN: true
         with:
-          image-ref: heruko/datahub-ingestion-slim:latest
+          image-ref: aqden/datahub-ingestion-slim:latest
           format: "template"
           template: "@/contrib/sarif.tpl"
           output: "trivy-results.sarif"
